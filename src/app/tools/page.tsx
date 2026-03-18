@@ -8,7 +8,7 @@ export default async function ToolsPage() {
   });
 
   return (
-    <AppShell title="Tools" subtitle="Integrated Tools & Services">
+    <AppShell title="Tools" subtitle="Integrierte Tools & Dienste">
       <div className="p-6">
         <ToolsClient initialTools={tools} />
       </div>

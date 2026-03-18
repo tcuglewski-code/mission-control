@@ -6,10 +6,12 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const category = searchParams.get("category");
     const search = searchParams.get("search");
+    const type = searchParams.get("type");
 
     const entries = await prisma.memoryEntry.findMany({
       where: {
         ...(category && category !== "all" ? { category } : {}),
+        ...(type && type !== "all" ? { type } : {}),
         ...(search
           ? {
               OR: [
@@ -20,7 +22,7 @@ export async function GET(req: NextRequest) {
             }
           : {}),
       },
-      orderBy: { updatedAt: "desc" },
+      orderBy: { createdAt: "desc" },
     });
 
     return NextResponse.json(entries);
@@ -39,11 +41,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Title and content are required" }, { status: 400 });
     }
 
+    const type = body.type ?? "journal";
+
     const entry = await prisma.memoryEntry.create({
       data: {
         title,
         content,
         category: category ?? "general",
+        type,
         tags,
         source,
         projectId,
@@ -81,6 +86,7 @@ export async function PUT(req: NextRequest) {
         ...(data.title !== undefined && { title: data.title }),
         ...(data.content !== undefined && { content: data.content }),
         ...(data.category !== undefined && { category: data.category }),
+        ...(data.type !== undefined && { type: data.type }),
         ...(data.tags !== undefined && { tags: data.tags }),
         ...(data.source !== undefined && { source: data.source }),
       },

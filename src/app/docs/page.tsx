@@ -15,7 +15,7 @@ export default async function DocsPage() {
   ]);
 
   return (
-    <AppShell title="Docs" subtitle="Documents & Knowledge Base">
+    <AppShell title="Dokumente" subtitle="Dokumentation & Wissensbasis">
       <div className="p-6">
         <DocsClient initialDocs={docs} projects={projects} />
       </div>

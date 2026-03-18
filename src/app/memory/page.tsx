@@ -4,11 +4,11 @@ import { MemoryClient } from "./MemoryClient";
 
 export default async function MemoryPage() {
   const entries = await prisma.memoryEntry.findMany({
-    orderBy: { updatedAt: "desc" },
+    orderBy: { createdAt: "desc" },
   });
 
   return (
-    <AppShell title="Memory" subtitle="Knowledge Base & Context">
+    <AppShell title="Memory" subtitle="Journal & Langzeit-Gedächtnis">
       <div className="p-6">
         <MemoryClient initialEntries={entries} />
       </div>

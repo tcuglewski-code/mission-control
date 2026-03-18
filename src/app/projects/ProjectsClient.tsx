@@ -7,11 +7,11 @@ import { ProjectModal } from "@/components/projects/ProjectModal";
 import type { Project } from "@/store/useAppStore";
 
 const STATUS_FILTERS = [
-  { value: "all", label: "All" },
-  { value: "active", label: "Active" },
-  { value: "planning", label: "Planning" },
-  { value: "paused", label: "Paused" },
-  { value: "archived", label: "Archived" },
+  { value: "all", label: "Alle" },
+  { value: "active", label: "Aktiv" },
+  { value: "planning", label: "Planung" },
+  { value: "paused", label: "Pausiert" },
+  { value: "archived", label: "Archiviert" },
 ];
 
 interface ProjectsClientProps {

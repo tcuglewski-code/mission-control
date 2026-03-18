@@ -20,9 +20,9 @@ import { useAppStore, type Task, type Project, type User } from "@/store/useAppS
 
 const COLUMNS = [
   { id: "backlog", title: "Backlog", color: "bg-zinc-500" },
-  { id: "in_progress", title: "In Progress", color: "bg-orange-500" },
-  { id: "in_review", title: "In Review", color: "bg-blue-500" },
-  { id: "done", title: "Done", color: "bg-emerald-500" },
+  { id: "in_progress", title: "In Bearbeitung", color: "bg-orange-500" },
+  { id: "in_review", title: "In Prüfung", color: "bg-blue-500" },
+  { id: "done", title: "Erledigt", color: "bg-emerald-500" },
 ];
 
 interface KanbanBoardProps {

@@ -5,7 +5,15 @@ import { Plus, Wrench, X, CheckCircle2, XCircle, AlertCircle } from "lucide-reac
 import { cn } from "@/lib/utils";
 import type { Tool } from "@/store/useAppStore";
 
-const TOOL_TYPES = ["all", "api", "database", "library", "hosting", "vcs", "cli"];
+const TOOL_TYPES = [
+  { value: "all", label: "Alle" },
+  { value: "api", label: "API" },
+  { value: "database", label: "Datenbank" },
+  { value: "library", label: "Library" },
+  { value: "hosting", label: "Hosting" },
+  { value: "vcs", label: "VCS" },
+  { value: "cli", label: "CLI" },
+];
 const STATUS_ICONS: Record<string, { icon: typeof CheckCircle2; color: string }> = {
   active: { icon: CheckCircle2, color: "text-emerald-400" },
   inactive: { icon: XCircle, color: "text-red-400" },
@@ -34,6 +42,7 @@ export function ToolsClient({ initialTools }: ToolsClientProps) {
   const [loading, setLoading] = useState(false);
 
   const filtered = typeFilter === "all" ? tools : tools.filter((t) => t.type === typeFilter);
+  // Use TOOL_TYPES for rendering
 
   const openCreate = () => {
     setEditTool(null);
@@ -109,13 +118,13 @@ export function ToolsClient({ initialTools }: ToolsClientProps) {
         <div className="flex items-center gap-1">
           {TOOL_TYPES.map((type) => (
             <button
-              key={type}
-              onClick={() => setTypeFilter(type)}
+              key={type.value}
+              onClick={() => setTypeFilter(type.value)}
               className={`px-2.5 py-1.5 text-xs rounded-lg transition-colors ${
-                typeFilter === type ? "bg-[#252525] text-white" : "text-zinc-500 hover:text-white"
+                typeFilter === type.value ? "bg-[#252525] text-white" : "text-zinc-500 hover:text-white"
               }`}
             >
-              {type}
+              {type.label}
             </button>
           ))}
         </div>

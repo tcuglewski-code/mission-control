@@ -20,7 +20,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, email, role, avatar } = body;
+    const { name, email, role, avatar, description, tools, skills } = body;
 
     if (!name || !email) {
       return NextResponse.json({ error: "Name and email are required" }, { status: 400 });
@@ -32,6 +32,9 @@ export async function POST(req: NextRequest) {
         email,
         role: role ?? "human",
         avatar,
+        description,
+        tools,
+        skills,
       },
       include: { _count: { select: { tasks: true } } },
     });
@@ -46,7 +49,7 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
-    const { id, name, email, role, avatar } = body;
+    const { id, name, email, role, avatar, description, tools, skills } = body;
 
     if (!id) {
       return NextResponse.json({ error: "ID is required" }, { status: 400 });
@@ -59,6 +62,9 @@ export async function PUT(req: NextRequest) {
         ...(email !== undefined && { email }),
         ...(role !== undefined && { role }),
         ...(avatar !== undefined && { avatar }),
+        ...(description !== undefined && { description }),
+        ...(tools !== undefined && { tools }),
+        ...(skills !== undefined && { skills }),
       },
       include: { _count: { select: { tasks: true } } },
     });

@@ -30,7 +30,7 @@ export function RecentActivity({ logs }: RecentActivityProps) {
       <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-lg p-6">
         <div className="flex items-center gap-2 mb-4">
           <Activity className="w-4 h-4 text-zinc-400" />
-          <h2 className="text-sm font-semibold text-white">Recent Activity</h2>
+          <h2 className="text-sm font-semibold text-white">Letzte Aktivitäten</h2>
         </div>
         <div className="text-center py-8 text-zinc-600 text-sm">Keine Aktivitäten</div>
       </div>
@@ -42,7 +42,7 @@ export function RecentActivity({ logs }: RecentActivityProps) {
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
           <Activity className="w-4 h-4 text-zinc-400" />
-          <h2 className="text-sm font-semibold text-white">Recent Activity</h2>
+          <h2 className="text-sm font-semibold text-white">Letzte Aktivitäten</h2>
         </div>
         <span className="text-xs text-zinc-600">{logs.length} Einträge</span>
       </div>

@@ -9,7 +9,7 @@ export default async function CalendarPage() {
   });
 
   return (
-    <AppShell title="Calendar" subtitle="Scheduler & Events">
+    <AppShell title="Kalender" subtitle="Termine & Events">
       <div className="p-6 h-full">
         <CalendarWrapper initialEvents={events} />
       </div>

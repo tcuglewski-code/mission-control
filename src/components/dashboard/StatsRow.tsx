@@ -26,7 +26,7 @@ export function StatsRow({ activeProjects, openTasks, teamMembers, activityToday
       trend: "3 fällig heute",
     },
     {
-      label: "Team Members",
+      label: "Team-Mitglieder",
       value: teamMembers,
       icon: Users,
       color: "text-blue-400",
@@ -34,7 +34,7 @@ export function StatsRow({ activeProjects, openTasks, teamMembers, activityToday
       trend: "1 Agent aktiv",
     },
     {
-      label: "Activity heute",
+      label: "Aktivität heute",
       value: activityToday,
       icon: Activity,
       color: "text-purple-400",

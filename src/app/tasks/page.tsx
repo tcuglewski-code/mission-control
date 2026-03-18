@@ -19,7 +19,7 @@ export default async function TasksPage() {
   ]);
 
   return (
-    <AppShell title="Tasks" subtitle="Kanban Board">
+    <AppShell title="Aufgaben" subtitle="Kanban Board">
       <div className="p-6 h-full">
         <KanbanBoardWrapper
           initialTasks={tasks}

@@ -15,7 +15,7 @@ export default async function ProjectsPage() {
   });
 
   return (
-    <AppShell title="Projects" subtitle="All Projects">
+    <AppShell title="Projekte" subtitle="Alle Projekte">
       <div className="p-6">
         <ProjectsClient initialProjects={projects} />
       </div>

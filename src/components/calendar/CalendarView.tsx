@@ -87,7 +87,7 @@ export function CalendarView({ events }: CalendarViewProps) {
           <div className="flex items-center gap-2 mb-3">
             <RefreshCw className="w-3.5 h-3.5 text-orange-400" />
             <span className="text-xs font-semibold text-zinc-300 uppercase tracking-wide">
-              Always Running
+              Immer aktiv
             </span>
           </div>
           <div className="flex flex-wrap gap-2">

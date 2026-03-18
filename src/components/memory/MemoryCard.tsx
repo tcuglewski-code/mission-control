@@ -2,7 +2,7 @@
 
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { Brain, Tag, Edit2, Trash2 } from "lucide-react";
+import { Tag, Edit2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MemoryEntry {
@@ -10,6 +10,7 @@ interface MemoryEntry {
   title: string;
   content: string;
   category: string;
+  type?: string;
   tags?: string | null;
   source?: string | null;
   createdAt: Date;
@@ -20,6 +21,7 @@ interface MemoryCardProps {
   entry: MemoryEntry;
   onEdit: () => void;
   onDelete: () => void;
+  large?: boolean;
 }
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; icon: string }> = {
@@ -30,7 +32,7 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string; icon: string }
   research: { bg: "bg-emerald-500/10", text: "text-emerald-400", icon: "🔍" },
 };
 
-export function MemoryCard({ entry, onEdit, onDelete }: MemoryCardProps) {
+export function MemoryCard({ entry, onEdit, onDelete, large = false }: MemoryCardProps) {
   const catStyle = CATEGORY_COLORS[entry.category] ?? CATEGORY_COLORS.general;
   const tags = entry.tags ? entry.tags.split(",").map((t) => t.trim()) : [];
 
@@ -64,7 +66,10 @@ export function MemoryCard({ entry, onEdit, onDelete }: MemoryCardProps) {
       </div>
 
       {/* Content */}
-      <p className="text-xs text-zinc-400 leading-relaxed line-clamp-3 mb-3 whitespace-pre-line">
+      <p className={cn(
+        "text-xs text-zinc-400 leading-relaxed mb-3 whitespace-pre-line",
+        large ? "line-clamp-6" : "line-clamp-3"
+      )}>
         {entry.content}
       </p>
 
@@ -83,7 +88,7 @@ export function MemoryCard({ entry, onEdit, onDelete }: MemoryCardProps) {
       {/* Footer */}
       <div className="flex items-center justify-between">
         {entry.source && (
-          <span className="text-[10px] text-zinc-600">Quelle: {entry.source}</span>
+          <span className="text-[10px] text-zinc-600 truncate max-w-[150px]">Quelle: {entry.source}</span>
         )}
         <span className="text-[10px] text-zinc-600 ml-auto">
           {format(new Date(entry.updatedAt), "d. MMM yyyy", { locale: de })}

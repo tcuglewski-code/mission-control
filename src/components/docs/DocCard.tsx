@@ -19,6 +19,7 @@ interface DocCardProps {
   };
   onEdit: () => void;
   onDelete: () => void;
+  onClick?: () => void;
 }
 
 const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
@@ -27,22 +28,31 @@ const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
   api: { bg: "bg-orange-500/10", text: "text-orange-400" },
   guide: { bg: "bg-emerald-500/10", text: "text-emerald-400" },
   spec: { bg: "bg-yellow-500/10", text: "text-yellow-400" },
+  report: { bg: "bg-red-500/10", text: "text-red-400" },
+  concept: { bg: "bg-indigo-500/10", text: "text-indigo-400" },
+  prompts: { bg: "bg-pink-500/10", text: "text-pink-400" },
 };
 
-export function DocCard({ doc, onEdit, onDelete }: DocCardProps) {
+export function DocCard({ doc, onEdit, onDelete, onClick }: DocCardProps) {
   const typeStyle = TYPE_COLORS[doc.type] ?? TYPE_COLORS.doc;
   const tags = doc.tags ? doc.tags.split(",").map((t) => t.trim()) : [];
-  const preview = doc.content.replace(/^#+\s/gm, "").replace(/\n/g, " ").slice(0, 120);
+  const preview = doc.content.replace(/^#+\s/gm, "").replace(/\n/g, " ").slice(0, 140);
 
   return (
-    <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl p-4 hover:border-[#3a3a3a] transition-colors group">
+    <div
+      className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl p-4 hover:border-[#3a3a3a] transition-colors group cursor-pointer"
+      onClick={onClick}
+    >
       {/* Header */}
       <div className="flex items-start justify-between mb-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
           <FileText className="w-4 h-4 text-purple-400 shrink-0" />
           <h3 className="text-sm font-semibold text-white line-clamp-1">{doc.title}</h3>
         </div>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div
+          className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+          onClick={(e) => e.stopPropagation()}
+        >
           <button
             onClick={onEdit}
             className="p-1.5 text-zinc-500 hover:text-white hover:bg-[#252525] rounded-lg transition-colors"
@@ -69,7 +79,7 @@ export function DocCard({ doc, onEdit, onDelete }: DocCardProps) {
       </div>
 
       {/* Preview */}
-      <p className="text-xs text-zinc-500 line-clamp-2 mb-3">{preview}...</p>
+      <p className="text-xs text-zinc-500 line-clamp-2 mb-3">{preview}{preview.length >= 140 ? "..." : ""}</p>
 
       {/* Tags */}
       {tags.length > 0 && (

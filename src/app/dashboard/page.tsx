@@ -47,7 +47,7 @@ export default async function DashboardPage() {
   return (
     <AppShell
       title="Dashboard"
-      subtitle="System Overview"
+      subtitle="System Übersicht"
     >
       <div className="p-6 space-y-6">
         <StatsRow

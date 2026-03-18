@@ -19,11 +19,11 @@ import { useAppStore } from "@/store/useAppStore";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/tasks", icon: CheckSquare, label: "Tasks" },
-  { href: "/calendar", icon: CalendarDays, label: "Calendar" },
-  { href: "/projects", icon: FolderKanban, label: "Projects" },
+  { href: "/tasks", icon: CheckSquare, label: "Aufgaben" },
+  { href: "/calendar", icon: CalendarDays, label: "Kalender" },
+  { href: "/projects", icon: FolderKanban, label: "Projekte" },
   { href: "/memory", icon: Brain, label: "Memory" },
-  { href: "/docs", icon: FileText, label: "Docs" },
+  { href: "/docs", icon: FileText, label: "Dokumente" },
   { href: "/team", icon: Users, label: "Team" },
   { href: "/tools", icon: Wrench, label: "Tools" },
 ];

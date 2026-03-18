@@ -9,7 +9,7 @@ export default async function TeamPage() {
   });
 
   return (
-    <AppShell title="Team" subtitle="Members & Agents">
+    <AppShell title="Team" subtitle="KI-Agenten & Menschen">
       <div className="p-6">
         <TeamClient initialUsers={users} />
       </div>

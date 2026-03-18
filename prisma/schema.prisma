@@ -9,15 +9,18 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  role      String   @default("human")
-  avatar    String?
-  createdAt DateTime @default(now())
-  tasks     Task[]
-  projects  ProjectMember[]
-  logs      ActivityLog[]
+  id          String   @id @default(cuid())
+  name        String
+  email       String   @unique
+  role        String   @default("human")
+  avatar      String?
+  description String?
+  tools       String?  // JSON array of tool names
+  skills      String?  // JSON array of skill names
+  createdAt   DateTime @default(now())
+  tasks       Task[]
+  projects    ProjectMember[]
+  logs        ActivityLog[]
 }
 
 model Project {
@@ -91,6 +94,7 @@ model MemoryEntry {
   title       String
   content     String
   category    String   @default("general")
+  type        String   @default("journal")  // "journal" | "longterm"
   tags        String?
   source      String?
   projectId   String?
