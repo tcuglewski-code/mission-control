@@ -3,11 +3,12 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const project = await prisma.project.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         _count: { select: { tasks: true, members: true } },
         members: {
@@ -41,14 +42,15 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await req.json();
     const { name, description, status, progress, priority, color } = body;
 
     const project = await prisma.project.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(name !== undefined && { name }),
         ...(description !== undefined && { description }),
@@ -84,15 +86,16 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const project = await prisma.project.findUnique({ where: { id: params.id } });
+    const { id } = await params;
+    const project = await prisma.project.findUnique({ where: { id } });
     if (!project) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    await prisma.project.delete({ where: { id: params.id } });
+    await prisma.project.delete({ where: { id } });
 
     return NextResponse.json({ success: true });
   } catch (error) {
