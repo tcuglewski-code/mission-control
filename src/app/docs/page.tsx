@@ -15,8 +15,8 @@ export default async function DocsPage() {
   ]);
 
   return (
-    <AppShell title="Dokumente" subtitle="Dokumentation & Wissensbasis">
-      <div className="p-6">
+    <AppShell title="Dokumente" subtitle="Dokumentation & Wissensbasis" noScroll>
+      <div className="h-full">
         <DocsClient initialDocs={docs} projects={projects} />
       </div>
     </AppShell>

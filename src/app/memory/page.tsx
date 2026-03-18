@@ -8,8 +8,8 @@ export default async function MemoryPage() {
   });
 
   return (
-    <AppShell title="Memory" subtitle="Journal & Langzeit-Gedächtnis">
-      <div className="p-6">
+    <AppShell title="Memory" subtitle="Journal & Langzeit-Gedächtnis" noScroll>
+      <div className="h-full">
         <MemoryClient initialEntries={entries} />
       </div>
     </AppShell>
