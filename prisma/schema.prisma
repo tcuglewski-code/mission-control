@@ -140,3 +140,19 @@ model ActivityLog {
   user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 }
+
+model CronJob {
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  schedule      String
+  scheduleHuman String?
+  type          String    @default("system")
+  status        String    @default("active")
+  lastRun       DateTime?
+  nextRun       DateTime?
+  payload       String?
+  projectId     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
