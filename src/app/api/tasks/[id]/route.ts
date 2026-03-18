@@ -12,8 +12,6 @@ export async function GET(
       include: {
         project: { select: { id: true, name: true, color: true } },
         assignee: { select: { id: true, name: true, avatar: true } },
-        comments: { orderBy: { createdAt: "asc" } },
-        events: true,
       },
     });
 
