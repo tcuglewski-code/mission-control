@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { triggerWebhooks } from "@/lib/webhooks";
 
 export async function GET(
   req: NextRequest,
@@ -92,6 +93,7 @@ export async function PUT(
     const { id } = await params;
     const body = await req.json();
     const task = await updateTask(id, body);
+    triggerWebhooks("task.updated", { task }, task.projectId ?? undefined);
     return NextResponse.json(task);
   } catch (error) {
     console.error("[PUT /api/tasks/[id]]", error);
@@ -107,6 +109,7 @@ export async function PATCH(
     const { id } = await params;
     const body = await req.json();
     const task = await updateTask(id, body);
+    triggerWebhooks("task.updated", { task }, task.projectId ?? undefined);
     return NextResponse.json(task);
   } catch (error) {
     console.error("[PATCH /api/tasks/[id]]", error);
@@ -126,6 +129,7 @@ export async function DELETE(
     }
 
     await prisma.task.delete({ where: { id } });
+    triggerWebhooks("task.deleted", { taskId: id, title: task.title }, task.projectId ?? undefined);
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { triggerWebhooks } from "@/lib/webhooks";
 
 export async function GET(
   _req: NextRequest,
@@ -50,6 +51,7 @@ export async function PATCH(
       },
     });
 
+    triggerWebhooks("ticket.updated", { ticket }, ticket.projectId ?? undefined);
     return NextResponse.json(ticket);
   } catch (error) {
     console.error("[PATCH /api/tickets/:id]", error);

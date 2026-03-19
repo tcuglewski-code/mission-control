@@ -17,6 +17,7 @@ import {
   Database,
   Ticket,
   GitGraph,
+  Webhook,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/useAppStore";
@@ -33,6 +34,7 @@ const navItems = [
   { href: "/tools", icon: Wrench, label: "Tools" },
   { href: "/databases", icon: Database, label: "Datenbanken" },
   { href: "/tickets", icon: Ticket, label: "Tickets" },
+  { href: "/webhooks", icon: Webhook, label: "Webhooks" },
   { href: "/diagram", icon: GitGraph, label: "Diagramm" },
 ];
 

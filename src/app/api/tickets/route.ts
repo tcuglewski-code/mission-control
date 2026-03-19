@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { triggerWebhooks } from "@/lib/webhooks";
 
 export async function GET(req: NextRequest) {
   try {
@@ -51,6 +52,8 @@ export async function POST(req: NextRequest) {
         assignee: { select: { id: true, name: true, avatar: true } },
       },
     });
+
+    triggerWebhooks("ticket.created", { ticket }, ticket.projectId ?? undefined);
 
     return NextResponse.json(ticket, { status: 201 });
   } catch (error) {
