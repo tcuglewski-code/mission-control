@@ -33,10 +33,11 @@ model Project {
   color       String   @default("#3b82f6")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  tasks    Task[]
-  members  ProjectMember[]
-  docs     Document[]
-  logs     ActivityLog[]
+  tasks     Task[]
+  members   ProjectMember[]
+  docs      Document[]
+  logs      ActivityLog[]
+  databases Database[]
 }
 
 model ProjectMember {
@@ -156,4 +157,20 @@ model CronJob {
   projectId     String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+}
+
+model Database {
+  id          String    @id @default(cuid())
+  name        String
+  type        String    // "postgresql", "mysql", "mongodb", "watermelondb", "neon"
+  host        String?
+  port        Int?
+  status      String    @default("unknown") // "connected", "disconnected", "unknown"
+  sizeBytes   BigInt?
+  lastBackup  DateTime?
+  lastChecked DateTime?
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }

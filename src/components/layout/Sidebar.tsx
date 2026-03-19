@@ -14,6 +14,7 @@ import {
   Wrench,
   Zap,
   X,
+  Database,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/useAppStore";
@@ -28,6 +29,7 @@ const navItems = [
   { href: "/docs", icon: FileText, label: "Dokumente" },
   { href: "/team", icon: Users, label: "Team" },
   { href: "/tools", icon: Wrench, label: "Tools" },
+  { href: "/databases", icon: Database, label: "Datenbanken" },
 ];
 
 export function Sidebar() {

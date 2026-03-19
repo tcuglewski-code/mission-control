@@ -476,6 +476,45 @@ Website → API → Datenbank → Portal/Admin/App
 
   console.log("✅ Tools created");
 
+  // Databases
+  await prisma.database.createMany({
+    data: [
+      {
+        name: "Mission Control DB",
+        type: "neon",
+        host: "ep-proud-forest-xxxx.eu-central-1.aws.neon.tech",
+        port: 5432,
+        status: "connected",
+        sizeBytes: BigInt(134217728), // 128 MB
+        projectId: project2.id,
+        lastChecked: new Date(),
+      },
+      {
+        name: "Koch Aufforstung MySQL",
+        type: "mysql",
+        host: "sql.hostingersite.com",
+        port: 3306,
+        status: "connected",
+        sizeBytes: BigInt(52428800), // 50 MB
+        lastBackup: new Date(Date.now() - 1000 * 60 * 60 * 24), // yesterday
+        projectId: project1.id,
+        lastChecked: new Date(),
+      },
+      {
+        name: "Mobile App Local DB",
+        type: "watermelondb",
+        host: null,
+        port: null,
+        status: "connected",
+        sizeBytes: BigInt(8388608), // 8 MB
+        projectId: project3.id,
+        lastChecked: new Date(),
+      },
+    ],
+  });
+
+  console.log("✅ Databases created");
+
   // Activity Logs
   await prisma.activityLog.createMany({
     data: [
