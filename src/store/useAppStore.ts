@@ -10,6 +10,7 @@ export interface Task {
   priority: string;
   labels?: string | null;
   dueDate?: Date | null;
+  timeSpentSeconds?: number;
   projectId?: string | null;
   assigneeId?: string | null;
   createdAt: Date;
@@ -107,6 +108,7 @@ interface AppState {
   tasks: Task[];
   setTasks: (tasks: Task[]) => void;
   updateTaskStatus: (taskId: string, status: string) => void;
+  updateTaskTime: (taskId: string, timeSpentSeconds: number) => void;
 
   // Projects
   projects: Project[];
@@ -148,6 +150,12 @@ export const useAppStore = create<AppState>((set) => ({
     set((state) => ({
       tasks: state.tasks.map((t) =>
         t.id === taskId ? { ...t, status } : t
+      ),
+    })),
+  updateTaskTime: (taskId, timeSpentSeconds) =>
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
+        t.id === taskId ? { ...t, timeSpentSeconds } : t
       ),
     })),
 

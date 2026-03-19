@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { KanbanBoard } from "@/components/tasks/KanbanBoard";
 import { LiveActivityFeed } from "@/components/tasks/LiveActivityFeed";
 import { useAppStore, type Task, type Project, type User } from "@/store/useAppStore";
@@ -187,9 +187,19 @@ function SprintView({ tasks }: { tasks: Task[] }) {
   );
 }
 
+const PRIORITY_OPTIONS = [
+  { value: "", label: "Alle Prioritäten" },
+  { value: "critical", label: "🔴 Critical" },
+  { value: "high", label: "🔴 High" },
+  { value: "medium", label: "🟡 Medium" },
+  { value: "low", label: "🟢 Low" },
+];
+
 export function KanbanBoardWrapper({ initialTasks, projects, users }: KanbanBoardWrapperProps) {
   const { tasks, setTasks, setProjects, setUsers } = useAppStore();
   const [view, setView] = useState<"kanban" | "sprint">("kanban");
+  const [filterProject, setFilterProject] = useState<string>("");
+  const [filterPriority, setFilterPriority] = useState<string>("");
 
   useEffect(() => {
     setTasks(initialTasks);
@@ -199,10 +209,19 @@ export function KanbanBoardWrapper({ initialTasks, projects, users }: KanbanBoar
 
   const activeTasks = tasks.length > 0 ? tasks : initialTasks;
 
+  const filteredTasks = useMemo(() => {
+    return activeTasks.filter((t) => {
+      if (filterProject && t.projectId !== filterProject) return false;
+      if (filterPriority && t.priority !== filterPriority) return false;
+      return true;
+    });
+  }, [activeTasks, filterProject, filterPriority]);
+
   return (
     <div className="flex flex-col h-full gap-4">
-      {/* Toggle */}
-      <div className="flex items-center gap-2">
+      {/* Toolbar */}
+      <div className="flex items-center gap-3 flex-wrap">
+        {/* View toggle */}
         <div className="flex items-center bg-[#1c1c1c] border border-[#2a2a2a] rounded-lg p-1">
           <button
             onClick={() => setView("kanban")}
@@ -225,6 +244,43 @@ export function KanbanBoardWrapper({ initialTasks, projects, users }: KanbanBoar
             Sprint-View
           </button>
         </div>
+
+        {/* Filters */}
+        <div className="flex items-center gap-2 ml-auto">
+          <select
+            value={filterProject}
+            onChange={(e) => setFilterProject(e.target.value)}
+            className="bg-[#1c1c1c] border border-[#2a2a2a] text-xs text-zinc-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#3a3a3a] hover:border-[#3a3a3a] transition-colors"
+          >
+            <option value="">Alle Projekte</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={filterPriority}
+            onChange={(e) => setFilterPriority(e.target.value)}
+            className="bg-[#1c1c1c] border border-[#2a2a2a] text-xs text-zinc-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#3a3a3a] hover:border-[#3a3a3a] transition-colors"
+          >
+            {PRIORITY_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+
+          {(filterProject || filterPriority) && (
+            <button
+              onClick={() => { setFilterProject(""); setFilterPriority(""); }}
+              className="text-xs text-zinc-500 hover:text-zinc-300 px-2 py-1.5 rounded-lg hover:bg-[#1c1c1c] border border-transparent hover:border-[#2a2a2a] transition-colors"
+            >
+              ✕ Reset
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Content */}
@@ -232,14 +288,14 @@ export function KanbanBoardWrapper({ initialTasks, projects, users }: KanbanBoar
         {view === "kanban" ? (
           <>
             <div className="flex-1 min-w-0 overflow-x-auto">
-              <KanbanBoard projects={projects} users={users} />
+              <KanbanBoard projects={projects} users={users} filteredTasks={filteredTasks} />
             </div>
             <LiveActivityFeed />
           </>
         ) : (
           <>
             <div className="flex-1 min-w-0">
-              <SprintView tasks={activeTasks} />
+              <SprintView tasks={filteredTasks} />
             </div>
             <LiveActivityFeed />
           </>

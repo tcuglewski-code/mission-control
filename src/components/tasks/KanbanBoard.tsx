@@ -19,22 +19,23 @@ import { TaskModal } from "./TaskModal";
 import { useAppStore, type Task, type Project, type User } from "@/store/useAppStore";
 
 const COLUMNS = [
-  { id: "backlog", title: "Backlog", color: "bg-zinc-500" },
-  { id: "in_progress", title: "In Bearbeitung", color: "bg-orange-500" },
-  { id: "in_review", title: "In Prüfung", color: "bg-blue-500" },
-  { id: "done", title: "Erledigt", color: "bg-emerald-500" },
+  { id: "todo", title: "Todo", color: "bg-zinc-500" },
+  { id: "in_progress", title: "In Progress", color: "bg-orange-500" },
+  { id: "review", title: "Review", color: "bg-blue-500" },
+  { id: "done", title: "Done", color: "bg-emerald-500" },
 ];
 
 interface KanbanBoardProps {
   projects: Project[];
   users: User[];
+  filteredTasks?: Task[];
 }
 
-export function KanbanBoard({ projects, users }: KanbanBoardProps) {
+export function KanbanBoard({ projects, users, filteredTasks }: KanbanBoardProps) {
   const { tasks, setTasks, updateTaskStatus } = useAppStore();
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null | undefined>(undefined);
-  const [newTaskStatus, setNewTaskStatus] = useState<string>("backlog");
+  const [newTaskStatus, setNewTaskStatus] = useState<string>("todo");
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -42,9 +43,11 @@ export function KanbanBoard({ projects, users }: KanbanBoardProps) {
     })
   );
 
+  const displayTasks = filteredTasks ?? tasks;
+
   const getTasksByStatus = useCallback(
-    (status: string) => tasks.filter((t) => t.status === status),
-    [tasks]
+    (status: string) => displayTasks.filter((t) => t.status === status),
+    [displayTasks]
   );
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -98,7 +101,7 @@ export function KanbanBoard({ projects, users }: KanbanBoardProps) {
       // Persist to API
       try {
         await fetch(`/api/tasks/${activeId}`, {
-          method: "PUT",
+          method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ status: newStatus }),
         });
