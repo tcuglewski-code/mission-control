@@ -7,25 +7,12 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    
+    // Simplified query for debugging
     const project = await prisma.project.findUnique({
       where: { id },
       include: {
-        _count: { select: { tasks: true, members: true } },
-        members: {
-          include: { user: { select: { id: true, name: true, avatar: true, role: true } } },
-        },
-        tasks: {
-          include: {
-            assignee: { select: { id: true, name: true, avatar: true } },
-          },
-          orderBy: { createdAt: "desc" },
-        },
-        docs: { orderBy: { updatedAt: "desc" } },
-        logs: {
-          include: { user: { select: { name: true, avatar: true } } },
-          orderBy: { createdAt: "desc" },
-          take: 10,
-        },
+        _count: { select: { tasks: true, members: true, docs: true } },
       },
     });
 
@@ -33,10 +20,45 @@ export async function GET(
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    return NextResponse.json(project);
+    // Fetch related data separately to isolate any issues
+    const members = await prisma.projectMember.findMany({
+      where: { projectId: id },
+      include: { user: { select: { id: true, name: true, avatar: true, role: true } } },
+    });
+
+    const tasks = await prisma.task.findMany({
+      where: { projectId: id },
+      include: { assignee: { select: { id: true, name: true, avatar: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    });
+
+    const docs = await prisma.doc.findMany({
+      where: { projectId: id },
+      orderBy: { updatedAt: "desc" },
+      take: 10,
+    });
+
+    const logs = await prisma.activityLog.findMany({
+      where: { projectId: id },
+      include: { user: { select: { name: true, avatar: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    });
+
+    return NextResponse.json({
+      ...project,
+      members,
+      tasks,
+      docs,
+      logs,
+    });
   } catch (error) {
     console.error("[GET /api/projects/[id]]", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ 
+      error: "Internal server error",
+      details: error instanceof Error ? error.message : "Unknown error"
+    }, { status: 500 });
   }
 }
 
@@ -61,9 +83,6 @@ export async function PUT(
       },
       include: {
         _count: { select: { tasks: true, members: true } },
-        members: {
-          include: { user: { select: { id: true, name: true, avatar: true } } },
-        },
       },
     });
 
