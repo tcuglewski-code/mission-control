@@ -368,7 +368,3 @@ function SprintGroupedTasks({
   );
 }
 
-function getPhaseFromSprint(sprint: string): string {
-  const match = sprint.match(/^sprint-(\d+)\./);
-  return match ? match[1] : "0";
-}

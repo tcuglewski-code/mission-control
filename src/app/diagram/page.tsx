@@ -1,24 +1,10 @@
-import { prisma } from "@/lib/prisma";
-import { AppShell } from "@/components/layout/AppShell";
-import { DiagramClient } from "./DiagramClient";
-
-export const dynamic = "force-dynamic";
-
-export default async function DiagramPage() {
-  const [projects, databases] = await Promise.all([
-    prisma.project.findMany({
-      select: { id: true, name: true, color: true, status: true, description: true },
-      orderBy: { name: "asc" },
-    }),
-    prisma.database.findMany({
-      select: { id: true, name: true, type: true, status: true, projectId: true },
-      orderBy: { name: "asc" },
-    }),
-  ]);
-
+export default function DiagramPage() {
   return (
-    <AppShell title="Projektdiagramm" subtitle="Infrastruktur-Übersicht" noScroll>
-      <DiagramClient projects={projects} databases={databases} />
-    </AppShell>
+    <div className="flex items-center justify-center h-screen">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold mb-4">Diagram</h1>
+        <p className="text-neutral-400">Coming soon — in development</p>
+      </div>
+    </div>
   );
 }
