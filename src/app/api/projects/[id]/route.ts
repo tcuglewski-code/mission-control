@@ -7,47 +7,54 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    
-    // Simplified query for debugging
+
     const project = await prisma.project.findUnique({
       where: { id },
-      include: {
-        _count: { select: { tasks: true, members: true, docs: true } },
-      },
     });
 
     if (!project) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    // Fetch related data separately to isolate any issues
-    const members = await prisma.projectMember.findMany({
-      where: { projectId: id },
-      include: { user: { select: { id: true, name: true, avatar: true, role: true } } },
-    });
+    // Fetch counts
+    const [taskCount, memberCount, docCount] = await Promise.all([
+      prisma.task.count({ where: { projectId: id } }),
+      prisma.projectMember.count({ where: { projectId: id } }),
+      prisma.doc.count({ where: { projectId: id } }),
+    ]);
 
-    const tasks = await prisma.task.findMany({
-      where: { projectId: id },
-      include: { assignee: { select: { id: true, name: true, avatar: true } } },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-    });
-
-    const docs = await prisma.doc.findMany({
-      where: { projectId: id },
-      orderBy: { updatedAt: "desc" },
-      take: 10,
-    });
-
-    const logs = await prisma.activityLog.findMany({
-      where: { projectId: id },
-      include: { user: { select: { name: true, avatar: true } } },
-      orderBy: { createdAt: "desc" },
-      take: 10,
-    });
+    // Fetch related data
+    const [members, tasks, docs, logs] = await Promise.all([
+      prisma.projectMember.findMany({
+        where: { projectId: id },
+        include: {
+          user: { select: { id: true, name: true, avatar: true, role: true } },
+        },
+      }),
+      prisma.task.findMany({
+        where: { projectId: id },
+        include: {
+          assignee: { select: { id: true, name: true, avatar: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+      }),
+      prisma.doc.findMany({
+        where: { projectId: id },
+        orderBy: { updatedAt: "desc" },
+        take: 10,
+      }),
+      prisma.activityLog.findMany({
+        where: { projectId: id },
+        include: { user: { select: { name: true, avatar: true } } },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      }),
+    ]);
 
     return NextResponse.json({
       ...project,
+      _count: { tasks: taskCount, members: memberCount, docs: docCount },
       members,
       tasks,
       docs,
@@ -55,10 +62,13 @@ export async function GET(
     });
   } catch (error) {
     console.error("[GET /api/projects/[id]]", error);
-    return NextResponse.json({ 
-      error: "Internal server error",
-      details: error instanceof Error ? error.message : "Unknown error"
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : "Unknown",
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -81,9 +91,6 @@ export async function PUT(
         ...(priority !== undefined && { priority }),
         ...(color !== undefined && { color }),
       },
-      include: {
-        _count: { select: { tasks: true, members: true } },
-      },
     });
 
     await prisma.activityLog.create({
@@ -99,7 +106,10 @@ export async function PUT(
     return NextResponse.json(project);
   } catch (error) {
     console.error("[PUT /api/projects/[id]]", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
@@ -109,6 +119,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+
     const project = await prisma.project.findUnique({ where: { id } });
     if (!project) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
@@ -119,6 +130,9 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[DELETE /api/projects/[id]]", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
