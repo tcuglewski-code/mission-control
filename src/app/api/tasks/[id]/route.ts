@@ -80,6 +80,21 @@ async function updateTask(id: string, body: Record<string, unknown>) {
         metadata: JSON.stringify({ field: "status", to: status }),
       },
     });
+
+    // Auto-recalculate project progress
+    if (task.projectId) {
+      const allTasks = await prisma.task.findMany({
+        where: { projectId: task.projectId },
+        select: { status: true },
+      });
+      const totalTasks = allTasks.length;
+      const doneTasks = allTasks.filter((t) => t.status === "done").length;
+      const progress = totalTasks === 0 ? 0 : Math.round((doneTasks / totalTasks) * 100);
+      await prisma.project.update({
+        where: { id: task.projectId },
+        data: { progress },
+      });
+    }
   }
 
   return task;

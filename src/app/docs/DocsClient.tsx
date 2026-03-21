@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Plus, Search, FileText, X, ChevronDown } from "lucide-react";
+import { Plus, Search, FileText, X, ChevronDown, Download } from "lucide-react";
 import type { Document } from "@/store/useAppStore";
 
 const DOC_CATEGORIES = [
@@ -158,6 +158,16 @@ export function DocsClient({ initialDocs, projects }: DocsClientProps) {
       setDocs(docs.filter((d) => d.id !== id));
       if (selectedDoc?.id === id) setSelectedDoc(null);
     }
+  };
+
+  const handleDownload = (doc: Document) => {
+    const blob = new Blob([doc.content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${doc.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const formatBytes = (str: string) => {
@@ -324,6 +334,13 @@ export function DocsClient({ initialDocs, projects }: DocsClientProps) {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => handleDownload(selectedDoc)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-zinc-400 hover:text-white hover:bg-[#252525] rounded-lg transition-colors border border-[#2a2a2a]"
+                  >
+                    <Download className="w-3 h-3" />
+                    Download
+                  </button>
                   <button
                     onClick={() => openEdit(selectedDoc)}
                     className="px-3 py-1.5 text-xs text-zinc-400 hover:text-white hover:bg-[#252525] rounded-lg transition-colors border border-[#2a2a2a]"
