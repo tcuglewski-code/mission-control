@@ -1,19 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { requireAdminFromDb } from "@/lib/api-auth";
 import bcrypt from "bcryptjs";
 
-async function requireAdmin() {
-  const session = await auth();
-  if (!session?.user || (session.user as any).role !== "admin") {
-    return null;
-  }
-  return session;
-}
-
 export async function GET() {
-  const session = await requireAdmin();
-  if (!session) {
+  const admin = await requireAdminFromDb();
+  if (!admin) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -34,8 +26,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await requireAdmin();
-  if (!session) {
+  const admin = await requireAdminFromDb();
+  if (!admin) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

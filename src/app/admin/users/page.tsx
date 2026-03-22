@@ -1,11 +1,11 @@
-import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { requireAdminFromDb } from "@/lib/api-auth";
 import { AdminUsersClient } from "./AdminUsersClient";
 
 export default async function AdminUsersPage() {
-  const session = await auth();
+  const admin = await requireAdminFromDb();
 
-  if (!session?.user || (session.user as any).role !== "admin") {
+  if (!admin) {
     redirect("/dashboard");
   }
 

@@ -17,21 +17,19 @@ export const authConfig: NextAuthConfig = {
     },
     jwt({ token, user }) {
       if (user) {
+        // Only store the user ID in the JWT.
+        // All other fields (role, permissions, projectAccess) are loaded
+        // fresh from the database on each API request so that admin changes
+        // take effect immediately without requiring the user to re-login.
         token.id = user.id;
-        token.username = (user as any).username;
-        token.role = (user as any).role;
-        token.projectAccess = (user as any).projectAccess;
-        token.permissions = (user as any).permissions ?? [];
       }
       return token;
     },
     session({ session, token }) {
-      if (token) {
+      if (token.id) {
         session.user.id = token.id as string;
-        (session.user as any).username = token.username;
-        (session.user as any).role = token.role;
-        (session.user as any).projectAccess = token.projectAccess;
-        (session.user as any).permissions = token.permissions ?? [];
+        // role / permissions are NOT stored here — always loaded live from DB
+        // via getSessionOrApiKey() or requireAdminFromDb() in API routes.
       }
       return session;
     },

@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { randomBytes } from "crypto";
-import { sha256 } from "@/lib/api-auth";
+import { sha256, requireAdminFromDb } from "@/lib/api-auth";
 
 export async function GET(_req: NextRequest) {
-  const session = await auth();
-  if (!session?.user || (session.user as any).role !== "admin") {
+  const admin = await requireAdminFromDb();
+  if (!admin) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -46,8 +45,8 @@ export async function GET(_req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user || (session.user as any).role !== "admin") {
+  const admin = await requireAdminFromDb();
+  if (!admin) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
