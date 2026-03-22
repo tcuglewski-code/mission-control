@@ -219,3 +219,24 @@ model WebhookLog {
   duration  Int
   createdAt DateTime @default(now())
 }
+
+model AuthUser {
+  id            String   @id @default(cuid())
+  username      String   @unique
+  email         String?
+  passwordHash  String
+  role          String   @default("user") // "admin" | "user"
+  projectAccess String[] // Array von Project-IDs (leer = alle für admin)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Invitation {
+  id          String    @id @default(cuid())
+  token       String    @unique @default(cuid())
+  email       String?
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdById String
+}

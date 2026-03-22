@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut, useSession } from "next-auth/react";
 import {
   LayoutDashboard,
   CheckSquare,
@@ -18,6 +19,8 @@ import {
   Ticket,
   GitGraph,
   Webhook,
+  ShieldCheck,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/useAppStore";
@@ -41,6 +44,9 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const { sidebarOpen, setSidebarOpen } = useAppStore();
+  const { data: session } = useSession();
+  const username = (session?.user as any)?.username ?? session?.user?.name ?? "User";
+  const role = (session?.user as any)?.role ?? "user";
 
   return (
     <>
@@ -98,19 +104,45 @@ export function Sidebar() {
               </Link>
             );
           })}
+
+          {/* Admin link */}
+          {role === "admin" && (
+            <Link
+              href="/admin/users"
+              onClick={() => setSidebarOpen(false)}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors relative group",
+                pathname.startsWith("/admin")
+                  ? "bg-[#252525] text-white"
+                  : "text-zinc-400 hover:text-white hover:bg-[#1e1e1e]"
+              )}
+            >
+              {pathname.startsWith("/admin") && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-amber-500 rounded-r-full" />
+              )}
+              <ShieldCheck className={cn("w-4 h-4 shrink-0", pathname.startsWith("/admin") ? "text-amber-400" : "")} />
+              <span>Benutzer</span>
+            </Link>
+          )}
         </nav>
 
-        {/* User info */}
+        {/* User info + Logout */}
         <div className="px-4 py-4 border-t border-[#2a2a2a]">
           <div className="flex items-center gap-3">
             <div className="w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-xs font-semibold text-emerald-400">
-              T
+              {username[0]?.toUpperCase() ?? "U"}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-white font-medium truncate">Tomek</p>
-              <p className="text-xs text-zinc-500 truncate">human · owner</p>
+              <p className="text-sm text-white font-medium truncate">{username}</p>
+              <p className="text-xs text-zinc-500 truncate">{role}</p>
             </div>
-            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+            <button
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              title="Abmelden"
+              className="text-zinc-600 hover:text-red-400 p-1 rounded transition-colors"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       </aside>

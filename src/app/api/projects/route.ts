@@ -1,13 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
 
+    // Project access filtering
+    const session = await auth();
+    const userRole = (session?.user as any)?.role;
+    const projectAccess: string[] = (session?.user as any)?.projectAccess ?? [];
+
+    const accessFilter =
+      userRole === "user" && projectAccess.length > 0
+        ? { id: { in: projectAccess } }
+        : undefined;
+
     const projects = await prisma.project.findMany({
-      where: status && status !== "all" ? { status } : undefined,
+      where: {
+        ...(status && status !== "all" ? { status } : {}),
+        ...accessFilter,
+      },
       include: {
         _count: { select: { tasks: true, members: true } },
         members: {
