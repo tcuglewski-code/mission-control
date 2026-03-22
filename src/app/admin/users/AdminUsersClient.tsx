@@ -56,13 +56,17 @@ export function AdminUsersClient() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteLink, setInviteLink] = useState("");
   const [inviteLoading, setInviteLoading] = useState(false);
-  const [editingUser, setEditingUser] = useState<AuthUser | null>(null);
-  const [editRole, setEditRole] = useState("user");
-  const [editAccess, setEditAccess] = useState<string[]>([]);
-  const [editPermissions, setEditPermissions] = useState<string[]>([]);
+  const [copied, setCopied] = useState(false);
+
+  // ── Edit User State ──
+  const [editUser, setEditUser] = useState<AuthUser | null>(null);
+  const [editForm, setEditForm] = useState<{
+    role: string;
+    projectAccess: string[];
+    permissions: string[];
+  } | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
 
   // ── API Keys State ──
   const [apiKeys, setApiKeys] = useState<ApiKeyRow[]>([]);
@@ -119,48 +123,45 @@ export function AdminUsersClient() {
     if (data.link) setInviteLink(data.link);
   }
 
-  async function saveEdit() {
-    if (!editingUser) return;
+  function openEdit(user: AuthUser) {
+    setEditUser(user);
+    setEditForm({
+      role: user.role,
+      projectAccess: user.projectAccess ?? [],
+      permissions: user.permissions ?? [],
+    });
+    setSaveError(null);
+  }
+
+  function closeEdit() {
+    setEditUser(null);
+    setEditForm(null);
+    setSaveError(null);
+  }
+
+  async function handleSave() {
+    if (!editUser || !editForm) return;
     setSaving(true);
     setSaveError(null);
     try {
-      const res = await fetch(`/api/admin/users/${editingUser.id}`, {
+      const res = await fetch(`/api/admin/users/${editUser.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          role: editRole,
-          projectAccess: editAccess,
-          permissions: editPermissions,
-        }),
+        body: JSON.stringify(editForm),
       });
-      if (!res.ok) throw new Error(`Fehler ${res.status}: ${res.statusText}`);
-      setEditingUser(null);
-      loadData();
-    } catch (e) {
-      setSaveError(e instanceof Error ? e.message : "Speichern fehlgeschlagen.");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { error?: string }).error || "Speichern fehlgeschlagen");
+      }
+      // Users neu laden
+      const updated = await fetch("/api/admin/users").then((r) => r.json());
+      setUsers(updated);
+      closeEdit();
+    } catch (e: unknown) {
+      setSaveError(e instanceof Error ? e.message : "Speichern fehlgeschlagen");
     } finally {
       setSaving(false);
     }
-  }
-
-  function openEdit(user: AuthUser) {
-    setEditingUser(user);
-    setEditRole(user.role);
-    setEditAccess(user.projectAccess ?? []);
-    setEditPermissions(user.permissions ?? []);
-    setSaveError(null);
-  }
-
-  function toggleProject(id: string) {
-    setEditAccess((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  }
-
-  function togglePermission(perm: string) {
-    setEditPermissions((prev) =>
-      prev.includes(perm) ? prev.filter((x) => x !== perm) : [...prev, perm]
-    );
   }
 
   function copyLink() {
@@ -680,27 +681,32 @@ export function AdminUsersClient() {
       )}
 
       {/* ── EDIT USER MODAL ── */}
-      {editingUser && (
+      {editUser && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#161616] border border-[#2a2a2a] rounded-xl p-6 w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
+          {/* Modal mit max-h + overflow-y-auto damit Save-Button IMMER sichtbar ist */}
+          <div className="bg-[#161616] border border-[#2a2a2a] rounded-xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]">
+            {/* Header – immer sichtbar */}
+            <div className="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
               <h2 className="text-base font-semibold text-white">
-                {editingUser.username} bearbeiten
+                {editUser.username} bearbeiten
               </h2>
               <button
-                onClick={() => setEditingUser(null)}
+                onClick={closeEdit}
                 className="text-zinc-400 hover:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-4">
+            {/* Scrollbarer Inhalt */}
+            <div className="overflow-y-auto flex-1 px-6 space-y-4">
               <div>
                 <label className="block text-xs font-medium text-zinc-400 mb-1.5">Rolle</label>
                 <select
-                  value={editRole}
-                  onChange={(e) => setEditRole(e.target.value)}
+                  value={editForm?.role ?? "user"}
+                  onChange={(e) =>
+                    setEditForm((f) => f ? { ...f, role: e.target.value } : f)
+                  }
                   className="w-full bg-[#1c1c1c] border border-[#2a2a2a] rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50 transition-colors"
                 >
                   <option value="user">user</option>
@@ -708,12 +714,13 @@ export function AdminUsersClient() {
                 </select>
               </div>
 
-              {editRole === "user" && (
+              {editForm?.role === "user" && (
                 <>
                   <div>
                     <label className="block text-xs font-medium text-zinc-400 mb-2">
                       Projektzugang{" "}
-                      {editAccess.length > 0 && `(${editAccess.length} ausgewählt)`}
+                      {(editForm?.projectAccess.length ?? 0) > 0 &&
+                        `(${editForm?.projectAccess.length} ausgewählt)`}
                     </label>
                     <div className="space-y-1.5 max-h-40 overflow-y-auto">
                       {projects.map((p) => (
@@ -723,8 +730,19 @@ export function AdminUsersClient() {
                         >
                           <input
                             type="checkbox"
-                            checked={editAccess.includes(p.id)}
-                            onChange={() => toggleProject(p.id)}
+                            checked={editForm?.projectAccess.includes(p.id) ?? false}
+                            onChange={(e) =>
+                              setEditForm((f) =>
+                                f
+                                  ? {
+                                      ...f,
+                                      projectAccess: e.target.checked
+                                        ? [...f.projectAccess, p.id]
+                                        : f.projectAccess.filter((id) => id !== p.id),
+                                    }
+                                  : f
+                              )
+                            }
                             className="accent-emerald-500"
                           />
                           <span className="text-sm text-white">{p.name}</span>
@@ -742,9 +760,10 @@ export function AdminUsersClient() {
                   <div>
                     <label className="block text-xs font-medium text-zinc-400 mb-2">
                       Berechtigungen{" "}
-                      {editPermissions.length > 0 && `(${editPermissions.length} aktiv)`}
+                      {(editForm?.permissions.length ?? 0) > 0 &&
+                        `(${editForm?.permissions.length} aktiv)`}
                     </label>
-                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                    <div className="space-y-3">
                       {PERMISSION_GROUPS.map((group) => (
                         <div key={group.label}>
                           <p className="text-xs font-semibold text-zinc-500 mb-1.5 px-1">
@@ -758,8 +777,19 @@ export function AdminUsersClient() {
                               >
                                 <input
                                   type="checkbox"
-                                  checked={editPermissions.includes(perm.key)}
-                                  onChange={() => togglePermission(perm.key)}
+                                  checked={editForm?.permissions.includes(perm.key) ?? false}
+                                  onChange={(e) =>
+                                    setEditForm((f) =>
+                                      f
+                                        ? {
+                                            ...f,
+                                            permissions: e.target.checked
+                                              ? [...f.permissions, perm.key]
+                                              : f.permissions.filter((p) => p !== perm.key),
+                                          }
+                                        : f
+                                    )
+                                  }
                                   className="accent-emerald-500"
                                 />
                                 <span className="text-sm text-white">{perm.label}</span>
@@ -773,27 +803,30 @@ export function AdminUsersClient() {
                   </div>
                 </>
               )}
+            </div>
 
+            {/* Footer – immer sichtbar, nicht hinter Scroll versteckt */}
+            <div className="px-6 pb-6 pt-4 shrink-0">
               {saveError && (
-                <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">
+                <div className="text-red-400 text-sm p-2 bg-red-500/10 border border-red-500/20 rounded mb-3">
                   ⚠️ {saveError}
-                </p>
+                </div>
               )}
-
-              <div className="flex gap-2 pt-2 border-t border-[#2a2a2a]">
+              <div className="flex gap-2 border-t border-[#2a2a2a] pt-4">
                 <button
-                  onClick={() => { setEditingUser(null); setSaveError(null); }}
-                  className="flex-1 px-4 py-2 bg-[#1c1c1c] border border-[#2a2a2a] text-zinc-400 hover:text-white text-sm rounded-md transition-colors"
+                  onClick={closeEdit}
+                  disabled={saving}
+                  className="flex-1 px-4 py-2 bg-[#1c1c1c] border border-[#2a2a2a] text-zinc-400 hover:text-white text-sm rounded-md transition-colors disabled:opacity-50"
                 >
                   Abbrechen
                 </button>
                 <button
-                  onClick={saveEdit}
+                  onClick={handleSave}
                   disabled={saving}
-                  className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
                 >
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {saving ? "Speichern..." : "Speichern"}
+                  {saving ? "Wird gespeichert..." : "✓ Speichern"}
                 </button>
               </div>
             </div>
