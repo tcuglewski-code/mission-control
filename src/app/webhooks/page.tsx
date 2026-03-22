@@ -1,9 +1,18 @@
 import { prisma } from "@/lib/prisma";
 import { WebhooksClient } from "./WebhooksClient";
+import { requireServerSession } from "@/lib/server-auth";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function WebhooksPage() {
+  const session = await requireServerSession();
+
+  // Webhooks sind nur für Admins zugänglich (sensible Konfiguration)
+  if (session.role !== "admin") {
+    redirect("/dashboard");
+  }
+
   const [webhooksRaw, projects] = await Promise.all([
     prisma.webhook.findMany({
       include: { project: { select: { id: true, name: true, color: true } } },

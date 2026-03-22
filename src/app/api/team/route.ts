@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSessionOrApiKey } from "@/lib/api-auth";
+import { hasPermission, PERMISSIONS } from "@/lib/permissions";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const user = await getSessionOrApiKey(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!hasPermission(user, PERMISSIONS.TEAM_VIEW)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const users = await prisma.user.findMany({
       include: {
         _count: { select: { tasks: true } },
@@ -19,6 +30,16 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await getSessionOrApiKey(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Only admins can create team members
+    if (user.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const body = await req.json();
     const { name, email, role, avatar, description, tools, skills } = body;
 
@@ -26,7 +47,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Name and email are required" }, { status: 400 });
     }
 
-    const user = await prisma.user.create({
+    const newUser = await prisma.user.create({
       data: {
         name,
         email,
@@ -39,7 +60,7 @@ export async function POST(req: NextRequest) {
       include: { _count: { select: { tasks: true } } },
     });
 
-    return NextResponse.json(user, { status: 201 });
+    return NextResponse.json(newUser, { status: 201 });
   } catch (error) {
     console.error("[POST /api/team]", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -48,6 +69,16 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
+    const user = await getSessionOrApiKey(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Only admins can update team members
+    if (user.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const body = await req.json();
     const { id, name, email, role, avatar, description, tools, skills } = body;
 
@@ -55,7 +86,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "ID is required" }, { status: 400 });
     }
 
-    const user = await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id },
       data: {
         ...(name !== undefined && { name }),
@@ -69,7 +100,7 @@ export async function PUT(req: NextRequest) {
       include: { _count: { select: { tasks: true } } },
     });
 
-    return NextResponse.json(user);
+    return NextResponse.json(updatedUser);
   } catch (error) {
     console.error("[PUT /api/team]", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -78,6 +109,16 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    const user = await getSessionOrApiKey(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Only admins can delete team members
+    if (user.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 

@@ -1,9 +1,18 @@
 import { prisma } from '@/lib/prisma';
 import { CronJobsClient } from './CronJobsClient';
+import { requireServerSession } from '@/lib/server-auth';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
 export default async function CronJobsPage() {
+  const session = await requireServerSession();
+
+  // CronJobs sind nur für Admins zugänglich
+  if (session.role !== 'admin') {
+    redirect('/dashboard');
+  }
+
   const jobs = await prisma.cronJob.findMany({ orderBy: { createdAt: 'asc' } });
 
   // Serialize dates for client component

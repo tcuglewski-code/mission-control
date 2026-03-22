@@ -1,14 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSessionOrApiKey } from "@/lib/api-auth";
+import { hasPermission, PERMISSIONS } from "@/lib/permissions";
 
 export async function GET(req: NextRequest) {
   try {
+    const user = await getSessionOrApiKey(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!hasPermission(user, PERMISSIONS.CALENDAR_VIEW)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const from = searchParams.get("from");
     const to = searchParams.get("to");
 
+    // Non-admins: only events with no task, or events whose task belongs to an allowed project
+    let taskIdFilter: string[] | null = null;
+    if (user.role !== "admin") {
+      const allowedTasks = await prisma.task.findMany({
+        where: { projectId: { in: user.projectAccess } },
+        select: { id: true },
+      });
+      taskIdFilter = allowedTasks.map((t) => t.id);
+    }
+
     const events = await prisma.event.findMany({
       where: {
+        ...(taskIdFilter !== null
+          ? { OR: [{ taskId: null }, { taskId: { in: taskIdFilter } }] }
+          : {}),
         ...(from || to
           ? {
               startTime: {
@@ -33,6 +57,15 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await getSessionOrApiKey(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!hasPermission(user, PERMISSIONS.CALENDAR_WRITE)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const body = await req.json();
     const { title, description, type, color, startTime, endTime, recurring, taskId } = body;
 
@@ -62,6 +95,15 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
+    const user = await getSessionOrApiKey(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!hasPermission(user, PERMISSIONS.CALENDAR_WRITE)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const body = await req.json();
     const { id, ...data } = body;
 
@@ -91,6 +133,15 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    const user = await getSessionOrApiKey(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!hasPermission(user, PERMISSIONS.CALENDAR_WRITE)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 

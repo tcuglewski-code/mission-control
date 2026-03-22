@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSessionOrApiKey } from "@/lib/api-auth";
 
 function serializeDb(db: Record<string, unknown>) {
   return JSON.parse(
@@ -21,10 +22,18 @@ function simulateHealthCheck(type: string, host: string | null): "connected" | "
 }
 
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await getSessionOrApiKey(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (user.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const { id } = await params;
 
     const existing = await prisma.database.findUnique({ where: { id } });

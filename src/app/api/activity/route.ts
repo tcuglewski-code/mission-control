@@ -1,15 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSessionOrApiKey } from "@/lib/api-auth";
 
 export async function GET(req: NextRequest) {
   try {
+    const user = await getSessionOrApiKey(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get("limit") ?? "20");
     const projectId = searchParams.get("projectId");
 
+    // Non-admins sehen nur Logs aus erlaubten Projekten
+    const accessFilter =
+      user.role !== "admin"
+        ? { OR: [{ projectId: null }, { projectId: { in: user.projectAccess } }] }
+        : undefined;
+
     const logs = await prisma.activityLog.findMany({
       where: {
-        ...(projectId ? { projectId } : {}),
+        ...accessFilter,
+        ...(projectId
+          ? user.role !== "admin" && !user.projectAccess.includes(projectId)
+            ? { id: "__none__" }
+            : { projectId }
+          : {}),
       },
       include: {
         user: { select: { name: true, avatar: true } },
@@ -28,6 +45,11 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await getSessionOrApiKey(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
     const { action, entityType, entityId, entityName, userId, projectId, metadata } = body;
 

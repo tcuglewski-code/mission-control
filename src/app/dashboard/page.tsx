@@ -4,18 +4,35 @@ import { StatsRow } from "@/components/dashboard/StatsRow";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { ActiveProjects } from "@/components/dashboard/ActiveProjects";
 import { startOfDay, endOfDay } from "date-fns";
+import { requireServerSession, getAllowedProjectIds } from "@/lib/server-auth";
 
 export default async function DashboardPage() {
+  const session = await requireServerSession();
+  const allowedIds = getAllowedProjectIds(session);
+
+  // Projekte gefiltert nach Zugriffsrechten
+  const allProjects = await prisma.project.findMany({
+    where: allowedIds ? { id: { in: allowedIds } } : {},
+  });
+
+  const activeProjectIds = allProjects
+    .filter((p) => p.status === "active")
+    .map((p) => p.id);
+
   const [
-    activeProjects,
     openTasksCount,
     teamCount,
     activityToday,
     recentLogs,
     projects,
   ] = await Promise.all([
-    prisma.project.count({ where: { status: "active" } }),
-    prisma.task.count({ where: { status: { not: "done" } } }),
+    // Tasks nur aus erlaubten Projekten
+    prisma.task.count({
+      where: {
+        status: { not: "done" },
+        ...(allowedIds ? { projectId: { in: allowedIds } } : {}),
+      },
+    }),
     prisma.user.count(),
     prisma.activityLog.count({
       where: {
@@ -23,15 +40,20 @@ export default async function DashboardPage() {
           gte: startOfDay(new Date()),
           lte: endOfDay(new Date()),
         },
+        ...(allowedIds ? { projectId: { in: allowedIds } } : {}),
       },
     }),
     prisma.activityLog.findMany({
+      where: allowedIds ? { projectId: { in: allowedIds } } : {},
       include: { user: { select: { name: true, avatar: true } } },
       orderBy: { createdAt: "desc" },
       take: 10,
     }),
     prisma.project.findMany({
-      where: { status: { in: ["active", "planning"] } },
+      where: {
+        status: { in: ["active", "planning"] },
+        ...(allowedIds ? { id: { in: allowedIds } } : {}),
+      },
       include: {
         _count: { select: { tasks: true } },
         members: {
@@ -51,7 +73,7 @@ export default async function DashboardPage() {
     >
       <div className="p-6 space-y-6">
         <StatsRow
-          activeProjects={activeProjects}
+          activeProjects={activeProjectIds.length}
           openTasks={openTasksCount}
           teamMembers={teamCount}
           activityToday={activityToday}

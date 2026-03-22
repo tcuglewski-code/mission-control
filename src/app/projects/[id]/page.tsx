@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { ChevronLeft, CheckSquare, Users, FileText, Activity } from "lucide-react";
 import { getStatusBg, getStatusLabel, formatRelativeTime, getActionLabel, getEntityTypeLabel, getInitials } from "@/lib/utils";
+import { requireServerSession, getAllowedProjectIds } from "@/lib/server-auth";
 
 interface PageProps {
   params: { id: string };
@@ -63,6 +64,14 @@ function getSprintSortKey(sprint: string): number {
 }
 
 export default async function ProjectDetailPage({ params }: PageProps) {
+  const session = await requireServerSession();
+  const allowedIds = getAllowedProjectIds(session);
+
+  // Non-admins können nur ihre freigegebenen Projekte sehen
+  if (allowedIds !== null && !allowedIds.includes(params.id)) {
+    notFound();
+  }
+
   const project = await prisma.project.findUnique({
     where: { id: params.id },
     include: {
