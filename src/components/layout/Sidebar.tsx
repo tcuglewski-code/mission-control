@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   CheckSquare,
@@ -45,8 +46,20 @@ export function Sidebar() {
   const pathname = usePathname();
   const { sidebarOpen, setSidebarOpen } = useAppStore();
   const { data: session } = useSession();
-  const username = (session?.user as any)?.username ?? session?.user?.name ?? "User";
-  const role = (session?.user as any)?.role ?? "user";
+  const [meData, setMeData] = useState<{ username: string; role: string } | null>(null);
+
+  // Load fresh user data from DB via /api/me (JWT doesn't store role)
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetch("/api/me")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => { if (data) setMeData(data); })
+        .catch(() => {});
+    }
+  }, [session?.user?.id]);
+
+  const username = meData?.username ?? (session?.user as any)?.username ?? session?.user?.name ?? "User";
+  const role = meData?.role ?? "user";
 
   return (
     <>

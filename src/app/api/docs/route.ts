@@ -20,26 +20,30 @@ export async function GET(req: NextRequest) {
         ? { OR: [{ projectId: null }, { projectId: { in: user.projectAccess } }] }
         : undefined;
 
+    // If a specific projectId is requested, verify access
+    const projectFilter = projectId
+      ? user.role !== "admin" && !user.projectAccess.includes(projectId)
+        ? { id: "__none__" } // returns empty result if no access
+        : { projectId }
+      : undefined;
+
+    // Build AND array to avoid OR-overwrite bug when combining access filter with search filter
+    const andClauses: object[] = [];
+    if (accessFilter) andClauses.push(accessFilter);
+    if (projectFilter) andClauses.push(projectFilter);
+    if (type && type !== "all") andClauses.push({ type });
+    if (search) {
+      andClauses.push({
+        OR: [
+          { title: { contains: search } },
+          { content: { contains: search } },
+          { tags: { contains: search } },
+        ],
+      });
+    }
+
     const docs = await prisma.document.findMany({
-      where: {
-        ...accessFilter,
-        ...(type && type !== "all" ? { type } : {}),
-        // If a specific projectId is requested, make sure user has access
-        ...(projectId
-          ? user.role !== "admin" && !user.projectAccess.includes(projectId)
-            ? { id: "__none__" } // returns empty result if no access
-            : { projectId }
-          : {}),
-        ...(search
-          ? {
-              OR: [
-                { title: { contains: search } },
-                { content: { contains: search } },
-                { tags: { contains: search } },
-              ],
-            }
-          : {}),
-      },
+      where: andClauses.length > 0 ? { AND: andClauses } : {},
       include: {
         project: { select: { name: true } },
       },

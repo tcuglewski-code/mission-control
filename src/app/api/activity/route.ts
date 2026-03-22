@@ -13,21 +13,28 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get("limit") ?? "20");
     const projectId = searchParams.get("projectId");
 
-    // Non-admins sehen nur Logs aus erlaubten Projekten
+    // Non-admins sehen nur Logs aus ihren erlaubten Projekten
+    // Kein Fallback auf null-Projekte für eingeschränkte User
     const accessFilter =
       user.role !== "admin"
-        ? { OR: [{ projectId: null }, { projectId: { in: user.projectAccess } }] }
+        ? user.projectAccess.length > 0
+          ? { projectId: { in: user.projectAccess } }
+          : { id: "__none__" } // no access at all → empty result
         : undefined;
 
+    // Build AND clauses to avoid OR-overwrite issues
+    const andClauses: object[] = [];
+    if (accessFilter) andClauses.push(accessFilter);
+    if (projectId) {
+      if (user.role !== "admin" && !user.projectAccess.includes(projectId)) {
+        andClauses.push({ id: "__none__" });
+      } else {
+        andClauses.push({ projectId });
+      }
+    }
+
     const logs = await prisma.activityLog.findMany({
-      where: {
-        ...accessFilter,
-        ...(projectId
-          ? user.role !== "admin" && !user.projectAccess.includes(projectId)
-            ? { id: "__none__" }
-            : { projectId }
-          : {}),
-      },
+      where: andClauses.length > 0 ? { AND: andClauses } : {},
       include: {
         user: { select: { name: true, avatar: true } },
         project: { select: { name: true, color: true } },

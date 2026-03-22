@@ -1,16 +1,23 @@
 import { prisma } from "@/lib/prisma";
 import { WebhooksClient } from "./WebhooksClient";
+import { AppShell } from "@/components/layout/AppShell";
 import { requireServerSession } from "@/lib/server-auth";
-import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function WebhooksPage() {
   const session = await requireServerSession();
 
-  // Webhooks sind nur für Admins zugänglich (sensible Konfiguration)
   if (session.role !== "admin") {
-    redirect("/dashboard");
+    return (
+      <AppShell title="Webhooks" subtitle="Automatisierte Benachrichtigungen">
+        <div className="flex flex-col items-center justify-center h-full p-12 text-center">
+          <p className="text-4xl mb-4">🔒</p>
+          <h2 className="text-lg font-semibold text-white mb-2">Kein Zugriff</h2>
+          <p className="text-sm text-zinc-500">Dieses Modul ist nur für Administratoren zugänglich.</p>
+        </div>
+      </AppShell>
+    );
   }
 
   const [webhooksRaw, projects] = await Promise.all([
