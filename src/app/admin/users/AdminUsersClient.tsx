@@ -61,6 +61,7 @@ export function AdminUsersClient() {
   const [editAccess, setEditAccess] = useState<string[]>([]);
   const [editPermissions, setEditPermissions] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   // ── API Keys State ──
@@ -121,18 +122,25 @@ export function AdminUsersClient() {
   async function saveEdit() {
     if (!editingUser) return;
     setSaving(true);
-    await fetch(`/api/admin/users/${editingUser.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        role: editRole,
-        projectAccess: editAccess,
-        permissions: editPermissions,
-      }),
-    });
-    setSaving(false);
-    setEditingUser(null);
-    loadData();
+    setSaveError(null);
+    try {
+      const res = await fetch(`/api/admin/users/${editingUser.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: editRole,
+          projectAccess: editAccess,
+          permissions: editPermissions,
+        }),
+      });
+      if (!res.ok) throw new Error(`Fehler ${res.status}: ${res.statusText}`);
+      setEditingUser(null);
+      loadData();
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Speichern fehlgeschlagen.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function openEdit(user: AuthUser) {
@@ -140,6 +148,7 @@ export function AdminUsersClient() {
     setEditRole(user.role);
     setEditAccess(user.projectAccess ?? []);
     setEditPermissions(user.permissions ?? []);
+    setSaveError(null);
   }
 
   function toggleProject(id: string) {
@@ -765,9 +774,15 @@ export function AdminUsersClient() {
                 </>
               )}
 
-              <div className="flex gap-2 pt-2">
+              {saveError && (
+                <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">
+                  ⚠️ {saveError}
+                </p>
+              )}
+
+              <div className="flex gap-2 pt-2 border-t border-[#2a2a2a]">
                 <button
-                  onClick={() => setEditingUser(null)}
+                  onClick={() => { setEditingUser(null); setSaveError(null); }}
                   className="flex-1 px-4 py-2 bg-[#1c1c1c] border border-[#2a2a2a] text-zinc-400 hover:text-white text-sm rounded-md transition-colors"
                 >
                   Abbrechen
@@ -778,7 +793,7 @@ export function AdminUsersClient() {
                   className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
                 >
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Speichern
+                  {saving ? "Speichern..." : "Speichern"}
                 </button>
               </div>
             </div>
