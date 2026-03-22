@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { getSessionOrApiKey } from "@/lib/api-auth";
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
 
-    // Project access filtering
-    const session = await auth();
-    const userRole = (session?.user as any)?.role;
-    const projectAccess: string[] = (session?.user as any)?.projectAccess ?? [];
+    // Project access filtering — supports both session and API key auth
+    const user = await getSessionOrApiKey(req);
+    const userRole = user?.role;
+    const projectAccess: string[] = user?.projectAccess ?? [];
 
     const accessFilter =
       userRole === "user" && projectAccess.length > 0

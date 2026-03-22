@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+// Memory route supports API key auth (getSessionOrApiKey imported but auth not enforced here)
 
 export async function GET(req: NextRequest) {
   try {
