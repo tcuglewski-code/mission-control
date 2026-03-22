@@ -21,6 +21,7 @@ export const authConfig: NextAuthConfig = {
         token.username = (user as any).username;
         token.role = (user as any).role;
         token.projectAccess = (user as any).projectAccess;
+        token.permissions = (user as any).permissions ?? [];
       }
       return token;
     },
@@ -30,6 +31,7 @@ export const authConfig: NextAuthConfig = {
         (session.user as any).username = token.username;
         (session.user as any).role = token.role;
         (session.user as any).projectAccess = token.projectAccess;
+        (session.user as any).permissions = token.permissions ?? [];
       }
       return session;
     },

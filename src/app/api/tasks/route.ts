@@ -2,21 +2,28 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { triggerWebhooks } from "@/lib/webhooks";
 import { getSessionOrApiKey } from "@/lib/api-auth";
+import { hasPermission, PERMISSIONS } from "@/lib/permissions";
 
 export async function GET(req: NextRequest) {
   try {
+    const user = await getSessionOrApiKey(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!hasPermission(user, PERMISSIONS.TASKS_VIEW)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
     const projectId = searchParams.get("projectId");
 
-    // Project access filtering — supports both session and API key auth
-    const user = await getSessionOrApiKey(req);
-    const userRole = user?.role;
-    const projectAccess: string[] = user?.projectAccess ?? [];
-
+    // BUG FIX: Non-admins sehen NUR Tasks aus explizit freigegebenen Projekten.
+    // Leeres projectAccess-Array = keine Tasks sichtbar.
     const accessFilter =
-      userRole === "user" && projectAccess.length > 0
-        ? { projectId: { in: projectAccess } }
+      user.role !== "admin"
+        ? { projectId: { in: user.projectAccess } }
         : {};
 
     const tasks = await prisma.task.findMany({
@@ -41,6 +48,15 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await getSessionOrApiKey(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!hasPermission(user, PERMISSIONS.TASKS_CREATE)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const body = await req.json();
     const {
       title,

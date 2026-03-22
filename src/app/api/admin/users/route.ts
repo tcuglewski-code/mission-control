@@ -24,6 +24,7 @@ export async function GET() {
       email: true,
       role: true,
       projectAccess: true,
+      permissions: true,
       createdAt: true,
     },
     orderBy: { createdAt: "desc" },
@@ -62,6 +63,7 @@ export async function POST(req: NextRequest) {
       passwordHash,
       role: role ?? "user",
       projectAccess: projectAccess ?? [],
+      permissions: [],
     },
     select: {
       id: true,
@@ -69,6 +71,7 @@ export async function POST(req: NextRequest) {
       email: true,
       role: true,
       projectAccess: true,
+      permissions: true,
       createdAt: true,
     },
   });

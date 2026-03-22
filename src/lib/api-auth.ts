@@ -11,6 +11,7 @@ export interface ApiSession {
   username: string;
   role: string;
   projectAccess: string[];
+  permissions: string[];
 }
 
 /**
@@ -54,6 +55,7 @@ export async function getSessionOrApiKey(
       username: user.username,
       role: user.role,
       projectAccess: user.projectAccess,
+      permissions: user.permissions ?? [],
     };
   }
 
@@ -66,5 +68,6 @@ export async function getSessionOrApiKey(
     username: (session.user as any).username ?? session.user.name ?? "",
     role: (session.user as any).role ?? "user",
     projectAccess: (session.user as any).projectAccess ?? [],
+    permissions: (session.user as any).permissions ?? [],
   };
 }

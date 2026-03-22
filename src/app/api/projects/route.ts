@@ -1,20 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionOrApiKey } from "@/lib/api-auth";
+import { hasPermission, PERMISSIONS } from "@/lib/permissions";
 
 export async function GET(req: NextRequest) {
   try {
+    const user = await getSessionOrApiKey(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!hasPermission(user, PERMISSIONS.PROJECTS_VIEW)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
 
-    // Project access filtering — supports both session and API key auth
-    const user = await getSessionOrApiKey(req);
-    const userRole = user?.role;
-    const projectAccess: string[] = user?.projectAccess ?? [];
-
+    // BUG FIX: Non-admins sehen NUR explizit freigegebene Projekte.
+    // Leeres projectAccess-Array = kein Projektzugang (nicht alle Projekte!).
     const accessFilter =
-      userRole === "user" && projectAccess.length > 0
-        ? { id: { in: projectAccess } }
+      user.role !== "admin"
+        ? { id: { in: user.projectAccess } }
         : undefined;
 
     const projects = await prisma.project.findMany({
@@ -41,6 +48,15 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await getSessionOrApiKey(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!hasPermission(user, PERMISSIONS.PROJECTS_CREATE)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const body = await req.json();
     const { name, description, status, progress, priority, color } = body;
 

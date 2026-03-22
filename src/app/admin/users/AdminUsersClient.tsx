@@ -15,6 +15,7 @@ import {
   Copy,
   Plus,
 } from "lucide-react";
+import { PERMISSION_GROUPS } from "@/lib/permissions";
 
 interface AuthUser {
   id: string;
@@ -22,6 +23,7 @@ interface AuthUser {
   email?: string;
   role: string;
   projectAccess: string[];
+  permissions: string[];
   createdAt: string;
 }
 
@@ -57,6 +59,7 @@ export function AdminUsersClient() {
   const [editingUser, setEditingUser] = useState<AuthUser | null>(null);
   const [editRole, setEditRole] = useState("user");
   const [editAccess, setEditAccess] = useState<string[]>([]);
+  const [editPermissions, setEditPermissions] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -121,7 +124,11 @@ export function AdminUsersClient() {
     await fetch(`/api/admin/users/${editingUser.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role: editRole, projectAccess: editAccess }),
+      body: JSON.stringify({
+        role: editRole,
+        projectAccess: editAccess,
+        permissions: editPermissions,
+      }),
     });
     setSaving(false);
     setEditingUser(null);
@@ -131,12 +138,19 @@ export function AdminUsersClient() {
   function openEdit(user: AuthUser) {
     setEditingUser(user);
     setEditRole(user.role);
-    setEditAccess(user.projectAccess);
+    setEditAccess(user.projectAccess ?? []);
+    setEditPermissions(user.permissions ?? []);
   }
 
   function toggleProject(id: string) {
     setEditAccess((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
+
+  function togglePermission(perm: string) {
+    setEditPermissions((prev) =>
+      prev.includes(perm) ? prev.filter((x) => x !== perm) : [...prev, perm]
     );
   }
 
@@ -686,34 +700,69 @@ export function AdminUsersClient() {
               </div>
 
               {editRole === "user" && (
-                <div>
-                  <label className="block text-xs font-medium text-zinc-400 mb-2">
-                    Projektzugang{" "}
-                    {editAccess.length > 0 && `(${editAccess.length} ausgewählt)`}
-                  </label>
-                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                    {projects.map((p) => (
-                      <label
-                        key={p.id}
-                        className="flex items-center gap-2.5 px-3 py-2 bg-[#1c1c1c] border border-[#2a2a2a] rounded-md cursor-pointer hover:border-emerald-500/30 transition-colors"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={editAccess.includes(p.id)}
-                          onChange={() => toggleProject(p.id)}
-                          className="accent-emerald-500"
-                        />
-                        <span className="text-sm text-white">{p.name}</span>
-                      </label>
-                    ))}
-                    {projects.length === 0 && (
-                      <p className="text-xs text-zinc-500 text-center py-3">
-                        Keine Projekte vorhanden
-                      </p>
-                    )}
+                <>
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-400 mb-2">
+                      Projektzugang{" "}
+                      {editAccess.length > 0 && `(${editAccess.length} ausgewählt)`}
+                    </label>
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                      {projects.map((p) => (
+                        <label
+                          key={p.id}
+                          className="flex items-center gap-2.5 px-3 py-2 bg-[#1c1c1c] border border-[#2a2a2a] rounded-md cursor-pointer hover:border-emerald-500/30 transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={editAccess.includes(p.id)}
+                            onChange={() => toggleProject(p.id)}
+                            className="accent-emerald-500"
+                          />
+                          <span className="text-sm text-white">{p.name}</span>
+                        </label>
+                      ))}
+                      {projects.length === 0 && (
+                        <p className="text-xs text-zinc-500 text-center py-3">
+                          Keine Projekte vorhanden
+                        </p>
+                      )}
+                    </div>
+                    <p className="text-xs text-zinc-600 mt-2">Leer = kein Projektzugang</p>
                   </div>
-                  <p className="text-xs text-zinc-600 mt-2">Leer = kein Projektzugang</p>
-                </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-400 mb-2">
+                      Berechtigungen{" "}
+                      {editPermissions.length > 0 && `(${editPermissions.length} aktiv)`}
+                    </label>
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                      {PERMISSION_GROUPS.map((group) => (
+                        <div key={group.label}>
+                          <p className="text-xs font-semibold text-zinc-500 mb-1.5 px-1">
+                            {group.label}
+                          </p>
+                          <div className="space-y-1">
+                            {group.permissions.map((perm) => (
+                              <label
+                                key={perm.key}
+                                className="flex items-center gap-2.5 px-3 py-1.5 bg-[#1c1c1c] border border-[#2a2a2a] rounded-md cursor-pointer hover:border-emerald-500/30 transition-colors"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={editPermissions.includes(perm.key)}
+                                  onChange={() => togglePermission(perm.key)}
+                                  className="accent-emerald-500"
+                                />
+                                <span className="text-sm text-white">{perm.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-zinc-600 mt-2">Leer = keine Berechtigungen</p>
+                  </div>
+                </>
               )}
 
               <div className="flex gap-2 pt-2">

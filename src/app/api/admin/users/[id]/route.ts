@@ -29,7 +29,7 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
-  const { role, projectAccess, email } = body;
+  const { role, projectAccess, email, permissions } = body;
 
   const user = await prisma.authUser.update({
     where: { id },
@@ -37,6 +37,7 @@ export async function PATCH(
       ...(role !== undefined && { role }),
       ...(projectAccess !== undefined && { projectAccess }),
       ...(email !== undefined && { email }),
+      ...(permissions !== undefined && { permissions }),
     },
     select: {
       id: true,
@@ -44,6 +45,7 @@ export async function PATCH(
       email: true,
       role: true,
       projectAccess: true,
+      permissions: true,
       createdAt: true,
     },
   });
