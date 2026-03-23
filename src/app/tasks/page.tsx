@@ -43,6 +43,7 @@ export default async function TasksPage() {
       include: {
         project: { select: { id: true, name: true, color: true } },
         assignee: { select: { id: true, name: true, avatar: true } },
+        sprint: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: "desc" },
     }),

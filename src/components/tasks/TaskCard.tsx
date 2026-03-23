@@ -4,10 +4,10 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { Calendar, AlertCircle, Play, Square, Clock } from "lucide-react";
+import { Calendar, AlertCircle, Play, Flag } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 import { useAppStore, type Task } from "@/store/useAppStore";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState } from "react";
 
 interface TaskCardProps {
   task: Task;
@@ -28,144 +28,10 @@ const priorityLabel: Record<string, string> = {
   low: "🟢 Low",
 };
 
-// LocalStorage key for active timers: { [taskId]: startTimestamp }
-const LS_KEY = "mc_timers";
-
-function getStoredTimers(): Record<string, number> {
-  try {
-    return JSON.parse(localStorage.getItem(LS_KEY) ?? "{}");
-  } catch {
-    return {};
-  }
-}
-
-function setStoredTimer(taskId: string, startedAt: number | null) {
-  const timers = getStoredTimers();
-  if (startedAt === null) {
-    delete timers[taskId];
-  } else {
-    timers[taskId] = startedAt;
-  }
-  localStorage.setItem(LS_KEY, JSON.stringify(timers));
-}
-
-function formatDuration(secs: number): string {
-  const h = Math.floor(secs / 3600);
-  const m = Math.floor((secs % 3600) / 60);
-  const s = secs % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
-
-function TimerButton({ task, onCardClick }: { task: Task; onCardClick?: () => void }) {
-  const { updateTaskTime } = useAppStore();
-  const [isRunning, setIsRunning] = useState(false);
-  const [elapsed, setElapsed] = useState(0); // seconds since timer started
-  const startRef = useRef<number | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // On mount: check localStorage for a running timer
-  useEffect(() => {
-    const timers = getStoredTimers();
-    const storedStart = timers[task.id];
-    if (storedStart) {
-      startRef.current = storedStart;
-      setIsRunning(true);
-      const elapsedSecs = Math.floor((Date.now() - storedStart) / 1000);
-      setElapsed(elapsedSecs);
-    }
-  }, [task.id]);
-
-  // Tick interval when running
-  useEffect(() => {
-    if (isRunning) {
-      intervalRef.current = setInterval(() => {
-        if (startRef.current) {
-          setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
-        }
-      }, 1000);
-    } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [isRunning]);
-
-  const handleStart = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    const now = Date.now();
-    startRef.current = now;
-    setStoredTimer(task.id, now);
-    setElapsed(0);
-    setIsRunning(true);
-  }, [task.id]);
-
-  const handleStop = useCallback(async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!startRef.current) return;
-
-    const sessionSecs = Math.floor((Date.now() - startRef.current) / 1000);
-    const totalSecs = (task.timeSpentSeconds ?? 0) + sessionSecs;
-
-    // Optimistic update
-    updateTaskTime(task.id, totalSecs);
-
-    setIsRunning(false);
-    setElapsed(0);
-    startRef.current = null;
-    setStoredTimer(task.id, null);
-
-    // Persist to API
-    try {
-      await fetch(`/api/tasks/${task.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ timeSpentSeconds: totalSecs }),
-      });
-    } catch (e) {
-      console.error("Failed to save time", e);
-    }
-  }, [task.id, task.timeSpentSeconds, updateTaskTime]);
-
-  const totalDisplay = task.timeSpentSeconds ? formatDuration(task.timeSpentSeconds) : null;
-
-  return (
-    <div className="flex items-center gap-1.5 mt-2 ml-4">
-      {isRunning ? (
-        <>
-          <button
-            onClick={handleStop}
-            className="flex items-center gap-1 text-[10px] text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded px-1.5 py-0.5 transition-colors"
-          >
-            <Square className="w-2.5 h-2.5 fill-current" />
-            Stop
-          </button>
-          <span className="text-[10px] font-mono text-orange-400 tabular-nums">
-            {formatDuration(elapsed)}
-          </span>
-        </>
-      ) : (
-        <>
-          <button
-            onClick={handleStart}
-            className="flex items-center gap-1 text-[10px] text-zinc-500 hover:text-emerald-400 bg-zinc-500/10 hover:bg-emerald-500/10 border border-zinc-600/20 hover:border-emerald-500/20 rounded px-1.5 py-0.5 transition-colors"
-          >
-            <Play className="w-2.5 h-2.5 fill-current" />
-            Start
-          </button>
-          {totalDisplay && (
-            <span className="flex items-center gap-0.5 text-[10px] text-zinc-600 tabular-nums">
-              <Clock className="w-2.5 h-2.5" />
-              {totalDisplay}
-            </span>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
 export function TaskCard({ task, onClick }: TaskCardProps) {
+  const { updateTaskStatus } = useAppStore();
+  const [starting, setStarting] = useState(false);
+
   const {
     attributes,
     listeners,
@@ -182,6 +48,25 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
 
   const isOverdue =
     task.dueDate && new Date(task.dueDate) < new Date() && task.status !== "done";
+
+  const isInProgress = task.status === "in_progress";
+
+  const handleStart = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (starting || isInProgress) return;
+    setStarting(true);
+    try {
+      const res = await fetch(`/api/tasks/${task.id}/start`, { method: "POST" });
+      if (res.ok) {
+        const { task: updated } = await res.json();
+        updateTaskStatus(task.id, updated.status);
+      }
+    } catch (err) {
+      console.error("Failed to start task", err);
+    } finally {
+      setStarting(false);
+    }
+  };
 
   return (
     <div
@@ -218,7 +103,7 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
 
       {/* Project tag */}
       {task.project && (
-        <div className="mb-2 ml-4">
+        <div className="mb-1 ml-4">
           <span
             className="text-[10px] px-1.5 py-0.5 rounded font-medium"
             style={{
@@ -227,6 +112,16 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
             }}
           >
             {task.project.name}
+          </span>
+        </div>
+      )}
+
+      {/* Sprint badge */}
+      {task.sprint && (
+        <div className="mb-2 ml-4">
+          <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-medium bg-blue-500/15 text-blue-400 border border-blue-500/20">
+            <Flag className="w-2.5 h-2.5" />
+            {task.sprint.name}
           </span>
         </div>
       )}
@@ -271,8 +166,24 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
         )}
       </div>
 
-      {/* Timer */}
-      <TimerButton task={task} onCardClick={onClick} />
+      {/* Start button or In-Progress badge */}
+      <div className="flex items-center gap-1.5 mt-2 ml-4">
+        {isInProgress ? (
+          <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            In Bearbeitung
+          </span>
+        ) : task.status !== "done" && task.status !== "review" ? (
+          <button
+            onClick={handleStart}
+            disabled={starting}
+            className="flex items-center gap-1 text-[10px] text-zinc-500 hover:text-emerald-400 bg-zinc-500/10 hover:bg-emerald-500/10 border border-zinc-600/20 hover:border-emerald-500/20 rounded px-1.5 py-0.5 transition-colors disabled:opacity-50"
+          >
+            <Play className="w-2.5 h-2.5 fill-current" />
+            {starting ? "..." : "Start"}
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }

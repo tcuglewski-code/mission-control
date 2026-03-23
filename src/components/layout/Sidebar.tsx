@@ -22,6 +22,7 @@ import {
   Webhook,
   ShieldCheck,
   LogOut,
+  Flag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/useAppStore";
@@ -29,6 +30,7 @@ import { useAppStore } from "@/store/useAppStore";
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/tasks", icon: CheckSquare, label: "Aufgaben" },
+  { href: "/sprints", icon: Flag, label: "Sprints" },
   { href: "/calendar", icon: CalendarDays, label: "Kalender" },
   { href: "/cronjobs", icon: Timer, label: "Cron Jobs" },
   { href: "/projects", icon: FolderKanban, label: "Projekte" },

@@ -24,6 +24,7 @@ export async function GET(
       include: {
         project: { select: { id: true, name: true, color: true } },
         assignee: { select: { id: true, name: true, avatar: true } },
+        sprint: { select: { id: true, name: true } },
       },
     });
 
@@ -51,8 +52,11 @@ async function updateTask(id: string, body: Record<string, unknown>) {
     priority,
     labels,
     dueDate,
+    startDate,
+    agentPrompt,
     projectId,
     assigneeId,
+    sprintId,
     timeSpentSeconds,
   } = body as {
     title?: string;
@@ -61,8 +65,11 @@ async function updateTask(id: string, body: Record<string, unknown>) {
     priority?: string;
     labels?: string;
     dueDate?: string | null;
+    startDate?: string | null;
+    agentPrompt?: string | null;
     projectId?: string | null;
     assigneeId?: string | null;
+    sprintId?: string | null;
     timeSpentSeconds?: number;
   };
 
@@ -75,13 +82,17 @@ async function updateTask(id: string, body: Record<string, unknown>) {
       ...(priority !== undefined && { priority }),
       ...(labels !== undefined && { labels }),
       ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
+      ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),
+      ...(agentPrompt !== undefined && { agentPrompt: agentPrompt || null }),
       ...(projectId !== undefined && { projectId: projectId || null }),
       ...(assigneeId !== undefined && { assigneeId: assigneeId || null }),
+      ...(sprintId !== undefined && { sprintId: sprintId || null }),
       ...(timeSpentSeconds !== undefined && { timeSpentSeconds }),
     },
     include: {
       project: { select: { id: true, name: true, color: true } },
       assignee: { select: { id: true, name: true, avatar: true } },
+      sprint: { select: { id: true, name: true } },
     },
   });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -12,11 +12,11 @@ import {
   closestCorners,
   DragOverlay,
 } from "@dnd-kit/core";
-import { arrayMove } from "@dnd-kit/sortable";
 import { KanbanColumn } from "./KanbanColumn";
 import { TaskCard } from "./TaskCard";
 import { TaskModal } from "./TaskModal";
-import { useAppStore, type Task, type Project, type User } from "@/store/useAppStore";
+import { useAppStore, type Task, type Project, type User, type Sprint } from "@/store/useAppStore";
+import { Flag } from "lucide-react";
 
 const COLUMNS = [
   { id: "todo", title: "Todo", color: "bg-zinc-500" },
@@ -36,6 +36,15 @@ export function KanbanBoard({ projects, users, filteredTasks }: KanbanBoardProps
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null | undefined>(undefined);
   const [newTaskStatus, setNewTaskStatus] = useState<string>("todo");
+  const [sprints, setSprints] = useState<Sprint[]>([]);
+  const [selectedSprintId, setSelectedSprintId] = useState<string>("");
+
+  useEffect(() => {
+    fetch("/api/sprints")
+      .then((r) => r.json())
+      .then((data: Sprint[]) => { if (Array.isArray(data)) setSprints(data); })
+      .catch(() => {});
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -43,7 +52,10 @@ export function KanbanBoard({ projects, users, filteredTasks }: KanbanBoardProps
     })
   );
 
-  const displayTasks = filteredTasks ?? tasks;
+  const baseTasks = filteredTasks ?? tasks;
+  const displayTasks = selectedSprintId
+    ? baseTasks.filter((t) => t.sprintId === selectedSprintId)
+    : baseTasks;
 
   const getTasksByStatus = useCallback(
     (status: string) => displayTasks.filter((t) => t.status === status),
@@ -146,6 +158,34 @@ export function KanbanBoard({ projects, users, filteredTasks }: KanbanBoardProps
 
   return (
     <>
+      {/* Sprint filter */}
+      {sprints.length > 0 && (
+        <div className="flex items-center gap-2 mb-4">
+          <Flag className="w-3.5 h-3.5 text-zinc-500" />
+          <span className="text-xs text-zinc-500">Sprint:</span>
+          <select
+            value={selectedSprintId}
+            onChange={(e) => setSelectedSprintId(e.target.value)}
+            className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-emerald-500/50"
+          >
+            <option value="">Alle Tasks</option>
+            {sprints.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} ({s.status})
+              </option>
+            ))}
+          </select>
+          {selectedSprintId && (
+            <button
+              onClick={() => setSelectedSprintId("")}
+              className="text-xs text-zinc-500 hover:text-white"
+            >
+              ✕ Filter entfernen
+            </button>
+          )}
+        </div>
+      )}
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}

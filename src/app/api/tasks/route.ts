@@ -20,21 +20,23 @@ export async function GET(req: NextRequest) {
     const projectId = searchParams.get("projectId");
 
     // BUG FIX: Non-admins sehen NUR Tasks aus explizit freigegebenen Projekten.
-    // Leeres projectAccess-Array = keine Tasks sichtbar.
     const accessFilter =
       user.role !== "admin"
         ? { projectId: { in: user.projectAccess } }
         : {};
+    const sprintId = searchParams.get("sprintId");
 
     const tasks = await prisma.task.findMany({
       where: {
         ...(status ? { status } : {}),
         ...(projectId ? { projectId } : {}),
         ...accessFilter,
+        ...(sprintId === "null" ? { sprintId: null } : sprintId ? { sprintId } : {}),
       },
       include: {
         project: { select: { id: true, name: true, color: true } },
         assignee: { select: { id: true, name: true, avatar: true } },
+        sprint: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -65,8 +67,11 @@ export async function POST(req: NextRequest) {
       priority,
       labels,
       dueDate,
+      startDate,
+      agentPrompt,
       projectId,
       assigneeId,
+      sprintId,
     } = body;
 
     if (!title) {
@@ -81,12 +86,16 @@ export async function POST(req: NextRequest) {
         priority: priority ?? "medium",
         labels,
         dueDate: dueDate ? new Date(dueDate) : null,
+        startDate: startDate ? new Date(startDate) : null,
+        agentPrompt: agentPrompt || null,
         projectId: projectId || null,
         assigneeId: assigneeId || null,
+        sprintId: sprintId || null,
       },
       include: {
         project: { select: { id: true, name: true, color: true } },
         assignee: { select: { id: true, name: true, avatar: true } },
+        sprint: { select: { id: true, name: true } },
       },
     });
 

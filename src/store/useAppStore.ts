@@ -2,6 +2,21 @@
 
 import { create } from "zustand";
 
+export interface Sprint {
+  id: string;
+  name: string;
+  description?: string | null;
+  status: string;
+  startDate?: Date | null;
+  endDate?: Date | null;
+  goal?: string | null;
+  projectId?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  project?: { id: string; name: string; color: string } | null;
+  tasks?: { id: string; status: string; title: string }[];
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -10,13 +25,17 @@ export interface Task {
   priority: string;
   labels?: string | null;
   dueDate?: Date | null;
+  startDate?: Date | null;
+  agentPrompt?: string | null;
   timeSpentSeconds?: number;
   projectId?: string | null;
   assigneeId?: string | null;
+  sprintId?: string | null;
   createdAt: Date;
   updatedAt: Date;
   project?: { id: string; name: string; color: string } | null;
   assignee?: { id: string; name: string; avatar?: string | null } | null;
+  sprint?: { id: string; name: string } | null;
 }
 
 export interface Project {
