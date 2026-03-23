@@ -1,7 +1,10 @@
 "use client";
 
-import { Menu, Bell, Search } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
+import { NotificationBell } from "./NotificationBell";
+import { useCommandPalette } from "@/hooks/useCommandPalette";
+import { Search } from "lucide-react";
 
 interface HeaderProps {
   title: string;
@@ -10,6 +13,7 @@ interface HeaderProps {
 
 export function Header({ title, subtitle }: HeaderProps) {
   const { setSidebarOpen } = useAppStore();
+  const { setOpen } = useCommandPalette();
 
   return (
     <header className="h-14 border-b border-[#2a2a2a] flex items-center justify-between px-6 bg-[#0f0f0f] sticky top-0 z-30">
@@ -27,15 +31,15 @@ export function Header({ title, subtitle }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-2">
-        <button className="flex items-center gap-2 px-3 py-1.5 text-zinc-400 hover:text-white bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-md text-xs transition-colors">
+        <button
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-2 px-3 py-1.5 text-zinc-400 hover:text-white bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-md text-xs transition-colors"
+        >
           <Search className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Suchen...</span>
           <kbd className="hidden sm:inline text-[10px] bg-[#2a2a2a] px-1.5 py-0.5 rounded">⌘K</kbd>
         </button>
-        <button className="relative w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-[#1c1c1c] rounded-md transition-colors">
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-        </button>
+        <NotificationBell />
       </div>
     </header>
   );

@@ -250,6 +250,19 @@ model AuthUser {
   permissions   String[] // Granulare Rechte z.B. ["projects.view", "tasks.view"]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  notifications Notification[]
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // "task_update" | "deadline" | "cron_result" | "mention"
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+  user      AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Invitation {
