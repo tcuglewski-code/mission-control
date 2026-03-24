@@ -36,7 +36,7 @@ export async function GET(
     const [taskCount, memberCount, docCount] = await Promise.all([
       prisma.task.count({ where: { projectId: id } }),
       prisma.projectMember.count({ where: { projectId: id } }),
-      prisma.doc.count({ where: { projectId: id } }),
+      prisma.document.count({ where: { projectId: id } }),
     ]);
 
     // Fetch related data
@@ -55,7 +55,7 @@ export async function GET(
         orderBy: { createdAt: "desc" },
         take: 20,
       }),
-      prisma.doc.findMany({
+      prisma.document.findMany({
         where: { projectId: id },
         orderBy: { updatedAt: "desc" },
         take: 10,
