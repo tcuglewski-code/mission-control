@@ -10,7 +10,8 @@ export const authConfig: NextAuthConfig = {
       const { nextUrl } = request;
       const isPublicPath =
         nextUrl.pathname.startsWith("/login") ||
-        nextUrl.pathname.startsWith("/invite/");
+        nextUrl.pathname.startsWith("/invite/") ||
+        nextUrl.pathname.startsWith("/api/webhooks/"); // Webhooks: HMAC-signiert, kein Login nötig
 
       if (isPublicPath) return true;
       if (isLoggedIn) return true;
