@@ -28,10 +28,17 @@ model Project {
   id          String   @id @default(cuid())
   name        String
   description String?
+  longDescription String? // Living document — grows with the project
   status      String   @default("active")
   progress    Int      @default(0)
   priority    String   @default("medium")
   color       String   @default("#3b82f6")
+  // Meta / Links
+  githubRepo    String?  // e.g. "tcuglewski-code/ka-app"
+  liveUrl       String?  // Production URL
+  vercelUrl     String?  // Vercel deployment URL
+  expoProjectId String?  // Expo / EAS project ID
+  stack         String?  // Tech stack description
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   tasks     Task[]
