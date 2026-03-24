@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
+import { Globe, Github } from "lucide-react";
 import { getStatusBg, getStatusLabel, getPriorityColor, getPriorityLabel, getInitials } from "@/lib/utils";
 
 interface ProjectCardProps {
@@ -12,6 +13,9 @@ interface ProjectCardProps {
     progress: number;
     priority: string;
     color: string;
+    stack?: string | null;
+    githubRepo?: string | null;
+    liveUrl?: string | null;
     createdAt: Date;
     updatedAt: Date;
     _count?: { tasks: number; members: number };
@@ -37,12 +41,27 @@ export function ProjectCard({ project }: ProjectCardProps) {
               {project.name[0]}
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-white group-hover:text-emerald-400 transition-colors line-clamp-1">
-                {project.name}
-              </h3>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded border ${getStatusBg(project.status)}`}>
-                {getStatusLabel(project.status)}
-              </span>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-white group-hover:text-emerald-400 transition-colors line-clamp-1">
+                  {project.name}
+                </h3>
+                {project.githubRepo && (
+                  <Github className="w-3 h-3 text-zinc-600 shrink-0" />
+                )}
+                {project.liveUrl && (
+                  <Globe className="w-3 h-3 text-emerald-600 shrink-0" />
+                )}
+              </div>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className={`text-[10px] px-1.5 py-0.5 rounded border ${getStatusBg(project.status)}`}>
+                  {getStatusLabel(project.status)}
+                </span>
+                {project.stack && (
+                  <span className="text-[10px] text-zinc-600 truncate max-w-[120px]">
+                    {project.stack}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <span className={`text-[10px] font-medium ${getPriorityColor(project.priority)}`}>

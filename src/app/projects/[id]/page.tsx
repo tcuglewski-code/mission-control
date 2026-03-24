@@ -4,9 +4,10 @@ import { AppShell } from "@/components/layout/AppShell";
 import Link from "next/link";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { ChevronLeft, CheckSquare, Users, FileText, Activity } from "lucide-react";
+import { ChevronLeft, CheckSquare, Users, FileText, Activity, Globe, Github, ExternalLink, Smartphone } from "lucide-react";
 import { getStatusBg, getStatusLabel, formatRelativeTime, getActionLabel, getEntityTypeLabel, getInitials } from "@/lib/utils";
 import { requireServerSession, getAllowedProjectIds } from "@/lib/server-auth";
+import { LivingDescription } from "@/components/projects/LivingDescription";
 
 interface PageProps {
   params: { id: string };
@@ -188,6 +189,82 @@ export default async function ProjectDetailPage({ params }: PageProps) {
             ))}
           </div>
         </div>
+
+        {/* Living Description */}
+        <LivingDescription
+          projectId={project.id}
+          initialText={project.longDescription ?? null}
+        />
+
+        {/* Meta-Links Bar */}
+        {(project.liveUrl || project.githubRepo || project.vercelUrl || project.expoProjectId || project.stack) && (
+          <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              {project.liveUrl && (
+                <a
+                  href={project.liveUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#161616] border border-[#2a2a2a] hover:border-[#3a3a3a] rounded-lg text-xs text-zinc-300 hover:text-white transition-colors"
+                >
+                  <Globe className="w-3 h-3 text-emerald-400" />
+                  Live-URL
+                  <ExternalLink className="w-2.5 h-2.5 text-zinc-600" />
+                </a>
+              )}
+              {project.githubRepo && (
+                <a
+                  href={`https://github.com/${project.githubRepo}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#161616] border border-[#2a2a2a] hover:border-[#3a3a3a] rounded-lg text-xs text-zinc-300 hover:text-white transition-colors"
+                >
+                  <Github className="w-3 h-3 text-zinc-400" />
+                  GitHub
+                  <ExternalLink className="w-2.5 h-2.5 text-zinc-600" />
+                </a>
+              )}
+              {project.vercelUrl && (
+                <a
+                  href={project.vercelUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#161616] border border-[#2a2a2a] hover:border-[#3a3a3a] rounded-lg text-xs text-zinc-300 hover:text-white transition-colors"
+                >
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 1L24 22H0L12 1z" />
+                  </svg>
+                  Vercel
+                  <ExternalLink className="w-2.5 h-2.5 text-zinc-600" />
+                </a>
+              )}
+              {project.expoProjectId && (
+                <a
+                  href={`https://expo.dev/accounts/baerenklee/projects/${project.expoProjectId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#161616] border border-[#2a2a2a] hover:border-[#3a3a3a] rounded-lg text-xs text-zinc-300 hover:text-white transition-colors"
+                >
+                  <Smartphone className="w-3 h-3 text-blue-400" />
+                  Expo
+                  <ExternalLink className="w-2.5 h-2.5 text-zinc-600" />
+                </a>
+              )}
+              {project.stack && (
+                <>
+                  {project.stack.split(" · ").map((tech) => (
+                    <span
+                      key={tech}
+                      className="px-2 py-1 bg-[#161616] border border-[#2a2a2a] rounded-md text-[11px] text-zinc-500 font-mono"
+                    >
+                      {tech.trim()}
+                    </span>
+                  ))}
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Tasks */}

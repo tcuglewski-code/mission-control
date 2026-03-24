@@ -42,10 +42,16 @@ export interface Project {
   id: string;
   name: string;
   description?: string | null;
+  longDescription?: string | null;
   status: string;
   progress: number;
   priority: string;
   color: string;
+  stack?: string | null;
+  githubRepo?: string | null;
+  liveUrl?: string | null;
+  vercelUrl?: string | null;
+  expoProjectId?: string | null;
   createdAt: Date;
   updatedAt: Date;
   _count?: { tasks: number; members: number };
