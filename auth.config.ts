@@ -5,14 +5,21 @@ export const authConfig: NextAuthConfig = {
     signIn: "/login",
   },
   callbacks: {
-    authorized({ auth, request: { nextUrl } }) {
+    authorized({ auth, request }) {
       const isLoggedIn = !!auth?.user;
+      const { nextUrl } = request;
       const isPublicPath =
         nextUrl.pathname.startsWith("/login") ||
         nextUrl.pathname.startsWith("/invite/");
 
       if (isPublicPath) return true;
       if (isLoggedIn) return true;
+
+      // Allow API requests authenticated via Bearer API key to pass through.
+      // The actual key validation happens inside the route handlers via getSessionOrApiKey().
+      const authHeader = request.headers.get("authorization");
+      if (authHeader?.startsWith("Bearer mc_live_")) return true;
+
       return false;
     },
     jwt({ token, user }) {
