@@ -5,7 +5,7 @@ import { getSessionOrApiKey } from "@/lib/api-auth";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getSessionOrApiKey(req);
@@ -13,8 +13,10 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     const ticket = await prisma.ticket.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         project: { select: { id: true, name: true, color: true } },
         assignee: { select: { id: true, name: true, avatar: true } },
@@ -43,7 +45,7 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getSessionOrApiKey(req);
@@ -51,9 +53,11 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     // Check access before updating
     if (user.role !== "admin") {
-      const existing = await prisma.ticket.findUnique({ where: { id: params.id } });
+      const existing = await prisma.ticket.findUnique({ where: { id } });
       if (existing?.projectId && !user.projectAccess.includes(existing.projectId)) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
@@ -63,7 +67,7 @@ export async function PATCH(
     const { title, description, status, priority, category, projectId, assigneeId, taskId } = body;
 
     const ticket = await prisma.ticket.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(title !== undefined ? { title } : {}),
         ...(description !== undefined ? { description } : {}),
@@ -90,7 +94,7 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getSessionOrApiKey(req);
@@ -98,15 +102,17 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     // Non-admins can only delete tickets from their allowed projects
     if (user.role !== "admin") {
-      const existing = await prisma.ticket.findUnique({ where: { id: params.id } });
+      const existing = await prisma.ticket.findUnique({ where: { id } });
       if (existing?.projectId && !user.projectAccess.includes(existing.projectId)) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
     }
 
-    await prisma.ticket.delete({ where: { id: params.id } });
+    await prisma.ticket.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[DELETE /api/tickets/:id]", error);

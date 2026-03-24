@@ -10,7 +10,7 @@ import { requireServerSession, getAllowedProjectIds } from "@/lib/server-auth";
 import { LivingDescription } from "@/components/projects/LivingDescription";
 
 interface PageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 const SPRINT_NAMES: Record<string, string> = {
@@ -65,16 +65,17 @@ function getSprintSortKey(sprint: string): number {
 }
 
 export default async function ProjectDetailPage({ params }: PageProps) {
+  const { id } = await params;
   const session = await requireServerSession();
   const allowedIds = getAllowedProjectIds(session);
 
   // Non-admins können nur ihre freigegebenen Projekte sehen
-  if (allowedIds !== null && !allowedIds.includes(params.id)) {
+  if (allowedIds !== null && !allowedIds.includes(id)) {
     notFound();
   }
 
   const project = await prisma.project.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       _count: { select: { tasks: true, members: true, docs: true } },
       members: {
@@ -192,7 +193,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
 
         {/* Living Description */}
         <LivingDescription
-          projectId={project.id}
+          projectId={id}
           initialText={project.longDescription ?? null}
         />
 
