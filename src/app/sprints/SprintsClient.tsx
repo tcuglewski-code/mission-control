@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { format, eachDayOfInterval, startOfDay, isAfter, isBefore, isEqual } from "date-fns";
+import { format, eachDayOfInterval, startOfDay, isAfter } from "date-fns";
 import { de } from "date-fns/locale";
 import {
-  Flag, Plus, Play, CheckCheck, Trash2, Edit2, X, BarChart2, List
+  Flag, Plus, Play, CheckCheck, Trash2, Edit2, X, BarChart2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Sprint, Project } from "@/store/useAppStore";

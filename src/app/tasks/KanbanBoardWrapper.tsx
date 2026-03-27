@@ -5,7 +5,7 @@ import { KanbanBoard } from "@/components/tasks/KanbanBoard";
 import { LiveActivityFeed } from "@/components/tasks/LiveActivityFeed";
 import { useAppStore, type Task, type Project, type User } from "@/store/useAppStore";
 import { useTaskStream } from "@/hooks/useTaskStream";
-import { Sparkles, Upload, Wifi, WifiOff, X, FileUp, CheckCircle, AlertCircle } from "lucide-react";
+import { Sparkles, Wifi, WifiOff, X, FileUp, CheckCircle } from "lucide-react";
 
 interface KanbanBoardWrapperProps {
   initialTasks: Task[];

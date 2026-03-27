@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
-  addDays, addWeeks, addMonths, addQuarters,
+  addWeeks, addMonths, addQuarters,
   startOfWeek, startOfMonth, startOfQuarter,
   endOfWeek, endOfMonth, endOfQuarter,
   format, differenceInDays, eachDayOfInterval, isWeekend,
   startOfDay, isSameDay
 } from "date-fns";
 import { de } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Calendar } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 
 // ─── Typen ───────────────────────────────────────────────────────────────────
 
