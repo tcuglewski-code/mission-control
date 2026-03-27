@@ -4,7 +4,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import Link from "next/link";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { ChevronLeft, CheckSquare, Users, FileText, Activity, Globe, Github, ExternalLink, Smartphone } from "lucide-react";
+import { ChevronLeft, CheckSquare, Users, FileText, Activity, Globe, Github, ExternalLink, Smartphone, Download } from "lucide-react";
 import { getStatusBg, getStatusLabel, formatRelativeTime, getActionLabel, getEntityTypeLabel, getInitials } from "@/lib/utils";
 import { requireServerSession, getAllowedProjectIds } from "@/lib/server-auth";
 import { LivingDescription } from "@/components/projects/LivingDescription";
@@ -156,9 +156,21 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                 )}
               </div>
             </div>
-            <span className={`text-xs px-2 py-1 rounded border ${getStatusBg(project.status)}`}>
-              {getStatusLabel(project.status)}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className={`text-xs px-2 py-1 rounded border ${getStatusBg(project.status)}`}>
+                {getStatusLabel(project.status)}
+              </span>
+              {/* PDF-Report exportieren */}
+              <a
+                href={`/api/projects/${project.id}/pdf`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white px-2 py-1 rounded hover:bg-[#252525] border border-[#2a2a2a] transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Report exportieren
+              </a>
+            </div>
           </div>
 
           {/* Progress */}

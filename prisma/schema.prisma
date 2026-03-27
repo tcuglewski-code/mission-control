@@ -292,3 +292,48 @@ model ApiKey {
   createdAt  DateTime  @default(now())
   expiresAt  DateTime?
 }
+
+// ─── Agent Registry (erweitert) ───────────────────────────────────────────────
+model AgentRegistry {
+  id              String    @id @default(cuid())
+  name            String    @unique
+  beschreibung    String?
+  capabilities    String[]  // Liste der Fähigkeiten z.B. ["code", "search", "email"]
+  status          String    @default("unknown") // "online" | "offline" | "unknown"
+  letzteAktivitaet DateTime?
+  version         String?
+  endpoint        String?   // API-Endpoint des Agenten (optional)
+  metadata        String?   // JSON für zusätzliche Felder
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// ─── Daily Digest ─────────────────────────────────────────────────────────────
+model DailyDigest {
+  id        String   @id @default(cuid())
+  datum     DateTime @unique
+  inhalt    String   // Markdown-Zusammenfassung
+  tasksDone Int      @default(0)
+  tasksOffen Int     @default(0)
+  tasksNeu  Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+// ─── Task Dependencies ────────────────────────────────────────────────────────
+model TaskDependency {
+  id          String @id @default(cuid())
+  taskId      String
+  dependsOnId String
+  @@unique([taskId, dependsOnId])
+}
+
+// ─── Webhook Einstellungen (ausgehend) ────────────────────────────────────────
+model WebhookEinstellung {
+  id        String   @id @default(cuid())
+  name      String
+  url       String
+  events    String[] // "task.created" | "task.updated" | "task.completed" | "task.deleted"
+  aktiv     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

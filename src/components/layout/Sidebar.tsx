@@ -23,6 +23,9 @@ import {
   ShieldCheck,
   LogOut,
   Flag,
+  GanttChartSquare,
+  Newspaper,
+  BotIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/useAppStore";
@@ -31,6 +34,8 @@ const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/tasks", icon: CheckSquare, label: "Aufgaben" },
   { href: "/sprints", icon: Flag, label: "Sprints" },
+  { href: "/timeline", icon: GanttChartSquare, label: "Timeline" },
+  { href: "/digest", icon: Newspaper, label: "KI-Digest" },
   { href: "/calendar", icon: CalendarDays, label: "Kalender" },
   { href: "/cronjobs", icon: Timer, label: "Cron Jobs" },
   { href: "/projects", icon: FolderKanban, label: "Projekte" },
@@ -41,6 +46,7 @@ const navItems = [
   { href: "/databases", icon: Database, label: "Datenbanken" },
   { href: "/tickets", icon: Ticket, label: "Tickets" },
   { href: "/webhooks", icon: Webhook, label: "Webhooks" },
+  { href: "/agents", icon: BotIcon, label: "Agenten" },
   { href: "/diagram", icon: GitGraph, label: "Diagramm" },
 ];
 
