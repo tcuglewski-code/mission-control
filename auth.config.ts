@@ -12,7 +12,8 @@ export const authConfig: NextAuthConfig = {
         nextUrl.pathname.startsWith("/login") ||
         nextUrl.pathname.startsWith("/invite/") ||
         nextUrl.pathname.startsWith("/api/auth/") || // NextAuth eigene Routen MÜSSEN public sein
-        nextUrl.pathname.startsWith("/api/webhooks/"); // Webhooks: HMAC-signiert, kein Login nötig
+        nextUrl.pathname.startsWith("/api/webhooks/") || // Webhooks: HMAC-signiert, kein Login nötig
+        nextUrl.pathname === "/api/agents/heartbeat"; // Agent-Heartbeat: öffentlich zugänglich
 
       if (isPublicPath) return true;
       if (isLoggedIn) return true;
