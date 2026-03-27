@@ -1,186 +1,419 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { format, eachDayOfInterval, startOfDay, isAfter } from "date-fns";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { format, addDays } from "date-fns";
 import { de } from "date-fns/locale";
 import {
-  Flag, Plus, Play, CheckCheck, Trash2, Edit2, X, BarChart2
+  Flag, Plus, Play, CheckCheck, Trash2, Edit2, X, BarChart2,
+  Zap, ChevronDown, Check, GripVertical, List, Kanban, TrendingUp,
+  AlertCircle, Clock, ArrowRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Sprint, Project } from "@/store/useAppStore";
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine
+  DndContext,
+  DragEndEvent,
+  DragOverEvent,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  useDroppable,
+  useDraggable,
+} from "@dnd-kit/core";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, Legend,
 } from "recharts";
 
-// ─── Status helpers ─────────────────────────────────────────────────────────
+// ─── Typen ──────────────────────────────────────────────────────────────────
 
-const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  planning: { label: "Planung", cls: "bg-blue-500/15 text-blue-400 border border-blue-500/20" },
-  active: { label: "Aktiv", cls: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20" },
-  completed: { label: "Abgeschlossen", cls: "bg-zinc-700/50 text-zinc-400 border border-zinc-600/20" },
-};
-
-// ─── Typen ───────────────────────────────────────────────────────────────────
-
-interface ExtendedTask {
+interface Assignee {
   id: string;
-  status: string;
+  name: string;
+  avatar: string | null;
+}
+
+interface TaskItem {
+  id: string;
   title: string;
+  status: string;
+  priority: string;
+  storyPoints: number | null;
+  assignee: Assignee | null;
+  sprintId: string | null;
+  projectId: string | null;
   updatedAt?: string;
   createdAt?: string;
 }
 
-interface ExtendedSprint extends Sprint {
-  tasks: ExtendedTask[];
-  project?: { id: string; name: string; color: string } | null;
+interface Project {
+  id: string;
+  name: string;
+  color: string;
 }
 
-// ─── Burndown-Chart ──────────────────────────────────────────────────────────
-
-/** Berechnet Burndown-Daten aus Sprint-Tasks */
-function buildBurndownData(sprint: ExtendedSprint) {
-  if (!sprint.startDate || !sprint.endDate) return [];
-
-  const start = startOfDay(new Date(sprint.startDate));
-  const end = startOfDay(new Date(sprint.endDate));
-  const today = startOfDay(new Date());
-
-  // Alle Tage des Sprints
-  const days = eachDayOfInterval({ start, end });
-  const total = sprint.tasks.length;
-
-  // Ideal-Linie: linear von total auf 0
-  const idealPerDay = total / Math.max(days.length - 1, 1);
-
-  return days.map((day, i) => {
-    // Tatsächlich offen an diesem Tag: alle Tasks, deren updatedAt NACH diesem Tag liegt
-    // oder die noch nicht "done" sind
-    const offen = sprint.tasks.filter((t) => {
-      if (t.status !== "done") return true;
-      // Task wurde nach diesem Datum abgeschlossen → noch offen an diesem Tag
-      if (t.updatedAt) {
-        const doneDay = startOfDay(new Date(t.updatedAt));
-        return isAfter(doneDay, day);
-      }
-      return false;
-    }).length;
-
-    const isInFuture = isAfter(day, today);
-
-    return {
-      tag: format(day, "d. MMM", { locale: de }),
-      ideal: Math.round(total - idealPerDay * i),
-      aktuell: isInFuture ? null : offen,
-    };
-  });
+interface SprintData {
+  id: string;
+  name: string;
+  description: string | null;
+  goal: string | null;
+  status: string;
+  startDate: string | null;
+  endDate: string | null;
+  projectId: string | null;
+  storyPoints: number | null;
+  completedPoints: number | null;
+  project: Project | null;
+  tasks: TaskItem[];
+  createdAt: string;
+  updatedAt: string;
 }
 
-// Tooltip für Burndown
-function BurndownTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
+// ─── Konstanten ──────────────────────────────────────────────────────────────
+
+const PRIORITY_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  critical: { label: "Kritisch", color: "text-red-400", bg: "bg-red-500/15 border-red-500/30" },
+  high: { label: "Hoch", color: "text-orange-400", bg: "bg-orange-500/15 border-orange-500/30" },
+  medium: { label: "Mittel", color: "text-yellow-400", bg: "bg-yellow-500/15 border-yellow-500/30" },
+  low: { label: "Niedrig", color: "text-zinc-400", bg: "bg-zinc-700/50 border-zinc-600/30" },
+};
+
+const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+  planning: { label: "Planung", color: "text-blue-400" },
+  active: { label: "Aktiv", color: "text-emerald-400" },
+  completed: { label: "Abgeschlossen", color: "text-zinc-400" },
+};
+
+// Kanban-Spalten Konfiguration
+const BOARD_COLUMNS = [
+  { id: "backlog", label: "Backlog", color: "#6b7280", statusValues: [] as string[], isBacklog: true },
+  { id: "todo", label: "Sprint Aktiv", color: "#3b82f6", statusValues: ["todo", "backlog"], isBacklog: false },
+  { id: "in_progress", label: "In Progress", color: "#f59e0b", statusValues: ["in_progress"], isBacklog: false },
+  { id: "done", label: "Done", color: "#10b981", statusValues: ["done"], isBacklog: false },
+] as const;
+
+type ColumnId = "backlog" | "todo" | "in_progress" | "done";
+
+// ─── Hilfsfunktionen ─────────────────────────────────────────────────────────
+
+function getTaskColumn(task: TaskItem, activeSprint: SprintData | null): ColumnId {
+  if (!task.sprintId || !activeSprint || task.sprintId !== activeSprint.id) return "backlog";
+  if (task.status === "done") return "done";
+  if (task.status === "in_progress") return "in_progress";
+  return "todo";
+}
+
+function getInitials(name: string): string {
+  return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+}
+
+// ─── Prioritäts-Badge ─────────────────────────────────────────────────────────
+
+function PriorityBadge({ priority }: { priority: string }) {
+  const cfg = PRIORITY_CONFIG[priority] ?? PRIORITY_CONFIG.medium;
   return (
-    <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-lg p-3 text-xs">
-      <p className="text-zinc-300 font-medium mb-1">{label}</p>
-      {payload.map((p: any) => (
-        p.value !== null && (
-          <p key={p.dataKey} style={{ color: p.color }}>
-            {p.dataKey === "ideal" ? "Ideal" : "Aktuell"}: {p.value} Tasks
-          </p>
-        )
-      ))}
+    <span className={cn("text-[9px] px-1.5 py-0.5 rounded border font-medium", cfg.bg, cfg.color)}>
+      {cfg.label}
+    </span>
+  );
+}
+
+// ─── Assignee Avatar ──────────────────────────────────────────────────────────
+
+function Avatar({ assignee, size = "sm" }: { assignee: Assignee | null; size?: "sm" | "xs" }) {
+  const sz = size === "xs" ? "w-5 h-5 text-[8px]" : "w-6 h-6 text-[9px]";
+  if (!assignee) return null;
+  if (assignee.avatar) {
+    return <img src={assignee.avatar} alt={assignee.name} className={cn("rounded-full object-cover", sz)} />;
+  }
+  return (
+    <div className={cn("rounded-full bg-emerald-600 text-white flex items-center justify-center font-semibold shrink-0", sz)}>
+      {getInitials(assignee.name)}
     </div>
   );
 }
 
-interface BurndownChartProps {
-  sprint: ExtendedSprint;
-}
+// ─── Story Points Inline-Edit ─────────────────────────────────────────────────
 
-function BurndownChart({ sprint }: BurndownChartProps) {
-  const data = buildBurndownData(sprint);
+function StoryPointsEdit({ value, onChange }: { value: number | null; onChange: (v: number | null) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [input, setInput] = useState(String(value ?? ""));
+  const ref = useRef<HTMLInputElement>(null);
 
-  if (data.length === 0) {
+  const handleBlur = () => {
+    const num = parseInt(input, 10);
+    onChange(isNaN(num) || num < 0 ? null : num);
+    setEditing(false);
+  };
+
+  useEffect(() => {
+    if (editing) ref.current?.focus();
+  }, [editing]);
+
+  if (editing) {
     return (
-      <div className="text-center py-8 text-zinc-600 text-xs">
-        Kein Zeitraum definiert — Start- und Enddatum für Burndown-Chart benötigt.
-      </div>
+      <input
+        ref={ref}
+        type="number"
+        min={0}
+        max={99}
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onBlur={handleBlur}
+        onKeyDown={(e) => { if (e.key === "Enter") handleBlur(); if (e.key === "Escape") setEditing(false); }}
+        className="w-10 bg-[#2a2a2a] border border-emerald-500/50 rounded px-1 text-xs text-white text-center focus:outline-none"
+      />
     );
   }
 
   return (
-    <div className="mt-4">
-      <p className="text-xs text-zinc-500 mb-3 flex items-center gap-1">
-        <BarChart2 className="w-3.5 h-3.5" />
-        Burndown-Chart — {sprint.tasks.length} Tasks gesamt
-      </p>
-      <ResponsiveContainer width="100%" height={180}>
-        <LineChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
-          <XAxis
-            dataKey="tag"
-            tick={{ fontSize: 10, fill: "#71717a" }}
-            tickLine={false}
-            axisLine={false}
-          />
-          <YAxis
-            tick={{ fontSize: 10, fill: "#71717a" }}
-            tickLine={false}
-            axisLine={false}
-            allowDecimals={false}
-          />
-          <Tooltip content={<BurndownTooltip />} />
-          {/* Ideal-Linie */}
-          <Line
-            type="monotone"
-            dataKey="ideal"
-            stroke="#3f3f46"
-            strokeDasharray="5 5"
-            dot={false}
-            strokeWidth={1.5}
-            name="Ideal"
-          />
-          {/* Tatsächlich */}
-          <Line
-            type="monotone"
-            dataKey="aktuell"
-            stroke="#10b981"
-            dot={false}
-            strokeWidth={2}
-            connectNulls={false}
-            name="Aktuell"
-          />
-        </LineChart>
-      </ResponsiveContainer>
-      <div className="flex items-center gap-4 mt-2 justify-end">
-        <span className="flex items-center gap-1 text-[10px] text-zinc-500">
-          <span className="w-6 h-0.5 bg-zinc-600 inline-block border-dashed border" /> Ideal
-        </span>
-        <span className="flex items-center gap-1 text-[10px] text-emerald-400">
-          <span className="w-6 h-0.5 bg-emerald-500 inline-block" /> Aktuell
-        </span>
+    <button
+      onClick={() => { setInput(String(value ?? "")); setEditing(true); }}
+      className="text-[10px] px-1.5 py-0.5 rounded bg-[#2a2a2a] hover:bg-[#333] text-zinc-400 hover:text-white transition-colors font-mono border border-transparent hover:border-zinc-600"
+      title="Story Points bearbeiten"
+    >
+      {value != null ? `${value} SP` : "— SP"}
+    </button>
+  );
+}
+
+// ─── Task Card (draggable) ────────────────────────────────────────────────────
+
+interface TaskCardProps {
+  task: TaskItem;
+  sprints: SprintData[];
+  activeSprint: SprintData | null;
+  onStoryPointsChange: (taskId: string, sp: number | null) => void;
+  onSprintAssign: (taskId: string, sprintId: string | null) => void;
+  isDragging?: boolean;
+}
+
+function TaskCard({ task, sprints, activeSprint, onStoryPointsChange, onSprintAssign, isDragging }: TaskCardProps) {
+  const [showSprintPicker, setShowSprintPicker] = useState(false);
+
+  return (
+    <div className={cn(
+      "bg-[#1e1e1e] border border-[#2a2a2a] rounded-lg p-3 space-y-2 select-none transition-all",
+      isDragging ? "opacity-50 shadow-xl border-emerald-500/40" : "hover:border-[#3a3a3a]"
+    )}>
+      {/* Titel */}
+      <p className="text-xs text-white leading-snug font-medium">{task.title}</p>
+
+      {/* Badges Row */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <PriorityBadge priority={task.priority} />
+        <StoryPointsEdit
+          value={task.storyPoints}
+          onChange={(v) => onStoryPointsChange(task.id, v)}
+        />
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between">
+        {/* Sprint Dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => setShowSprintPicker((v) => !v)}
+            className="flex items-center gap-1 text-[9px] text-zinc-500 hover:text-zinc-300 transition-colors"
+          >
+            <Flag className="w-3 h-3" />
+            <span className="truncate max-w-[80px]">
+              {task.sprintId
+                ? sprints.find((s) => s.id === task.sprintId)?.name ?? "Sprint"
+                : "Backlog"}
+            </span>
+            <ChevronDown className="w-2.5 h-2.5" />
+          </button>
+          {showSprintPicker && (
+            <div className="absolute bottom-full left-0 mb-1 w-44 bg-[#1c1c1c] border border-[#2a2a2a] rounded-lg shadow-xl z-50 py-1">
+              <button
+                onClick={() => { onSprintAssign(task.id, null); setShowSprintPicker(false); }}
+                className="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-zinc-400 hover:bg-[#252525] hover:text-white"
+              >
+                {!task.sprintId && <Check className="w-3 h-3 text-emerald-400" />}
+                <span className={!task.sprintId ? "ml-0" : "ml-5"}>Backlog</span>
+              </button>
+              {sprints.filter((s) => s.status !== "completed").map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => { onSprintAssign(task.id, s.id); setShowSprintPicker(false); }}
+                  className="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-zinc-400 hover:bg-[#252525] hover:text-white"
+                >
+                  {task.sprintId === s.id && <Check className="w-3 h-3 text-emerald-400" />}
+                  <span className={task.sprintId === s.id ? "ml-0" : "ml-5"} title={s.name}>{s.name}</span>
+                  {s.status === "active" && (
+                    <span className="ml-auto text-[8px] text-emerald-400 bg-emerald-500/10 px-1 rounded">Aktiv</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <Avatar assignee={task.assignee} size="xs" />
       </div>
     </div>
   );
 }
 
-// ─── Sprint Modal ────────────────────────────────────────────────────────────
+// ─── Draggable Task Card Wrapper ──────────────────────────────────────────────
+
+function DraggableTaskCard({ task, ...props }: TaskCardProps & { task: TaskItem }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.id });
+
+  return (
+    <div ref={setNodeRef} {...attributes} className="cursor-grab active:cursor-grabbing">
+      <div {...listeners} className="flex items-start gap-1">
+        <div className="mt-2.5 text-zinc-700 hover:text-zinc-500 shrink-0">
+          <GripVertical className="w-3 h-3" />
+        </div>
+        <div className="flex-1">
+          <TaskCard task={task} {...props} isDragging={isDragging} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Kanban-Spalte (droppable) ────────────────────────────────────────────────
+
+interface KanbanColumnProps {
+  columnId: ColumnId;
+  label: string;
+  color: string;
+  tasks: TaskItem[];
+  sprints: SprintData[];
+  activeSprint: SprintData | null;
+  onStoryPointsChange: (taskId: string, sp: number | null) => void;
+  onSprintAssign: (taskId: string, sprintId: string | null) => void;
+}
+
+function KanbanColumn({ columnId, label, color, tasks, sprints, activeSprint, onStoryPointsChange, onSprintAssign }: KanbanColumnProps) {
+  const { setNodeRef, isOver } = useDroppable({ id: columnId });
+  const totalSP = tasks.reduce((s, t) => s + (t.storyPoints ?? 0), 0);
+
+  return (
+    <div className="flex-1 min-w-[200px]">
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-3 px-1">
+        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+        <span className="text-xs font-semibold text-zinc-300">{label}</span>
+        <span className="ml-auto text-[10px] text-zinc-600 bg-[#252525] px-1.5 py-0.5 rounded-full">
+          {tasks.length}
+        </span>
+        {totalSP > 0 && (
+          <span className="text-[10px] text-zinc-600 font-mono">{totalSP} SP</span>
+        )}
+      </div>
+
+      {/* Drop-Zone */}
+      <div
+        ref={setNodeRef}
+        className={cn(
+          "min-h-[120px] rounded-xl p-2 space-y-2 transition-all border-2",
+          isOver
+            ? "border-emerald-500/40 bg-emerald-500/5"
+            : "border-dashed border-[#2a2a2a] bg-[#161616]"
+        )}
+      >
+        {tasks.map((task) => (
+          <DraggableTaskCard
+            key={task.id}
+            task={task}
+            sprints={sprints}
+            activeSprint={activeSprint}
+            onStoryPointsChange={onStoryPointsChange}
+            onSprintAssign={onSprintAssign}
+          />
+        ))}
+        {tasks.length === 0 && (
+          <div className="flex items-center justify-center h-20 text-[10px] text-zinc-700">
+            {isOver ? "Loslassen zum Ablegen" : "Leer"}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Velocity Chart ───────────────────────────────────────────────────────────
+
+function VelocityChart({ sprints }: { sprints: SprintData[] }) {
+  const completed = sprints
+    .filter((s) => s.status === "completed")
+    .slice(-6)
+    .map((s) => ({
+      name: s.name.length > 12 ? s.name.slice(0, 12) + "…" : s.name,
+      Geplant: s.storyPoints ?? 0,
+      Erledigt: s.completedPoints ?? 0,
+    }));
+
+  if (completed.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-48 text-zinc-600 text-sm">
+        <div className="text-center">
+          <TrendingUp className="w-8 h-8 mx-auto mb-2 opacity-30" />
+          <p>Noch keine abgeschlossenen Sprints</p>
+          <p className="text-xs mt-1">Schließe Sprints ab, um Velocity zu tracken</p>
+        </div>
+      </div>
+    );
+  }
+
+  const avgVelocity = Math.round(
+    completed.reduce((s, d) => s + d.Erledigt, 0) / completed.length
+  );
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-4">
+        <h3 className="text-sm font-semibold text-white">Velocity (letzte 6 Sprints)</h3>
+        <span className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full font-medium">
+          <Zap className="w-3 h-3" />
+          ⌀ {avgVelocity} SP/Sprint
+        </span>
+      </div>
+      <ResponsiveContainer width="100%" height={220}>
+        <BarChart data={completed} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
+          <XAxis dataKey="name" tick={{ fill: "#6b7280", fontSize: 11 }} />
+          <YAxis tick={{ fill: "#6b7280", fontSize: 11 }} />
+          <Tooltip
+            contentStyle={{ background: "#1c1c1c", border: "1px solid #2a2a2a", borderRadius: 8 }}
+            labelStyle={{ color: "#e5e7eb", fontSize: 12 }}
+            itemStyle={{ fontSize: 12 }}
+          />
+          <Legend wrapperStyle={{ fontSize: 12, color: "#9ca3af" }} />
+          <Bar dataKey="Geplant" fill="#3b82f6" radius={[3, 3, 0, 0]} opacity={0.6} />
+          <Bar dataKey="Erledigt" fill="#10b981" radius={[3, 3, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+// ─── Sprint Modal ─────────────────────────────────────────────────────────────
 
 interface SprintModalProps {
-  sprint?: Sprint | null;
+  sprint?: SprintData | null;
   projects: Project[];
   onClose: () => void;
-  onSave: (data: Partial<Sprint>) => Promise<void>;
+  onSave: (data: Partial<SprintData>) => Promise<void>;
 }
 
 function SprintModal({ sprint, projects, onClose, onSave }: SprintModalProps) {
+  const today = format(new Date(), "yyyy-MM-dd");
+  const twoWeeks = format(addDays(new Date(), 14), "yyyy-MM-dd");
+
   const [form, setForm] = useState({
     name: sprint?.name ?? "",
-    description: sprint?.description ?? "",
     goal: sprint?.goal ?? "",
-    startDate: sprint?.startDate ? format(new Date(sprint.startDate), "yyyy-MM-dd") : "",
-    endDate: sprint?.endDate ? format(new Date(sprint.endDate), "yyyy-MM-dd") : "",
+    description: sprint?.description ?? "",
+    startDate: sprint?.startDate ? sprint.startDate.slice(0, 10) : today,
+    endDate: sprint?.endDate ? sprint.endDate.slice(0, 10) : twoWeeks,
     projectId: sprint?.projectId ?? "",
+    storyPoints: sprint?.storyPoints != null ? String(sprint.storyPoints) : "",
   });
   const [loading, setLoading] = useState(false);
 
@@ -189,14 +422,16 @@ function SprintModal({ sprint, projects, onClose, onSave }: SprintModalProps) {
     if (!form.name.trim()) return;
     setLoading(true);
     try {
+      const sp = parseInt(form.storyPoints, 10);
       await onSave({
         name: form.name.trim(),
         description: form.description.trim() || null,
         goal: form.goal.trim() || null,
-        startDate: form.startDate ? new Date(form.startDate) : null,
-        endDate: form.endDate ? new Date(form.endDate) : null,
+        startDate: form.startDate || null,
+        endDate: form.endDate || null,
         projectId: form.projectId || null,
-      });
+        storyPoints: isNaN(sp) ? null : sp,
+      } as Partial<SprintData>);
       onClose();
     } finally {
       setLoading(false);
@@ -229,7 +464,7 @@ function SprintModal({ sprint, projects, onClose, onSave }: SprintModalProps) {
           </div>
 
           <div>
-            <label className="text-xs text-zinc-400 mb-1 block">Ziel</label>
+            <label className="text-xs text-zinc-400 mb-1 block">Sprint-Ziel</label>
             <input
               type="text"
               value={form.goal}
@@ -261,7 +496,7 @@ function SprintModal({ sprint, projects, onClose, onSave }: SprintModalProps) {
               />
             </div>
             <div>
-              <label className="text-xs text-zinc-400 mb-1 block">Enddatum</label>
+              <label className="text-xs text-zinc-400 mb-1 block">Enddatum (default: +2 Wochen)</label>
               <input
                 type="date"
                 value={form.endDate}
@@ -271,18 +506,31 @@ function SprintModal({ sprint, projects, onClose, onSave }: SprintModalProps) {
             </div>
           </div>
 
-          <div>
-            <label className="text-xs text-zinc-400 mb-1 block">Projekt</label>
-            <select
-              value={form.projectId}
-              onChange={(e) => setForm({ ...form, projectId: e.target.value })}
-              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
-            >
-              <option value="">Kein Projekt</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-zinc-400 mb-1 block">Projekt</label>
+              <select
+                value={form.projectId}
+                onChange={(e) => setForm({ ...form, projectId: e.target.value })}
+                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+              >
+                <option value="">Kein Projekt</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-zinc-400 mb-1 block">Geplante Story Points</label>
+              <input
+                type="number"
+                min={0}
+                value={form.storyPoints}
+                onChange={(e) => setForm({ ...form, storyPoints: e.target.value })}
+                placeholder="z.B. 40"
+                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50"
+              />
+            </div>
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-2">
@@ -307,131 +555,55 @@ function SprintModal({ sprint, projects, onClose, onSave }: SprintModalProps) {
   );
 }
 
-// ─── Sprint Card ─────────────────────────────────────────────────────────────
+// ─── Sprint Selektor ──────────────────────────────────────────────────────────
 
-interface SprintCardProps {
-  sprint: ExtendedSprint;
-  onEdit: () => void;
-  onStart: () => void;
-  onComplete: () => void;
-  onDelete: () => void;
-}
-
-function SprintCard({ sprint, onEdit, onStart, onComplete, onDelete }: SprintCardProps) {
-  const [showBurndown, setShowBurndown] = useState(false);
-  const tasks = sprint.tasks ?? [];
-  const totalTasks = tasks.length;
-  const doneTasks = tasks.filter((t) => t.status === "done").length;
-  const progress = totalTasks === 0 ? 0 : Math.round((doneTasks / totalTasks) * 100);
-  const badge = STATUS_BADGE[sprint.status] ?? STATUS_BADGE.planning;
+function SprintSelector({
+  sprints,
+  selected,
+  onSelect,
+}: {
+  sprints: SprintData[];
+  selected: SprintData | null;
+  onSelect: (s: SprintData | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
 
   return (
-    <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl p-5 hover:border-[#3a3a3a] transition-colors">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Flag className="w-4 h-4 text-emerald-400 shrink-0" />
-          <h3 className="text-sm font-semibold text-white">{sprint.name}</h3>
-        </div>
-        <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium", badge.cls)}>
-          {badge.label}
-        </span>
-      </div>
-
-      {/* Ziel */}
-      {sprint.goal && (
-        <p className="text-xs text-zinc-400 mb-3 line-clamp-2">{sprint.goal}</p>
-      )}
-
-      {/* Projekt-Badge */}
-      {sprint.project && (
-        <div className="mb-3">
-          <span
-            className="text-[10px] px-2 py-0.5 rounded font-medium"
-            style={{
-              backgroundColor: `${sprint.project.color}20`,
-              color: sprint.project.color,
-            }}
-          >
-            {sprint.project.name}
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-2 bg-[#1c1c1c] border border-[#2a2a2a] rounded-lg px-3 py-1.5 text-xs text-white hover:border-[#3a3a3a] transition-colors min-w-[180px]"
+      >
+        <Flag className="w-3.5 h-3.5 text-emerald-400" />
+        <span className="truncate">{selected?.name ?? "Sprint auswählen"}</span>
+        {selected && (
+          <span className={cn("text-[9px] ml-1", STATUS_CONFIG[selected.status]?.color)}>
+            ({STATUS_CONFIG[selected.status]?.label})
           </span>
-        </div>
-      )}
-
-      {/* Datumsbereich */}
-      {(sprint.startDate || sprint.endDate) && (
-        <div className="text-xs text-zinc-500 mb-3">
-          {sprint.startDate && format(new Date(sprint.startDate), "d. MMM", { locale: de })}
-          {sprint.startDate && sprint.endDate && " – "}
-          {sprint.endDate && format(new Date(sprint.endDate), "d. MMM yyyy", { locale: de })}
-        </div>
-      )}
-
-      {/* Fortschrittsbalken */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[11px] text-zinc-500">{doneTasks}/{totalTasks} Tasks</span>
-          <span className="text-[11px] text-zinc-400">{progress}%</span>
-        </div>
-        <div className="h-1.5 bg-[#2a2a2a] rounded-full overflow-hidden">
-          <div
-            className="h-full bg-emerald-500 rounded-full transition-all"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Burndown-Chart ein-/ausklappen */}
-      {totalTasks > 0 && (
-        <button
-          onClick={() => setShowBurndown((v) => !v)}
-          className="w-full flex items-center justify-center gap-1 text-[10px] text-zinc-500 hover:text-zinc-300 py-1 mb-3 rounded hover:bg-[#252525] transition-colors"
-        >
-          <BarChart2 className="w-3 h-3" />
-          {showBurndown ? "Chart ausblenden" : "Burndown-Chart"}
-        </button>
-      )}
-
-      {showBurndown && <BurndownChart sprint={sprint} />}
-
-      {/* Aktionen */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <button
-          onClick={onEdit}
-          className="flex items-center gap-1 text-xs text-zinc-400 hover:text-white px-2 py-1 rounded-lg hover:bg-[#252525] transition-colors"
-        >
-          <Edit2 className="w-3 h-3" />
-          Bearbeiten
-        </button>
-
-        {sprint.status === "planning" && (
-          <button
-            onClick={onStart}
-            className="flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 px-2 py-1 rounded-lg hover:bg-emerald-500/10 border border-emerald-500/20 transition-colors"
-          >
-            <Play className="w-3 h-3 fill-current" />
-            Sprint starten
-          </button>
         )}
+        <ChevronDown className="w-3 h-3 ml-auto text-zinc-500" />
+      </button>
 
-        {sprint.status === "active" && (
-          <button
-            onClick={onComplete}
-            className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded-lg hover:bg-blue-500/10 border border-blue-500/20 transition-colors"
-          >
-            <CheckCheck className="w-3 h-3" />
-            Abschließen
-          </button>
-        )}
-
-        <button
-          onClick={onDelete}
-          className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded-lg hover:bg-red-500/10 transition-colors ml-auto"
-        >
-          <Trash2 className="w-3 h-3" />
-          Löschen
-        </button>
-      </div>
+      {open && (
+        <div className="absolute top-full mt-1 left-0 w-64 bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl shadow-2xl z-50 py-1">
+          {sprints.filter((s) => s.status !== "completed").map((s) => (
+            <button
+              key={s.id}
+              onClick={() => { onSelect(s); setOpen(false); }}
+              className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-[#252525] transition-colors"
+            >
+              {selected?.id === s.id && <Check className="w-3 h-3 text-emerald-400 shrink-0" />}
+              <span className={cn("text-white truncate", selected?.id === s.id ? "" : "ml-5")}>{s.name}</span>
+              <span className={cn("ml-auto text-[9px] shrink-0", STATUS_CONFIG[s.status]?.color)}>
+                {STATUS_CONFIG[s.status]?.label}
+              </span>
+            </button>
+          ))}
+          {sprints.filter((s) => s.status !== "completed").length === 0 && (
+            <p className="px-3 py-2 text-xs text-zinc-600">Keine aktiven Sprints</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -439,39 +611,73 @@ function SprintCard({ sprint, onEdit, onStart, onComplete, onDelete }: SprintCar
 // ─── Main SprintsClient ──────────────────────────────────────────────────────
 
 export function SprintsClient() {
-  const [sprints, setSprints] = useState<ExtendedSprint[]>([]);
+  const [sprints, setSprints] = useState<SprintData[]>([]);
+  const [allTasks, setAllTasks] = useState<TaskItem[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [modalSprint, setModalSprint] = useState<Sprint | null | undefined>(undefined);
-  const [filterStatus, setFilterStatus] = useState<string>("");
+  const [modalSprint, setModalSprint] = useState<SprintData | null | undefined>(undefined);
+  const [activeSprint, setActiveSprint] = useState<SprintData | null>(null);
+  const [activeTab, setActiveTab] = useState<"board" | "velocity" | "backlog">("board");
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [localTasks, setLocalTasks] = useState<TaskItem[]>([]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+
+  // ─── Laden ──────────────────────────────────────────────────────────────────
 
   const fetchSprints = useCallback(async () => {
     try {
-      const params = filterStatus ? `?status=${filterStatus}` : "";
-      const res = await fetch(`/api/sprints${params}`);
+      const res = await fetch("/api/sprints");
       if (res.ok) {
         const data = await res.json();
-        setSprints(Array.isArray(data) ? data : []);
+        if (Array.isArray(data)) {
+          setSprints(data);
+          // Aktiven Sprint vorselektieren
+          const active = data.find((s: SprintData) => s.status === "active");
+          setActiveSprint((prev) => prev ? (data.find((s: SprintData) => s.id === prev.id) ?? active ?? data[0] ?? null) : (active ?? data.find((s: SprintData) => s.status === "planning") ?? null));
+        }
       }
     } catch (err) {
       console.error("Fehler beim Laden der Sprints", err);
     } finally {
       setLoading(false);
     }
-  }, [filterStatus]);
+  }, []);
+
+  const fetchTasks = useCallback(async () => {
+    try {
+      const res = await fetch("/api/tasks");
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setAllTasks(data);
+          setLocalTasks(data);
+        }
+      }
+    } catch (err) {
+      console.error("Fehler beim Laden der Tasks", err);
+    }
+  }, []);
 
   useEffect(() => {
     fetchSprints();
-  }, [fetchSprints]);
+    fetchTasks();
+    fetch("/api/projects").then((r) => r.json()).then((data: Project[]) => {
+      if (Array.isArray(data)) setProjects(data);
+    }).catch(() => {});
+  }, [fetchSprints, fetchTasks]);
+
+  // ─── Lokale Tasks updaten wenn Sprint sich ändert ─────────────────────────
 
   useEffect(() => {
-    fetch("/api/projects")
-      .then((r) => r.json())
-      .then((data: Project[]) => { if (Array.isArray(data)) setProjects(data); })
-      .catch(() => {});
-  }, []);
+    setLocalTasks(allTasks);
+  }, [allTasks]);
 
-  const handleSave = async (data: Partial<Sprint>) => {
+  // ─── Sprint Aktionen ──────────────────────────────────────────────────────
+
+  const handleSave = async (data: Partial<SprintData>) => {
     if (modalSprint?.id) {
       const res = await fetch(`/api/sprints/${modalSprint.id}`, {
         method: "PATCH",
@@ -485,92 +691,476 @@ export function SprintsClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (res.ok) await fetchSprints();
+      if (res.ok) {
+        await fetchSprints();
+      }
     }
   };
 
   const handleStart = async (sprintId: string) => {
-    if (!confirm("Sprint starten?")) return;
+    if (!confirm("Sprint starten? Tasks im Sprint werden auf 'In Progress' gesetzt.")) return;
     const res = await fetch(`/api/sprints/${sprintId}/start`, { method: "POST" });
-    if (res.ok) fetchSprints();
+    if (res.ok) { await fetchSprints(); await fetchTasks(); }
   };
 
   const handleComplete = async (sprintId: string) => {
-    if (!confirm("Sprint abschließen?")) return;
+    if (!confirm("Sprint abschließen? Nicht-Done Tasks werden zurück ins Backlog verschoben.")) return;
     const res = await fetch(`/api/sprints/${sprintId}/complete`, { method: "POST" });
-    if (res.ok) fetchSprints();
+    if (res.ok) { await fetchSprints(); await fetchTasks(); }
   };
 
   const handleDelete = async (sprintId: string) => {
-    if (!confirm("Sprint löschen? Tasks bleiben erhalten, werden nur vom Sprint getrennt.")) return;
+    if (!confirm("Sprint löschen? Tasks bleiben erhalten und werden ins Backlog verschoben.")) return;
     const res = await fetch(`/api/sprints/${sprintId}`, { method: "DELETE" });
-    if (res.ok) fetchSprints();
+    if (res.ok) { await fetchSprints(); await fetchTasks(); }
   };
 
+  // ─── Story Points ändern ──────────────────────────────────────────────────
+
+  const handleStoryPointsChange = async (taskId: string, sp: number | null) => {
+    setLocalTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, storyPoints: sp } : t));
+    await fetch(`/api/tasks/${taskId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ storyPoints: sp }),
+    });
+  };
+
+  // ─── Sprint Assignment ────────────────────────────────────────────────────
+
+  const handleSprintAssign = async (taskId: string, sprintId: string | null) => {
+    setLocalTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, sprintId } : t));
+    await fetch(`/api/tasks/${taskId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sprintId }),
+    });
+    await fetchSprints(); // Sprint Task-Count aktualisieren
+  };
+
+  // ─── Drag & Drop ──────────────────────────────────────────────────────────
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setDraggedTaskId(String(event.active.id));
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setDraggedTaskId(null);
+    if (!over) return;
+
+    const taskId = String(active.id);
+    const targetColumn = String(over.id) as ColumnId;
+    const task = localTasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    // Ermitteln was geändert werden muss
+    let newStatus: string | undefined;
+    let newSprintId: string | null | undefined;
+
+    if (targetColumn === "backlog") {
+      newSprintId = null;
+      newStatus = "todo";
+    } else if (targetColumn === "todo") {
+      newSprintId = activeSprint?.id ?? task.sprintId;
+      newStatus = "todo";
+    } else if (targetColumn === "in_progress") {
+      newSprintId = activeSprint?.id ?? task.sprintId;
+      newStatus = "in_progress";
+    } else if (targetColumn === "done") {
+      newSprintId = activeSprint?.id ?? task.sprintId;
+      newStatus = "done";
+    }
+
+    if (newStatus === undefined) return;
+
+    // Optimistic Update
+    setLocalTasks((prev) => prev.map((t) =>
+      t.id === taskId
+        ? { ...t, status: newStatus!, sprintId: newSprintId !== undefined ? newSprintId : t.sprintId }
+        : t
+    ));
+
+    // API Update
+    const updateData: Record<string, unknown> = { status: newStatus };
+    if (newSprintId !== undefined) updateData.sprintId = newSprintId;
+
+    await fetch(`/api/tasks/${taskId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updateData),
+    });
+
+    await fetchSprints();
+  };
+
+  // ─── Board-Spalten Daten ──────────────────────────────────────────────────
+
+  const boardColumns = BOARD_COLUMNS.map((col) => {
+    let tasks: TaskItem[];
+    if (col.isBacklog) {
+      // Backlog: alle Tasks ohne Sprint-Zuweisung oder nicht im aktiven Sprint
+      tasks = localTasks.filter((t) => !t.sprintId || (activeSprint && t.sprintId !== activeSprint.id));
+    } else {
+      // Sprint-Spalten: Tasks im aktiven Sprint mit passendem Status
+      tasks = activeSprint
+        ? localTasks.filter((t) => t.sprintId === activeSprint.id && col.statusValues.includes(t.status as never))
+        : [];
+    }
+    return { ...col, tasks };
+  });
+
+  const draggedTask = draggedTaskId ? localTasks.find((t) => t.id === draggedTaskId) ?? null : null;
+
+  // ─── Sprint Stats für aktiven Sprint ─────────────────────────────────────
+
+  const activeSprintTasks = activeSprint
+    ? localTasks.filter((t) => t.sprintId === activeSprint.id)
+    : [];
+  const doneTasks = activeSprintTasks.filter((t) => t.status === "done").length;
+  const totalSP = activeSprintTasks.reduce((s, t) => s + (t.storyPoints ?? 0), 0);
+  const doneSP = activeSprintTasks.filter((t) => t.status === "done").reduce((s, t) => s + (t.storyPoints ?? 0), 0);
+
+  // ─── Render ───────────────────────────────────────────────────────────────
+
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Flag className="w-5 h-5 text-emerald-400" />
-          <h1 className="text-lg font-semibold text-white">Sprints</h1>
-          <span className="text-xs text-zinc-500 bg-[#252525] px-2 py-0.5 rounded-full">
-            {sprints.length}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500/50"
-          >
-            <option value="">Alle Status</option>
-            <option value="planning">Planung</option>
-            <option value="active">Aktiv</option>
-            <option value="completed">Abgeschlossen</option>
-          </select>
-
-          <button
-            onClick={() => setModalSprint(null)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg transition-colors font-medium"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Neuer Sprint
-          </button>
-        </div>
-      </div>
-
-      {/* Content */}
-      {loading ? (
-        <div className="text-center py-16 text-zinc-600 text-sm">Lade Sprints...</div>
-      ) : sprints.length === 0 ? (
-        <div className="text-center py-16">
-          <Flag className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
-          <p className="text-zinc-500 text-sm">Noch keine Sprints vorhanden</p>
-          <button
-            onClick={() => setModalSprint(null)}
-            className="mt-4 px-4 py-2 text-xs text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg transition-colors"
-          >
-            + Ersten Sprint erstellen
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sprints.map((sprint) => (
-            <SprintCard
-              key={sprint.id}
-              sprint={sprint}
-              onEdit={() => setModalSprint(sprint)}
-              onStart={() => handleStart(sprint.id)}
-              onComplete={() => handleComplete(sprint.id)}
-              onDelete={() => handleDelete(sprint.id)}
-            />
+    <div className="flex flex-col h-full">
+      {/* ── Toolbar ── */}
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-[#1e1e1e] flex-wrap">
+        {/* Tabs */}
+        <div className="flex items-center gap-1 bg-[#161616] rounded-lg p-1">
+          {[
+            { id: "board" as const, label: "Board", Icon: Kanban },
+            { id: "velocity" as const, label: "Velocity", Icon: TrendingUp },
+            { id: "backlog" as const, label: "Backlog", Icon: List },
+          ].map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-colors font-medium",
+                activeTab === id
+                  ? "bg-[#252525] text-white"
+                  : "text-zinc-500 hover:text-zinc-300"
+              )}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {label}
+            </button>
           ))}
         </div>
-      )}
 
-      {/* Erstellungs-/Bearbeitungs-Modal */}
+        {/* Sprint Selector (nur im Board) */}
+        {activeTab === "board" && (
+          <SprintSelector
+            sprints={sprints}
+            selected={activeSprint}
+            onSelect={setActiveSprint}
+          />
+        )}
+
+        {/* Sprint Actions */}
+        {activeTab === "board" && activeSprint && (
+          <div className="flex items-center gap-2">
+            {activeSprint.status === "planning" && (
+              <button
+                onClick={() => handleStart(activeSprint.id)}
+                className="flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 px-2.5 py-1.5 rounded-lg hover:bg-emerald-500/10 border border-emerald-500/20 transition-colors"
+              >
+                <Play className="w-3.5 h-3.5 fill-current" />
+                Sprint starten
+              </button>
+            )}
+            {activeSprint.status === "active" && (
+              <button
+                onClick={() => handleComplete(activeSprint.id)}
+                className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 px-2.5 py-1.5 rounded-lg hover:bg-blue-500/10 border border-blue-500/20 transition-colors"
+              >
+                <CheckCheck className="w-3.5 h-3.5" />
+                Sprint abschließen
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Neuer Sprint Button */}
+        <button
+          onClick={() => setModalSprint(null)}
+          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg transition-colors font-medium"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Neuer Sprint
+        </button>
+      </div>
+
+      {/* ── Content ── */}
+      <div className="flex-1 overflow-auto p-6">
+        {loading ? (
+          <div className="text-center py-16 text-zinc-600 text-sm">Lade Daten...</div>
+        ) : (
+          <>
+            {/* ── Board Tab ── */}
+            {activeTab === "board" && (
+              <div>
+                {/* Sprint Stats Bar */}
+                {activeSprint && (
+                  <div className="flex items-center gap-6 mb-6 p-4 bg-[#161616] border border-[#2a2a2a] rounded-xl">
+                    <div>
+                      <p className="text-[10px] text-zinc-500 mb-0.5">Sprint</p>
+                      <p className="text-sm font-semibold text-white">{activeSprint.name}</p>
+                    </div>
+                    {activeSprint.goal && (
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] text-zinc-500 mb-0.5">Ziel</p>
+                        <p className="text-xs text-zinc-300 truncate">{activeSprint.goal}</p>
+                      </div>
+                    )}
+                    <div className="text-center">
+                      <p className="text-[10px] text-zinc-500 mb-0.5">Tasks</p>
+                      <p className="text-sm font-semibold text-white">{doneTasks}/{activeSprintTasks.length}</p>
+                    </div>
+                    {totalSP > 0 && (
+                      <div className="text-center">
+                        <p className="text-[10px] text-zinc-500 mb-0.5">Story Points</p>
+                        <p className="text-sm font-semibold text-emerald-400">{doneSP}/{totalSP} SP</p>
+                      </div>
+                    )}
+                    {activeSprint.startDate && activeSprint.endDate && (
+                      <div className="text-center">
+                        <p className="text-[10px] text-zinc-500 mb-0.5">Zeitraum</p>
+                        <p className="text-xs text-zinc-300">
+                          {format(new Date(activeSprint.startDate), "d. MMM", { locale: de })} –{" "}
+                          {format(new Date(activeSprint.endDate), "d. MMM", { locale: de })}
+                        </p>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 ml-auto">
+                      <button
+                        onClick={() => setModalSprint(activeSprint)}
+                        className="text-xs text-zinc-500 hover:text-white p-1.5 rounded hover:bg-[#252525] transition-colors"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(activeSprint.id)}
+                        className="text-xs text-zinc-500 hover:text-red-400 p-1.5 rounded hover:bg-[#252525] transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Kanban Board */}
+                {!activeSprint ? (
+                  <div className="text-center py-16">
+                    <Flag className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
+                    <p className="text-zinc-500 text-sm mb-1">Kein Sprint ausgewählt</p>
+                    <p className="text-zinc-600 text-xs">Erstelle einen neuen Sprint oder wähle einen aus.</p>
+                    <button
+                      onClick={() => setModalSprint(null)}
+                      className="mt-4 px-4 py-2 text-xs text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg transition-colors"
+                    >
+                      + Ersten Sprint erstellen
+                    </button>
+                  </div>
+                ) : (
+                  <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                    <div className="flex gap-4 overflow-x-auto pb-4">
+                      {boardColumns.map((col) => (
+                        <KanbanColumn
+                          key={col.id}
+                          columnId={col.id as ColumnId}
+                          label={col.label}
+                          color={col.color}
+                          tasks={col.tasks}
+                          sprints={sprints}
+                          activeSprint={activeSprint}
+                          onStoryPointsChange={handleStoryPointsChange}
+                          onSprintAssign={handleSprintAssign}
+                        />
+                      ))}
+                    </div>
+                    <DragOverlay>
+                      {draggedTask && (
+                        <div className="opacity-90 rotate-1 scale-105">
+                          <TaskCard
+                            task={draggedTask}
+                            sprints={sprints}
+                            activeSprint={activeSprint}
+                            onStoryPointsChange={() => {}}
+                            onSprintAssign={() => {}}
+                          />
+                        </div>
+                      )}
+                    </DragOverlay>
+                  </DndContext>
+                )}
+              </div>
+            )}
+
+            {/* ── Velocity Tab ── */}
+            {activeTab === "velocity" && (
+              <div className="max-w-3xl">
+                <VelocityChart sprints={sprints} />
+
+                {/* Sprint-Tabelle */}
+                <div className="mt-8">
+                  <h3 className="text-sm font-semibold text-white mb-4">Alle Sprints</h3>
+                  <div className="space-y-2">
+                    {sprints.length === 0 && (
+                      <p className="text-zinc-600 text-sm text-center py-8">Noch keine Sprints vorhanden</p>
+                    )}
+                    {sprints.map((sprint) => {
+                      const sprintTasks = localTasks.filter((t) => t.sprintId === sprint.id);
+                      const sprintDone = sprintTasks.filter((t) => t.status === "done").length;
+                      const progress = sprintTasks.length === 0 ? 0 : Math.round((sprintDone / sprintTasks.length) * 100);
+                      const badge = STATUS_CONFIG[sprint.status] ?? STATUS_CONFIG.planning;
+                      return (
+                        <div key={sprint.id} className="flex items-center gap-4 p-3 bg-[#161616] border border-[#2a2a2a] rounded-xl hover:border-[#3a3a3a] transition-colors">
+                          <Flag className="w-4 h-4 text-zinc-600 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="text-xs font-semibold text-white truncate">{sprint.name}</p>
+                              <span className={cn("text-[9px] font-medium", badge.color)}>• {badge.label}</span>
+                            </div>
+                            <div className="h-1 bg-[#2a2a2a] rounded-full overflow-hidden w-full max-w-xs">
+                              <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${progress}%` }} />
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-xs text-zinc-300 font-mono">{sprintDone}/{sprintTasks.length} Tasks</p>
+                            {(sprint.storyPoints || sprint.completedPoints) && (
+                              <p className="text-[10px] text-zinc-500 font-mono">
+                                {sprint.completedPoints ?? 0}/{sprint.storyPoints ?? "?"} SP
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => setModalSprint(sprint)} className="p-1.5 text-zinc-600 hover:text-white rounded hover:bg-[#252525]"><Edit2 className="w-3 h-3" /></button>
+                            {sprint.status === "planning" && (
+                              <button onClick={() => handleStart(sprint.id)} className="p-1.5 text-emerald-600 hover:text-emerald-400 rounded hover:bg-[#252525]"><Play className="w-3 h-3 fill-current" /></button>
+                            )}
+                            {sprint.status === "active" && (
+                              <button onClick={() => handleComplete(sprint.id)} className="p-1.5 text-blue-600 hover:text-blue-400 rounded hover:bg-[#252525]"><CheckCheck className="w-3 h-3" /></button>
+                            )}
+                            <button onClick={() => handleDelete(sprint.id)} className="p-1.5 text-zinc-600 hover:text-red-400 rounded hover:bg-[#252525]"><Trash2 className="w-3 h-3" /></button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── Backlog Tab ── */}
+            {activeTab === "backlog" && (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-white">Backlog</h3>
+                    <p className="text-xs text-zinc-500 mt-0.5">
+                      {localTasks.filter((t) => !t.sprintId).length} Tasks ohne Sprint-Zuweisung
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  {localTasks.filter((t) => !t.sprintId).length === 0 && (
+                    <div className="text-center py-12 text-zinc-600">
+                      <List className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                      <p className="text-sm">Alle Tasks sind einem Sprint zugewiesen</p>
+                    </div>
+                  )}
+                  {localTasks.filter((t) => !t.sprintId).map((task) => (
+                    <div key={task.id} className="flex items-center gap-3 p-3 bg-[#161616] border border-[#2a2a2a] rounded-xl hover:border-[#2a2a2a] transition-colors group">
+                      <PriorityBadge priority={task.priority} />
+                      <p className="text-xs text-white flex-1 truncate">{task.title}</p>
+
+                      <StoryPointsEdit
+                        value={task.storyPoints}
+                        onChange={(v) => handleStoryPointsChange(task.id, v)}
+                      />
+
+                      {/* Sprint zuweisen */}
+                      <div className="flex items-center gap-1">
+                        {sprints.filter((s) => s.status !== "completed").map((s) => (
+                          <button
+                            key={s.id}
+                            onClick={() => handleSprintAssign(task.id, s.id)}
+                            className="flex items-center gap-1 text-[10px] text-zinc-600 hover:text-emerald-400 px-2 py-1 rounded hover:bg-emerald-500/10 transition-colors border border-transparent hover:border-emerald-500/20 opacity-0 group-hover:opacity-100"
+                          >
+                            <ArrowRight className="w-3 h-3" />
+                            {s.name}
+                          </button>
+                        ))}
+                      </div>
+
+                      <Avatar assignee={task.assignee} size="xs" />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Tasks mit Sprint-Zuweisung */}
+                {sprints.filter((s) => s.status !== "completed").map((sprint) => {
+                  const sprintTasks = localTasks.filter((t) => t.sprintId === sprint.id);
+                  if (sprintTasks.length === 0) return null;
+                  return (
+                    <div key={sprint.id} className="mt-6">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Flag className="w-3.5 h-3.5 text-emerald-400" />
+                        <h4 className="text-xs font-semibold text-zinc-300">{sprint.name}</h4>
+                        <span className={cn("text-[9px]", STATUS_CONFIG[sprint.status]?.color)}>
+                          ({STATUS_CONFIG[sprint.status]?.label})
+                        </span>
+                        <span className="text-[10px] text-zinc-600 bg-[#252525] px-1.5 py-0.5 rounded-full ml-1">
+                          {sprintTasks.length}
+                        </span>
+                        <span className="text-[10px] text-zinc-600 font-mono ml-1">
+                          {sprintTasks.reduce((s, t) => s + (t.storyPoints ?? 0), 0)} SP
+                        </span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {sprintTasks.map((task) => (
+                          <div key={task.id} className="flex items-center gap-3 p-3 bg-[#161616] border border-[#2a2a2a] rounded-xl hover:border-[#2a2a2a] transition-colors group">
+                            <PriorityBadge priority={task.priority} />
+                            <p className="text-xs text-white flex-1 truncate">{task.title}</p>
+                            <span className={cn(
+                              "text-[9px] px-1.5 py-0.5 rounded border font-medium",
+                              task.status === "done"
+                                ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
+                                : task.status === "in_progress"
+                                ? "text-yellow-400 bg-yellow-500/10 border-yellow-500/20"
+                                : "text-zinc-400 bg-zinc-700/50 border-zinc-600/20"
+                            )}>
+                              {task.status === "done" ? "Done" : task.status === "in_progress" ? "In Progress" : "Todo"}
+                            </span>
+                            <StoryPointsEdit
+                              value={task.storyPoints}
+                              onChange={(v) => handleStoryPointsChange(task.id, v)}
+                            />
+                            <button
+                              onClick={() => handleSprintAssign(task.id, null)}
+                              className="text-[10px] text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                              title="Aus Sprint entfernen"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                            <Avatar assignee={task.assignee} size="xs" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* ── Modal ── */}
       {modalSprint !== undefined && (
         <SprintModal
           sprint={modalSprint}

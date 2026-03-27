@@ -15,7 +15,14 @@ export async function GET(req: NextRequest) {
       include: {
         project: { select: { id: true, name: true, color: true } },
         tasks: {
-          select: { id: true, status: true, title: true },
+          select: {
+            id: true,
+            status: true,
+            title: true,
+            priority: true,
+            storyPoints: true,
+            assignee: { select: { id: true, name: true, avatar: true } },
+          },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -31,13 +38,14 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, description, goal, startDate, endDate, projectId } = body as {
+    const { name, description, goal, startDate, endDate, projectId, storyPoints } = body as {
       name: string;
       description?: string;
       goal?: string;
       startDate?: string;
       endDate?: string;
       projectId?: string;
+      storyPoints?: number;
     };
 
     if (!name?.trim()) {
@@ -52,10 +60,20 @@ export async function POST(req: NextRequest) {
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,
         projectId: projectId || null,
+        storyPoints: storyPoints ?? null,
       },
       include: {
         project: { select: { id: true, name: true, color: true } },
-        tasks: { select: { id: true, status: true, title: true } },
+        tasks: {
+          select: {
+            id: true,
+            status: true,
+            title: true,
+            priority: true,
+            storyPoints: true,
+            assignee: { select: { id: true, name: true, avatar: true } },
+          },
+        },
       },
     });
 

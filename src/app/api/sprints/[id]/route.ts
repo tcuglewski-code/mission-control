@@ -39,7 +39,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await req.json();
-    const { name, description, goal, startDate, endDate, projectId, status } = body as {
+    const { name, description, goal, startDate, endDate, projectId, status, storyPoints, completedPoints } = body as {
       name?: string;
       description?: string;
       goal?: string;
@@ -47,6 +47,8 @@ export async function PATCH(
       endDate?: string | null;
       projectId?: string | null;
       status?: string;
+      storyPoints?: number | null;
+      completedPoints?: number | null;
     };
 
     const sprint = await prisma.sprint.update({
@@ -59,10 +61,21 @@ export async function PATCH(
         ...(endDate !== undefined && { endDate: endDate ? new Date(endDate) : null }),
         ...(projectId !== undefined && { projectId: projectId || null }),
         ...(status !== undefined && { status }),
+        ...(storyPoints !== undefined && { storyPoints: storyPoints ?? null }),
+        ...(completedPoints !== undefined && { completedPoints: completedPoints ?? null }),
       },
       include: {
         project: { select: { id: true, name: true, color: true } },
-        tasks: { select: { id: true, status: true, title: true } },
+        tasks: {
+          select: {
+            id: true,
+            status: true,
+            title: true,
+            priority: true,
+            storyPoints: true,
+            assignee: { select: { id: true, name: true, avatar: true } },
+          },
+        },
       },
     });
 

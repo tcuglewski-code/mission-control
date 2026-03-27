@@ -58,6 +58,7 @@ async function updateTask(id: string, body: Record<string, unknown>) {
     assigneeId,
     sprintId,
     timeSpentSeconds,
+    storyPoints,
   } = body as {
     title?: string;
     description?: string;
@@ -71,6 +72,7 @@ async function updateTask(id: string, body: Record<string, unknown>) {
     assigneeId?: string | null;
     sprintId?: string | null;
     timeSpentSeconds?: number;
+    storyPoints?: number | null;
   };
 
   const task = await prisma.task.update({
@@ -88,6 +90,7 @@ async function updateTask(id: string, body: Record<string, unknown>) {
       ...(assigneeId !== undefined && { assigneeId: assigneeId || null }),
       ...(sprintId !== undefined && { sprintId: sprintId || null }),
       ...(timeSpentSeconds !== undefined && { timeSpentSeconds }),
+      ...(storyPoints !== undefined && { storyPoints: storyPoints ?? null }),
     },
     include: {
       project: { select: { id: true, name: true, color: true } },

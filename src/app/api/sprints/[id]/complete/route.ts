@@ -8,13 +8,36 @@ export async function POST(
   try {
     const { id } = await params;
 
-    const existing = await prisma.sprint.findUnique({ where: { id } });
+    const existing = await prisma.sprint.findUnique({
+      where: { id },
+      include: {
+        tasks: { select: { id: true, status: true, storyPoints: true } },
+      },
+    });
+
     if (!existing) {
-      return NextResponse.json({ error: "Sprint not found" }, { status: 404 });
+      return NextResponse.json({ error: "Sprint nicht gefunden" }, { status: 404 });
     }
 
     if (existing.status === "completed") {
-      return NextResponse.json({ error: "Sprint is already completed" }, { status: 400 });
+      return NextResponse.json({ error: "Sprint ist bereits abgeschlossen" }, { status: 400 });
+    }
+
+    // Abgeschlossene Story Points berechnen
+    const doneTasks = existing.tasks.filter((t) => t.status === "done");
+    const completedPoints = doneTasks.reduce((sum, t) => sum + (t.storyPoints ?? 0), 0);
+    const totalPoints = existing.tasks.reduce((sum, t) => sum + (t.storyPoints ?? 0), 0);
+
+    // Nicht-Done Tasks zurück in Backlog verschieben
+    const remainingTaskIds = existing.tasks
+      .filter((t) => t.status !== "done")
+      .map((t) => t.id);
+
+    if (remainingTaskIds.length > 0) {
+      await prisma.task.updateMany({
+        where: { id: { in: remainingTaskIds } },
+        data: { sprintId: null, status: "todo" },
+      });
     }
 
     const sprint = await prisma.sprint.update({
@@ -22,10 +45,12 @@ export async function POST(
       data: {
         status: "completed",
         endDate: existing.endDate ?? new Date(),
+        completedPoints,
+        storyPoints: totalPoints > 0 ? totalPoints : existing.storyPoints,
       },
       include: {
         project: { select: { id: true, name: true, color: true } },
-        tasks: { select: { id: true, status: true, title: true } },
+        tasks: { select: { id: true, status: true, title: true, storyPoints: true } },
       },
     });
 
@@ -36,12 +61,13 @@ export async function POST(
         entityId: sprint.id,
         entityName: sprint.name,
         projectId: sprint.projectId,
+        metadata: JSON.stringify({ completedPoints, totalPoints, remainingMoved: remainingTaskIds.length }),
       },
     });
 
     return NextResponse.json(sprint);
   } catch (error) {
     console.error("[POST /api/sprints/[id]/complete]", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Interner Serverfehler" }, { status: 500 });
   }
 }
