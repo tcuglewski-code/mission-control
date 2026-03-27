@@ -5,6 +5,7 @@ function signPayload(payload: string, secret: string): string {
   return "sha256=" + crypto.createHmac("sha256", secret).update(payload).digest("hex");
 }
 
+// Webhook-Lieferung mit Retry-Logik (3 Versuche bei Fehler)
 async function deliverWebhook(
   webhook: { id: string; url: string; secret: string | null },
   event: string,
@@ -21,23 +22,37 @@ async function deliverWebhook(
     headers["X-Webhook-Signature"] = signPayload(payloadStr, webhook.secret);
   }
 
+  const MAX_VERSUCHE = 3;
+  const RETRY_DELAYS = [0, 2000, 5000]; // ms Wartezeit vor Versuch 1, 2, 3
+
   const start = Date.now();
   let status = 0;
   let responseBody: string | null = null;
 
-  try {
-    const res = await fetch(webhook.url, {
-      method: "POST",
-      headers,
-      body: payloadStr,
-      signal: AbortSignal.timeout(15_000),
-    });
-    status = res.status;
-    const text = await res.text().catch(() => "");
-    responseBody = text.slice(0, 500) || null;
-  } catch (err) {
-    status = 0;
-    responseBody = err instanceof Error ? err.message.slice(0, 500) : "Unknown error";
+  for (let versuch = 0; versuch < MAX_VERSUCHE; versuch++) {
+    // Wartezeit vor dem Retry (Versuch 0 = sofort)
+    if (versuch > 0) {
+      await new Promise((r) => setTimeout(r, RETRY_DELAYS[versuch]));
+    }
+
+    try {
+      const res = await fetch(webhook.url, {
+        method: "POST",
+        headers,
+        body: payloadStr,
+        signal: AbortSignal.timeout(15_000),
+      });
+      status = res.status;
+      const text = await res.text().catch(() => "");
+      responseBody = text.slice(0, 500) || null;
+
+      // Bei Erfolg (2xx) Loop beenden
+      if (status >= 200 && status < 300) break;
+    } catch (err) {
+      status = 0;
+      responseBody = err instanceof Error ? err.message.slice(0, 500) : "Unknown error";
+      // Bei Netzwerkfehler weiter versuchen (letzter Versuch = aufgeben)
+    }
   }
 
   const duration = Date.now() - start;
@@ -61,6 +76,8 @@ async function deliverWebhook(
   ]);
 }
 
+// Outgoing Webhook auslösen mit standardisiertem Payload
+// Payload-Format: { event, task, project, timestamp, triggeredBy }
 export function triggerWebhooks(
   event: string,
   payload: object,
