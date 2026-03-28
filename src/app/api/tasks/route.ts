@@ -27,12 +27,23 @@ export async function GET(req: NextRequest) {
         : {};
     const sprintId = searchParams.get("sprintId");
 
+    // Kalender: Monat-Filter (YYYY-MM) — filtert nach dueDate im angegebenen Monat
+    const month = searchParams.get("month");
+    let monthFilter = {};
+    if (month && /^\d{4}-\d{2}$/.test(month)) {
+      const [year, mon] = month.split("-").map(Number);
+      const start = new Date(year, mon - 1, 1);
+      const end = new Date(year, mon, 0, 23, 59, 59, 999);
+      monthFilter = { dueDate: { gte: start, lte: end } };
+    }
+
     const tasks = await prisma.task.findMany({
       where: {
         ...(status ? { status } : {}),
         ...(projectId ? { projectId } : {}),
         ...accessFilter,
         ...(sprintId === "null" ? { sprintId: null } : sprintId ? { sprintId } : {}),
+        ...monthFilter,
       },
       include: {
         project: { select: { id: true, name: true, color: true } },

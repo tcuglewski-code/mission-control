@@ -11,6 +11,7 @@ const SHORTCUTS = [
       { keys: ["⌘", "K"], label: "Command Palette öffnen" },
       { keys: ["⌘", "/"], label: "Suche" },
       { keys: ["Esc"], label: "Modal / Palette schließen" },
+      { keys: ["Strg", "⇧", "C"], label: "Kalender öffnen" },
     ],
   },
   {

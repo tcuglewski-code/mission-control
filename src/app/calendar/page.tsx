@@ -10,7 +10,7 @@ export default async function CalendarPage() {
 
   if (!hasAccess) {
     return (
-      <AppShell title="Kalender" subtitle="Termine & Events">
+      <AppShell title="Kalender" subtitle="Aufgaben & Termine">
         <div className="flex flex-col items-center justify-center h-full p-12 text-center">
           <p className="text-4xl mb-4">🔒</p>
           <h2 className="text-lg font-semibold text-white mb-2">Kein Zugriff</h2>
@@ -22,16 +22,14 @@ export default async function CalendarPage() {
 
   const allowedIds = getAllowedProjectIds(session);
 
+  // Load events
   let events;
   if (allowedIds === null) {
-    // Admin: alle Events
     events = await prisma.event.findMany({
       include: { task: { select: { id: true, title: true, status: true } } },
       orderBy: { startTime: "asc" },
     });
   } else {
-    // Non-admin: Events die entweder keiner Task zugeordnet sind,
-    // oder deren Task zu einem erlaubten Projekt gehört
     const allowedTaskIds = await prisma.task
       .findMany({
         where: { projectId: { in: allowedIds } },
@@ -51,10 +49,43 @@ export default async function CalendarPage() {
     });
   }
 
+  // Load tasks with dueDate for the task calendar
+  const taskWhere =
+    allowedIds !== null
+      ? { projectId: { in: allowedIds }, dueDate: { not: null } }
+      : { dueDate: { not: null } };
+
+  const tasks = await prisma.task.findMany({
+    where: taskWhere,
+    include: {
+      project: { select: { id: true, name: true, color: true } },
+      assignee: { select: { id: true, name: true, avatar: true } },
+      sprint: { select: { id: true, name: true } },
+      milestone: { select: { id: true, title: true, color: true } },
+    },
+    orderBy: { dueDate: "asc" },
+  });
+
+  // Load projects + users for TaskModal
+  const projectWhere = allowedIds !== null ? { id: { in: allowedIds } } : {};
+  const [projects, users] = await Promise.all([
+    prisma.project.findMany({
+      where: projectWhere,
+      select: { id: true, name: true, color: true, status: true, progress: true, priority: true, createdAt: true, updatedAt: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.user.findMany({ orderBy: { name: "asc" } }),
+  ]);
+
   return (
-    <AppShell title="Kalender" subtitle="Termine & Events">
+    <AppShell title="Kalender" subtitle="Aufgaben & Termine">
       <div className="p-6 h-full">
-        <CalendarWrapper initialEvents={events} />
+        <CalendarWrapper
+          initialEvents={events}
+          initialTasks={tasks}
+          projects={projects}
+          users={users}
+        />
       </div>
     </AppShell>
   );
