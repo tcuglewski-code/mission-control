@@ -319,6 +319,7 @@ export function ProfileClient() {
 
       {/* ── PROFIL TAB ── */}
       {tab === "profil" && (
+        <>
         <form onSubmit={saveProfile} className="space-y-5">
           <div className="bg-white dark:bg-[#161616] border border-gray-200 dark:border-[#2a2a2a] rounded-xl p-5 space-y-4">
             <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -427,6 +428,7 @@ export function ProfileClient() {
             Tour neu starten
           </button>
         </div>
+        </>
       )}
 
       {/* ── PASSWORT TAB ── */}

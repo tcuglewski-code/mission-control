@@ -70,6 +70,7 @@ const navItems = [
   { href: "/docs", icon: FileText, label: "Dokumente" },
   { href: "/documents", icon: FolderArchive, label: "Dateiverwaltung" },
   { href: "/team", icon: Users, label: "Team" },
+  { href: "/team/activity", icon: ActivitySquare, label: "Team-Aktivität" },
   { href: "/tools", icon: Wrench, label: "Tools" },
   { href: "/databases", icon: Database, label: "Datenbanken" },
   { href: "/tickets", icon: Ticket, label: "Tickets" },
@@ -192,6 +193,23 @@ export function Sidebar() {
               <span>Mein Profil</span>
             </Link>
 
+            <Link
+              href="/settings/permissions"
+              onClick={() => setSidebarOpen(false)}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
+                pathname === "/settings/permissions"
+                  ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
+                  : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+              )}
+            >
+              {pathname === "/settings/permissions" && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-violet-500 rounded-r-full" />
+              )}
+              <ShieldCheck className={cn("w-4 h-4 shrink-0", pathname === "/settings/permissions" ? "text-violet-400" : "")} />
+              <span>Berechtigungen</span>
+            </Link>
+
             {role === "admin" && (
               <Link
                 href="/settings/users"
@@ -233,6 +251,22 @@ export function Sidebar() {
                 )}
                 <ShieldCheck className={cn("w-4 h-4 shrink-0", pathname === "/admin/users" ? "text-amber-400" : "")} />
                 <span>Benutzer (Legacy)</span>
+              </Link>
+              <Link
+                href="/admin/invites"
+                onClick={() => setSidebarOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
+                  pathname === "/admin/invites"
+                    ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
+                    : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+                )}
+              >
+                {pathname === "/admin/invites" && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-amber-500 rounded-r-full" />
+                )}
+                <Mail className={cn("w-4 h-4 shrink-0", pathname === "/admin/invites" ? "text-amber-400" : "")} />
+                <span>Einladungen</span>
               </Link>
               <Link
                 href="/admin/audit"
