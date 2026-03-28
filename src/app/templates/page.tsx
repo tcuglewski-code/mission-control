@@ -23,6 +23,8 @@ import {
   Trash2,
   Star,
   Filter,
+  FileText,
+  Flag,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -34,12 +36,20 @@ interface TemplateTask {
   offsetDays?: number;
 }
 
+interface TemplateMilestone {
+  title: string;
+  description?: string;
+  offsetDays?: number;
+  color?: string;
+}
+
 interface Template {
   id: string;
   name: string;
   description: string | null;
   category: string | null;
   tasks: TemplateTask[];
+  milestones: TemplateMilestone[] | null;
   isSystem: boolean;
   createdBy: string | null;
   createdByName: string | null;
@@ -58,6 +68,7 @@ interface TeamMember {
 const CATEGORY_LABELS: Record<string, string> = {
   aufforstung: "Aufforstung",
   pflege: "Waldpflege",
+  foerderung: "Förderung",
   saatgut: "Saatguternte",
   allgemein: "Allgemein",
 };
@@ -65,6 +76,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 const CATEGORY_COLORS: Record<string, string> = {
   aufforstung: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
   pflege: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  foerderung: "bg-violet-500/10 text-violet-400 border-violet-500/20",
   saatgut: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   allgemein: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
 };
@@ -73,6 +85,7 @@ function CategoryIcon({ category }: { category: string | null }) {
   switch (category) {
     case "aufforstung": return <Trees className="w-5 h-5 text-emerald-400" />;
     case "pflege": return <Scissors className="w-5 h-5 text-blue-400" />;
+    case "foerderung": return <FileText className="w-5 h-5 text-violet-400" />;
     case "saatgut": return <Wheat className="w-5 h-5 text-amber-400" />;
     default: return <Package className="w-5 h-5 text-zinc-400" />;
   }
@@ -430,6 +443,7 @@ function EditTemplateModal({ open, template, onClose, onSaved }: EditTemplateMod
               <option value="">Keine Kategorie</option>
               <option value="aufforstung">Aufforstung</option>
               <option value="pflege">Waldpflege</option>
+              <option value="foerderung">Förderung</option>
               <option value="saatgut">Saatguternte</option>
               <option value="allgemein">Allgemein</option>
             </select>
@@ -540,6 +554,12 @@ function TemplateCard({
           <CheckSquare className="w-3 h-3" />
           {template.tasks.length} Tasks
         </span>
+        {template.milestones && template.milestones.length > 0 && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-violet-500/10 text-violet-400 border border-violet-500/20">
+            <Flag className="w-3 h-3" />
+            {template.milestones.length} Meilensteine
+          </span>
+        )}
         {template.isSystem ? (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
             <Star className="w-3 h-3" />
@@ -564,16 +584,41 @@ function TemplateCard({
         </button>
 
         {expanded && (
-          <ol className="mt-2 space-y-1 pl-4 list-decimal">
-            {template.tasks.map((task, i) => (
-              <li key={i} className="text-xs text-gray-600 dark:text-zinc-400">
-                {task.title}
-                {task.offsetDays !== undefined && task.offsetDays > 0 && (
-                  <span className="ml-1 text-gray-400 dark:text-zinc-600">(+{task.offsetDays}d)</span>
-                )}
-              </li>
-            ))}
-          </ol>
+          <div className="mt-2 space-y-3">
+            <ol className="space-y-1 pl-4 list-decimal">
+              {template.tasks.map((task, i) => (
+                <li key={i} className="text-xs text-gray-600 dark:text-zinc-400">
+                  {task.title}
+                  {task.offsetDays !== undefined && task.offsetDays > 0 && (
+                    <span className="ml-1 text-gray-400 dark:text-zinc-600">(+{task.offsetDays}d)</span>
+                  )}
+                </li>
+              ))}
+            </ol>
+            {template.milestones && template.milestones.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold text-gray-500 dark:text-zinc-500 uppercase tracking-wider mb-1.5">
+                  Meilensteine
+                </p>
+                <ul className="space-y-1">
+                  {template.milestones.map((m, i) => (
+                    <li key={i} className="flex items-center gap-2 text-xs text-gray-500 dark:text-zinc-500">
+                      <div
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: m.color ?? "#8b5cf6" }}
+                      />
+                      {m.title}
+                      {m.offsetDays !== undefined && (
+                        <span className="text-gray-400 dark:text-zinc-600 text-[10px]">
+                          (+{m.offsetDays}d)
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -759,6 +804,7 @@ export default function TemplatesPage() {
             <option value="">Alle Kategorien</option>
             <option value="aufforstung">Aufforstung</option>
             <option value="pflege">Waldpflege</option>
+            <option value="foerderung">Förderung</option>
             <option value="saatgut">Saatguternte</option>
             <option value="allgemein">Allgemein</option>
           </select>

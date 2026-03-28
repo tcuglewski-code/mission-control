@@ -15,8 +15,10 @@ export async function POST(
     const {
       projectName,
       projectDescription,
+      client,          // Kunde (optional)
       color = "#22c55e",
       startDate,       // ISO string — Startdatum für relative Task-Verschiebung
+      budget,          // Budget in € (optional)
       assigneeIds = [], // Array von User-IDs die allen Tasks zugewiesen werden
     } = body;
 
@@ -34,6 +36,13 @@ export async function POST(
       offsetDays?: number;
     }>;
 
+    const templateMilestones = (template.milestones as Array<{
+      title: string;
+      description?: string;
+      offsetDays?: number;
+      color?: string;
+    }> | null) ?? [];
+
     const baseDate = startDate ? new Date(startDate) : new Date();
 
     // Projekt erstellen
@@ -43,11 +52,9 @@ export async function POST(
         description: projectDescription || template.description || null,
         color,
         status: "active",
+        ...(budget ? { budget: parseFloat(budget) } : {}),
       },
     });
-
-    // Hauptassignee (erster in der Liste) oder null
-    const primaryAssigneeId = assigneeIds.length > 0 ? assigneeIds[0] : null;
 
     // Verify assignees exist
     let validAssigneeIds: string[] = [];
@@ -84,7 +91,33 @@ export async function POST(
       })
     );
 
-    // Weitere Assignees als Projekt-Mitglieder hinzufügen
+    // Meilensteine erstellen
+    let milestonesCreated = 0;
+    if (templateMilestones.length > 0) {
+      const milestoneResults = await Promise.all(
+        templateMilestones.map(async (msDef) => {
+          let dueDate: Date | null = null;
+          if (msDef.offsetDays !== undefined) {
+            dueDate = new Date(baseDate);
+            dueDate.setDate(dueDate.getDate() + msDef.offsetDays);
+          }
+          return prisma.milestone.create({
+            data: {
+              title: msDef.title,
+              description: msDef.description || null,
+              status: "planned",
+              progress: 0,
+              color: msDef.color || "#8b5cf6",
+              dueDate,
+              projectId: project.id,
+            },
+          });
+        })
+      );
+      milestonesCreated = milestoneResults.length;
+    }
+
+    // Team-Mitglieder hinzufügen
     if (validAssigneeIds.length > 0) {
       await prisma.projectMember.createMany({
         data: validAssigneeIds.map((uid) => ({
@@ -96,11 +129,29 @@ export async function POST(
       });
     }
 
+    // Activity Log
+    await prisma.activityLog.create({
+      data: {
+        action: "created",
+        entityType: "project",
+        entityId: project.id,
+        entityName: project.name,
+        projectId: project.id,
+        userId: user.id,
+        metadata: {
+          fromTemplate: template.name,
+          tasksCreated: createdTasks.length,
+          milestonesCreated,
+        } as any,
+      },
+    }).catch(() => {}); // Non-blocking
+
     return NextResponse.json(
       {
         project,
         tasksCreated: createdTasks.length,
-        message: `Projekt "${project.name}" mit ${createdTasks.length} Tasks aus Vorlage "${template.name}" erstellt`,
+        milestonesCreated,
+        message: `Projekt "${project.name}" mit ${createdTasks.length} Tasks und ${milestonesCreated} Meilensteinen aus Vorlage "${template.name}" erstellt`,
       },
       { status: 201 }
     );

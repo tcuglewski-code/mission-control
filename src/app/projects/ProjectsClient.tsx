@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Plus, FolderKanban, Archive, ArchiveRestore, LayoutGrid, List, Search, SortAsc, Star } from "lucide-react";
+import { Plus, FolderKanban, Archive, ArchiveRestore, LayoutGrid, List, Search, SortAsc, Star, Copy, Loader2 } from "lucide-react";
 import { ProjectCard } from "@/components/projects/ProjectCard";
 import { ProjectModal } from "@/components/projects/ProjectModal";
 import type { Project } from "@/store/useAppStore";
@@ -9,6 +9,7 @@ import { getStatusLabel, getPriorityLabel } from "@/lib/utils";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const STATUS_FILTERS = [
   { value: "all", label: "Alle" },
@@ -38,12 +39,14 @@ interface ProjectsClientProps {
 }
 
 export function ProjectsClient({ initialProjects }: ProjectsClientProps) {
+  const router = useRouter();
   const [projects, setProjects] = useState<ExtendedProject[]>(initialProjects);
   const [filter, setFilter] = useState("all");
   const [archiveTab, setArchiveTab] = useState<"active" | "archive">("active");
   const [showModal, setShowModal] = useState(false);
   const [editProject, setEditProject] = useState<ExtendedProject | null>(null);
   const [archiveConfirm, setArchiveConfirm] = useState<ExtendedProject | null>(null);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [sortKey, setSortKey] = useState<SortKey>("updatedAt");
   const [searchQuery, setSearchQuery] = useState("");
@@ -158,6 +161,23 @@ export function ProjectsClient({ initialProjects }: ProjectsClientProps) {
     );
   };
 
+  const handleDuplicate = async (project: ExtendedProject) => {
+    if (duplicatingId) return;
+    setDuplicatingId(project.id);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/duplicate`, { method: "POST" });
+      if (!res.ok) throw new Error("Fehler beim Duplizieren");
+      const data = await res.json();
+      if (data.project) {
+        setProjects((prev) => [data.project, ...prev]);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDuplicatingId(null);
+    }
+  };
+
   const currentSortLabel = SORT_OPTIONS.find((s) => s.value === sortKey)?.label ?? "Sortieren";
 
   return (
@@ -230,16 +250,13 @@ export function ProjectsClient({ initialProjects }: ProjectsClientProps) {
           </div>
 
           {archiveTab === "active" && (
-            <button
-              onClick={() => {
-                setEditProject(null);
-                setShowModal(true);
-              }}
+            <Link
+              href="/projects/new"
               className="flex items-center gap-1.5 px-3 py-2 text-xs text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
               Neues Projekt
-            </button>
+            </Link>
           )}
         </div>
 
@@ -372,12 +389,13 @@ export function ProjectsClient({ initialProjects }: ProjectsClientProps) {
             <>
               <FolderKanban className="w-10 h-10 text-zinc-700 mb-4" />
               <p className="text-zinc-500 text-sm">Keine Projekte gefunden</p>
-              <button
-                onClick={() => setShowModal(true)}
-                className="mt-4 px-4 py-2 text-xs text-emerald-400 border border-emerald-500/30 rounded-lg hover:bg-emerald-500/10 transition-colors"
+              <Link
+                href="/projects/new"
+                className="mt-4 px-4 py-2 text-xs text-emerald-400 border border-emerald-500/30 rounded-lg hover:bg-emerald-500/10 transition-colors inline-flex items-center gap-1.5"
               >
+                <Plus className="w-3.5 h-3.5" />
                 Erstes Projekt erstellen
-              </button>
+              </Link>
             </>
           )}
         </div>
@@ -391,6 +409,23 @@ export function ProjectsClient({ initialProjects }: ProjectsClientProps) {
               />
               {/* Action Buttons */}
               <div className="absolute top-3 right-12 opacity-0 group-hover/card:opacity-100 transition-opacity z-10 flex gap-1">
+                {/* Duplizieren */}
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleDuplicate(project);
+                  }}
+                  title="Projekt duplizieren"
+                  disabled={duplicatingId === project.id}
+                  className="p-1.5 bg-[#1c1c1c] border border-[#2a2a2a] rounded-md text-zinc-500 hover:text-blue-400 hover:border-blue-500/30 transition-colors disabled:opacity-50"
+                >
+                  {duplicatingId === project.id ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5" />
+                  )}
+                </button>
                 {archiveTab === "active" ? (
                   <button
                     onClick={(e) => {
@@ -485,6 +520,22 @@ export function ProjectsClient({ initialProjects }: ProjectsClientProps) {
                 </span>
                 {/* Actions */}
                 <div className="w-16 flex items-center justify-end gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleDuplicate(project);
+                    }}
+                    title="Projekt duplizieren"
+                    disabled={duplicatingId === project.id}
+                    className="p-1.5 rounded-md text-zinc-500 hover:text-blue-400 hover:bg-[#252525] transition-colors disabled:opacity-50"
+                  >
+                    {duplicatingId === project.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                  </button>
                   <button
                     onClick={(e) => {
                       e.preventDefault();

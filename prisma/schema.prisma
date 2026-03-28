@@ -468,8 +468,9 @@ model ProjectTemplate {
   id            String   @id @default(cuid())
   name          String
   description   String?
-  category      String?  // "aufforstung", "pflege", "saatgut", etc.
+  category      String?  // "aufforstung", "pflege", "saatgut", "foerderung", etc.
   tasks         Json     // Array von Task-Definitionen
+  milestones    Json?    // Array von Meilenstein-Definitionen (Sprint GG)
   isSystem      Boolean  @default(false)  // System-Vorlagen (forstspezifisch)
   createdBy     String?  // User ID des Erstellers
   createdByName String?  // Anzeigename des Erstellers

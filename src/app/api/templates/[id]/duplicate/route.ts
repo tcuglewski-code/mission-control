@@ -22,7 +22,7 @@ export async function POST(
         tasks: template.tasks as object,
         isSystem: false,
         createdBy: user.id,
-        createdByName: user.name || user.email || "Unbekannt",
+        createdByName: user.username || user.email || "Unbekannt",
       },
     });
 

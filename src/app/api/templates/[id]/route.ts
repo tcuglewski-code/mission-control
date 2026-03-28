@@ -38,7 +38,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     }
 
     const body = await req.json();
-    const { name, description, category, tasks } = body;
+    const { name, description, category, tasks, milestones } = body;
 
     const updated = await prisma.projectTemplate.update({
       where: { id },
@@ -47,6 +47,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
         ...(description !== undefined && { description }),
         ...(category !== undefined && { category }),
         ...(tasks && { tasks }),
+        ...(milestones !== undefined && { milestones: milestones || null }),
       },
     });
 
