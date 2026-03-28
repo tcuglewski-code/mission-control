@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { X, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import type { Task, Project, User, Sprint } from "@/store/useAppStore";
+import { TaskTimer } from "./TaskTimer";
 
 interface TaskModalProps {
   task?: Task | null;
@@ -262,6 +263,16 @@ export function TaskModal({
               className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 resize-none font-mono"
             />
           </div>
+
+          {/* Zeiterfassung Timer (nur bei bestehendem Task) */}
+          {task && (
+            <div>
+              <label className="text-xs text-zinc-400 mb-2 block">⏱ Zeiterfassung</label>
+              <div className="bg-[#171717] border border-[#2a2a2a] rounded-lg p-3">
+                <TaskTimer taskId={task.id} taskTitle={task.title} />
+              </div>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex items-center justify-between pt-2">
