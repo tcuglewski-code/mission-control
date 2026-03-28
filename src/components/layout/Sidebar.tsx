@@ -41,6 +41,9 @@ import {
   BarChart2,
   ActivitySquare,
   Bell,
+  Search,
+  Bookmark,
+  Trash2,
 } from "lucide-react";
 import { useKeyboardShortcutsModal } from "@/hooks/useKeyboardShortcutsModal";
 import { useQuickAdd } from "@/hooks/useQuickAdd";
@@ -50,6 +53,7 @@ import { useThemeStore } from "@/store/useThemeStore";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/search", icon: Search, label: "Erweiterte Suche" },
   { href: "/my-day", icon: Sun, label: "Mein Tag" },
   { href: "/my-week", icon: CalendarDays, label: "Meine Woche" },
   { href: "/announcements", icon: Megaphone, label: "Ankündigungen" },
@@ -94,6 +98,14 @@ function ThemeToggleButton() {
   );
 }
 
+interface SavedView { id: string; name: string; filterRaw: string; icon?: string; }
+
+const DEFAULT_SIDEBAR_VIEWS: SavedView[] = [
+  { id: "__meine-tasks", name: "Meine Tasks", filterRaw: "assignee:ich status:offen", icon: "👤" },
+  { id: "__diese-woche", name: "Diese Woche fällig", filterRaw: "due:diese-woche", icon: "📅" },
+  { id: "__blockiert", name: "Blockiert", filterRaw: "filter:blocked", icon: "🚫" },
+];
+
 export function Sidebar() {
   const pathname = usePathname();
   const { sidebarOpen, setSidebarOpen } = useAppStore();
@@ -101,6 +113,8 @@ export function Sidebar() {
   const { setOpen: openQuickAdd } = useQuickAdd();
   const { data: session } = useSession();
   const [meData, setMeData] = useState<{ username: string; role: string } | null>(null);
+  const [savedViews, setSavedViews] = useState<SavedView[]>([]);
+  const [viewsExpanded, setViewsExpanded] = useState(true);
 
   // Load fresh user data from DB via /api/me (JWT doesn't store role)
   useEffect(() => {
@@ -108,6 +122,11 @@ export function Sidebar() {
       fetch("/api/me")
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => { if (data) setMeData(data); })
+        .catch(() => {});
+      // Gespeicherte Ansichten laden
+      fetch("/api/saved-views")
+        .then((r) => (r.ok ? r.json() : []))
+        .then((data) => { if (Array.isArray(data)) setSavedViews(data); })
         .catch(() => {});
     }
   }, [session?.user?.id]);
@@ -171,6 +190,51 @@ export function Sidebar() {
               </Link>
             );
           })}
+
+          {/* Gespeicherte Ansichten */}
+          <div className="pt-2 mt-1 border-t border-gray-200 dark:border-[#2a2a2a]">
+            <button
+              onClick={() => setViewsExpanded((v) => !v)}
+              className="w-full flex items-center justify-between px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 hover:text-zinc-400 transition-colors"
+            >
+              <span className="flex items-center gap-1">
+                <Bookmark className="w-3 h-3" /> Gespeicherte Ansichten
+              </span>
+              <span className="text-[8px]">{viewsExpanded ? "▲" : "▼"}</span>
+            </button>
+            {viewsExpanded && (
+              <div className="space-y-0.5">
+                {[...DEFAULT_SIDEBAR_VIEWS, ...savedViews].map((view) => (
+                  <div key={view.id} className="flex items-center group">
+                    <Link
+                      href={`/search?q=${encodeURIComponent(view.filterRaw)}`}
+                      onClick={() => setSidebarOpen(false)}
+                      className={cn(
+                        "flex-1 flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors",
+                        pathname === "/search"
+                          ? "text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+                          : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+                      )}
+                    >
+                      <span className="text-xs">{view.icon ?? "📌"}</span>
+                      <span className="truncate text-xs">{view.name}</span>
+                    </Link>
+                    {!view.id.startsWith("__") && (
+                      <button
+                        onClick={async () => {
+                          await fetch(`/api/saved-views/${view.id}`, { method: "DELETE" });
+                          setSavedViews((prev) => prev.filter((v) => v.id !== view.id));
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-zinc-600 hover:text-red-400 transition-all"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Settings links */}
           <div className="pt-2 mt-1 border-t border-gray-200 dark:border-[#2a2a2a]">

@@ -670,3 +670,15 @@ model ProjectReportSchedule {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
+
+// ─── Gespeicherte Ansichten (Sprint FZ) ───────────────────────────────────────
+model SavedView {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  filterRaw String   // raw filter string e.g. "assignee:ich status:offen"
+  icon      String?  // optional emoji or icon name
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
