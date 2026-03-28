@@ -5,6 +5,7 @@ import { SessionProvider } from "next-auth/react";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { QuickAddTaskModal } from "@/components/QuickAddTaskModal";
 import { KeyboardShortcutsModal } from "@/components/layout/KeyboardShortcutsModal";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,14 +20,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="de" className="dark">
-      <body className={`${inter.className} bg-[#0f0f0f] text-white antialiased`}>
-        <SessionProvider>
-          {children}
-          <CommandPalette />
-          <QuickAddTaskModal />
-          <KeyboardShortcutsModal />
-        </SessionProvider>
+    <html lang="de">
+      <body className={`${inter.className} antialiased`}>
+        <ThemeProvider>
+          <SessionProvider>
+            {children}
+            <CommandPalette />
+            <QuickAddTaskModal />
+            <KeyboardShortcutsModal />
+          </SessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
