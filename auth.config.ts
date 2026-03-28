@@ -11,8 +11,11 @@ export const authConfig: NextAuthConfig = {
       const isPublicPath =
         nextUrl.pathname.startsWith("/login") ||
         nextUrl.pathname.startsWith("/invite/") ||
+        nextUrl.pathname.startsWith("/share/") ||
         nextUrl.pathname.startsWith("/api/auth/") ||
         nextUrl.pathname.startsWith("/api/webhooks/") ||
+        nextUrl.pathname.startsWith("/api/share/") ||
+        nextUrl.pathname.startsWith("/api/cron/") ||
         nextUrl.pathname === "/api/agents/heartbeat";
 
       if (isPublicPath) return true;

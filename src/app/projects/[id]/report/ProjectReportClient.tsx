@@ -17,6 +17,9 @@ import {
   Check,
   X,
   Loader2,
+  Share2,
+  Copy,
+  ExternalLink,
 } from "lucide-react";
 import { getHealthScoreBg, getHealthScoreLabel, getHealthScoreDot } from "@/lib/health-score";
 
@@ -98,6 +101,11 @@ export function ProjectReportClient({ reportData, projectId }: Props) {
   const [emailSent, setEmailSent] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
 
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+
   const {
     project,
     healthScore,
@@ -131,6 +139,29 @@ export function ProjectReportClient({ reportData, projectId }: Props) {
     }
   };
 
+  const handleShare = async () => {
+    setShareLoading(true);
+    setShareError(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/share`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expiresInDays: 30 }),
+      });
+      if (!res.ok) throw new Error("Fehler");
+      const data = await res.json();
+      const fullUrl = `${window.location.origin}${data.shareUrl}`;
+      setShareUrl(fullUrl);
+      await navigator.clipboard.writeText(fullUrl).catch(() => {});
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 3000);
+    } catch {
+      setShareError("Link konnte nicht erstellt werden");
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
   const scoreBg = getHealthScoreBg(healthScore);
   const scoreLabel = getHealthScoreLabel(healthScore);
   const scoreDot = getHealthScoreDot(healthScore);
@@ -161,7 +192,7 @@ export function ProjectReportClient({ reportData, projectId }: Props) {
           </div>
 
           {/* Actions (hide on print) */}
-          <div className="flex items-center gap-2 print:hidden">
+          <div className="flex items-center gap-2 flex-wrap print:hidden">
             <button
               onClick={handlePrint}
               className="flex items-center gap-1.5 px-3 py-2 text-xs text-zinc-300 hover:text-white bg-[#252525] hover:bg-[#2e2e2e] border border-[#2a2a2a] rounded-lg transition-colors"
@@ -169,6 +200,25 @@ export function ProjectReportClient({ reportData, projectId }: Props) {
               <Printer className="w-3.5 h-3.5" />
               Drucken / PDF
             </button>
+            <button
+              onClick={handleShare}
+              disabled={shareLoading}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs text-white bg-blue-600 hover:bg-blue-500 rounded-lg border border-blue-600 transition-colors"
+            >
+              {shareLoading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Share2 className="w-3.5 h-3.5" />
+              )}
+              Link teilen
+            </button>
+            <a
+              href={`/projects/${projectId}/status-report`}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs text-zinc-300 hover:text-white bg-[#252525] hover:bg-[#2e2e2e] border border-[#2a2a2a] rounded-lg transition-colors"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              Statusbericht A4
+            </a>
             <button
               onClick={handleEmail}
               disabled={emailSending || emailSent}
@@ -194,6 +244,28 @@ export function ProjectReportClient({ reportData, projectId }: Props) {
 
         {emailError && (
           <p className="text-xs text-red-400 mt-2 print:hidden">{emailError}</p>
+        )}
+
+        {/* Share URL */}
+        {shareUrl && (
+          <div className="mt-3 flex items-center gap-2 p-2.5 bg-blue-500/10 border border-blue-500/30 rounded-lg print:hidden">
+            <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+            <span className="text-xs text-blue-300 flex-1 truncate">{shareUrl}</span>
+            <button
+              onClick={async () => {
+                await navigator.clipboard.writeText(shareUrl).catch(() => {});
+                setShareCopied(true);
+                setTimeout(() => setShareCopied(false), 2000);
+              }}
+              className="flex items-center gap-1 px-2 py-1 text-[10px] text-blue-300 hover:text-white bg-blue-500/20 hover:bg-blue-500/40 rounded transition-colors"
+            >
+              {shareCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+              {shareCopied ? "Kopiert!" : "Kopieren"}
+            </button>
+          </div>
+        )}
+        {shareError && (
+          <p className="text-xs text-red-400 mt-2 print:hidden">{shareError}</p>
         )}
 
         {/* Health Score Banner */}

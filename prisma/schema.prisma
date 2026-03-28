@@ -521,3 +521,24 @@ model Milestone {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
+
+// ─── Projekt-Sharing ──────────────────────────────────────────────────────────
+model ProjectShare {
+  id        String    @id @default(cuid())
+  projectId String
+  token     String    @unique @default(cuid())
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+}
+
+// ─── Report-Scheduler ─────────────────────────────────────────────────────────
+model ProjectReportSchedule {
+  id        String    @id @default(cuid())
+  projectId String
+  emails    String[]
+  interval  String    @default("weekly") // "weekly" | "monthly"
+  lastSent  DateTime?
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
