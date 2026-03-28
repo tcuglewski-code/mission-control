@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { X, Trash2, MessageSquare, Send, Tag } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
-import type { Task, Project, User, Sprint, Label } from "@/store/useAppStore";
+import type { Task, Project, User, Sprint, Label, Milestone } from "@/store/useAppStore";
 import { TaskTimer } from "./TaskTimer";
 
 interface TaskComment {
@@ -46,9 +46,11 @@ export function TaskModal({
     projectId: "",
     assigneeId: "",
     sprintId: "",
+    milestoneId: "",
   });
   const [loading, setLoading] = useState(false);
   const [sprints, setSprints] = useState<Sprint[]>([]);
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [availableLabels, setAvailableLabels] = useState<Label[]>([]);
   const [selectedLabelIds, setSelectedLabelIds] = useState<Set<string>>(new Set());
   const [labelDropdownOpen, setLabelDropdownOpen] = useState(false);
@@ -75,6 +77,14 @@ export function TaskModal({
       .then((r) => r.json())
       .then((data: Label[]) => {
         if (Array.isArray(data)) setAvailableLabels(data);
+      })
+      .catch(() => {});
+
+    // Load milestones
+    fetch("/api/milestones")
+      .then((r) => r.json())
+      .then((data: Milestone[]) => {
+        if (Array.isArray(data)) setMilestones(data);
       })
       .catch(() => {});
   }, []);
@@ -149,6 +159,7 @@ export function TaskModal({
         projectId: task.projectId ?? "",
         assigneeId: task.assigneeId ?? "",
         sprintId: task.sprintId ?? "",
+        milestoneId: task.milestoneId ?? "",
       });
       // Load existing task labels
       if (task.taskLabels) {
@@ -196,6 +207,7 @@ export function TaskModal({
         projectId: form.projectId || null,
         assigneeId: form.assigneeId || null,
         sprintId: form.sprintId || null,
+        milestoneId: form.milestoneId || null,
         // Pass selected label IDs for new tasks (handled by caller)
         _labelIds: Array.from(selectedLabelIds),
       } as Partial<Task> & { _labelIds: string[] });
@@ -317,6 +329,23 @@ export function TaskModal({
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* Meilenstein */}
+          <div>
+            <label className="text-xs text-zinc-400 mb-1 block">Meilenstein</label>
+            <select
+              value={form.milestoneId}
+              onChange={(e) => setForm({ ...form, milestoneId: e.target.value })}
+              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+            >
+              <option value="">Kein Meilenstein</option>
+              {milestones
+                .filter((m) => !form.projectId || m.projectId === form.projectId)
+                .map((m) => (
+                  <option key={m.id} value={m.id}>{m.title}</option>
+                ))}
+            </select>
           </div>
 
           {/* Assignee */}

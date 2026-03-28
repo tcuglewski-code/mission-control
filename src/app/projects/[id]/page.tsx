@@ -4,12 +4,13 @@ import { AppShell } from "@/components/layout/AppShell";
 import Link from "next/link";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { ChevronLeft, CheckSquare, Users, FileText, Activity, Globe, Github, ExternalLink, Smartphone, Download } from "lucide-react";
+import { ChevronLeft, CheckSquare, Users, FileText, Activity, Globe, Github, ExternalLink, Smartphone, Download, Flag, Target } from "lucide-react";
 import { getStatusBg, getStatusLabel, formatRelativeTime, getActionLabel, getEntityTypeLabel, getInitials } from "@/lib/utils";
 import { requireServerSession, getAllowedProjectIds } from "@/lib/server-auth";
 import { LivingDescription } from "@/components/projects/LivingDescription";
 import { BudgetCard } from "@/components/projects/BudgetCard";
 import { ProjectPDFButton } from "@/components/projects/ProjectPDFButtonWrapper";
+import { MilestoneList } from "@/components/milestones/MilestoneList";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -79,13 +80,23 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   const project = await prisma.project.findUnique({
     where: { id },
     include: {
-      _count: { select: { tasks: true, members: true, docs: true } },
+      _count: { select: { tasks: true, members: true, docs: true, milestones: true } },
       members: {
         include: { user: { select: { id: true, name: true, avatar: true, role: true, email: true } } },
       },
       tasks: {
-        include: { assignee: { select: { id: true, name: true, avatar: true } } },
+        include: { 
+          assignee: { select: { id: true, name: true, avatar: true } },
+          milestone: { select: { id: true, title: true, color: true } },
+        },
         orderBy: { createdAt: "asc" },
+      },
+      milestones: {
+        include: {
+          _count: { select: { tasks: true } },
+          tasks: { select: { id: true, status: true } },
+        },
+        orderBy: [{ dueDate: "asc" }, { createdAt: "asc" }],
       },
       docs: { orderBy: { updatedAt: "desc" }, take: 5 },
       logs: {
@@ -104,6 +115,22 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     in_review: project.tasks.filter((t) => t.status === "in_review").length,
     done: project.tasks.filter((t) => t.status === "done").length,
   };
+
+  const today = new Date();
+  const nextMilestone = project.milestones.find(
+    (m) => m.status !== "completed" && m.status !== "cancelled" && m.dueDate && new Date(m.dueDate) >= today
+  );
+
+  const milestonesWithProgress = project.milestones.map((m) => {
+    const totalTasks = m.tasks.length;
+    const doneTasks = m.tasks.filter((t) => t.status === "done").length;
+    const calculatedProgress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+    return {
+      ...m,
+      calculatedProgress,
+      taskStats: { total: totalTasks, done: doneTasks },
+    };
+  });
 
   // Group tasks by sprint label
   const sprintGroups: Record<string, typeof project.tasks> = {};
@@ -158,10 +185,28 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className={`text-xs px-2 py-1 rounded border ${getStatusBg(project.status)}`}>
                 {getStatusLabel(project.status)}
               </span>
+              {nextMilestone && (
+                <span
+                  className="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded border"
+                  style={{
+                    backgroundColor: `${nextMilestone.color}15`,
+                    color: nextMilestone.color,
+                    borderColor: `${nextMilestone.color}30`,
+                  }}
+                >
+                  <Target className="w-3 h-3" />
+                  {nextMilestone.title}
+                  {nextMilestone.dueDate && (
+                    <span className="text-zinc-400 ml-1">
+                      {format(new Date(nextMilestone.dueDate), "d. MMM", { locale: de })}
+                    </span>
+                  )}
+                </span>
+              )}
               {/* HTML-Report im Browser öffnen */}
               <a
                 href={`/api/projects/${project.id}/pdf`}
@@ -214,6 +259,12 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         <LivingDescription
           projectId={id}
           initialText={project.longDescription ?? null}
+        />
+
+        {/* Meilensteine */}
+        <MilestoneList 
+          projectId={id} 
+          initialMilestones={milestonesWithProgress as any}
         />
 
         {/* Meta-Links Bar */}
@@ -402,6 +453,18 @@ function TaskRow({ task }: { task: any }) {
         }`}
       />
       <span className="text-sm text-white flex-1 truncate">{task.title}</span>
+      {task.milestone && (
+        <span
+          className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded shrink-0"
+          style={{
+            backgroundColor: `${task.milestone.color}15`,
+            color: task.milestone.color,
+          }}
+        >
+          <Target className="w-2.5 h-2.5" />
+          {task.milestone.title}
+        </span>
+      )}
       {task.assignee && (
         <span className="text-[11px] text-zinc-500">{task.assignee.name}</span>
       )}

@@ -4,7 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { Calendar, AlertCircle, Play, Flag } from "lucide-react";
+import { Calendar, AlertCircle, Play, Flag, Target } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 import { useAppStore, type Task, type Label } from "@/store/useAppStore";
 import { useState } from "react";
@@ -122,6 +122,23 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
           <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-medium bg-blue-500/15 text-blue-400 border border-blue-500/20">
             <Flag className="w-2.5 h-2.5" />
             {task.sprint.name}
+          </span>
+        </div>
+      )}
+
+      {/* Milestone badge */}
+      {task.milestone && (
+        <div className="mb-2 ml-4">
+          <span
+            className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-medium"
+            style={{
+              backgroundColor: `${task.milestone.color}15`,
+              color: task.milestone.color,
+              border: `1px solid ${task.milestone.color}30`,
+            }}
+          >
+            <Target className="w-2.5 h-2.5" />
+            {task.milestone.title}
           </span>
         </div>
       )}

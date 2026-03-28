@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
         project: { select: { id: true, name: true, color: true } },
         assignee: { select: { id: true, name: true, avatar: true } },
         sprint: { select: { id: true, name: true } },
+        milestone: { select: { id: true, title: true, color: true } },
         taskLabels: { include: { label: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -74,6 +75,7 @@ export async function POST(req: NextRequest) {
       projectId,
       assigneeId,
       sprintId,
+      milestoneId,
     } = body;
 
     if (!title) {
@@ -93,11 +95,13 @@ export async function POST(req: NextRequest) {
         projectId: projectId || null,
         assigneeId: assigneeId || null,
         sprintId: sprintId || null,
+        milestoneId: milestoneId || null,
       },
       include: {
         project: { select: { id: true, name: true, color: true } },
         assignee: { select: { id: true, name: true, avatar: true } },
         sprint: { select: { id: true, name: true } },
+        milestone: { select: { id: true, title: true, color: true } },
       },
     });
 

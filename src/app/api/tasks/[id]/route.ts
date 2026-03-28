@@ -26,6 +26,7 @@ export async function GET(
         project: { select: { id: true, name: true, color: true } },
         assignee: { select: { id: true, name: true, avatar: true } },
         sprint: { select: { id: true, name: true } },
+        milestone: { select: { id: true, title: true, color: true } },
         taskLabels: { include: { label: true } },
       },
     });
@@ -59,6 +60,7 @@ async function updateTask(id: string, body: Record<string, unknown>) {
     projectId,
     assigneeId,
     sprintId,
+    milestoneId,
     timeSpentSeconds,
     storyPoints,
   } = body as {
@@ -73,6 +75,7 @@ async function updateTask(id: string, body: Record<string, unknown>) {
     projectId?: string | null;
     assigneeId?: string | null;
     sprintId?: string | null;
+    milestoneId?: string | null;
     timeSpentSeconds?: number;
     storyPoints?: number | null;
   };
@@ -91,6 +94,7 @@ async function updateTask(id: string, body: Record<string, unknown>) {
       ...(projectId !== undefined && { projectId: projectId || null }),
       ...(assigneeId !== undefined && { assigneeId: assigneeId || null }),
       ...(sprintId !== undefined && { sprintId: sprintId || null }),
+      ...(milestoneId !== undefined && { milestoneId: milestoneId || null }),
       ...(timeSpentSeconds !== undefined && { timeSpentSeconds }),
       ...(storyPoints !== undefined && { storyPoints: storyPoints ?? null }),
     },
@@ -98,6 +102,7 @@ async function updateTask(id: string, body: Record<string, unknown>) {
       project: { select: { id: true, name: true, color: true } },
       assignee: { select: { id: true, name: true, avatar: true } },
       sprint: { select: { id: true, name: true } },
+      milestone: { select: { id: true, title: true, color: true } },
       taskLabels: { include: { label: true } },
     },
   });

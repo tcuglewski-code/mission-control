@@ -23,6 +23,23 @@ export interface Label {
   color: string;
 }
 
+export interface Milestone {
+  id: string;
+  title: string;
+  description?: string | null;
+  status: string;
+  progress: number;
+  calculatedProgress?: number;
+  color: string;
+  dueDate?: string | null;
+  projectId: string;
+  project?: { id: string; name: string; color: string };
+  taskStats?: { total: number; done: number };
+  _count?: { tasks: number };
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -37,11 +54,13 @@ export interface Task {
   projectId?: string | null;
   assigneeId?: string | null;
   sprintId?: string | null;
+  milestoneId?: string | null;
   createdAt: Date;
   updatedAt: Date;
   project?: { id: string; name: string; color: string } | null;
   assignee?: { id: string; name: string; avatar?: string | null } | null;
   sprint?: { id: string; name: string } | null;
+  milestone?: { id: string; title: string; color: string } | null;
   taskLabels?: { label: Label }[] | null;
 }
 
