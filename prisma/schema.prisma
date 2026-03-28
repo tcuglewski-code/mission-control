@@ -107,10 +107,25 @@ model Task {
   sprint    Sprint?    @relation(fields: [sprintId], references: [id], onDelete: SetNull)
   milestone Milestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
   sourceEmail InboxEmail? @relation(fields: [sourceEmailId], references: [id], onDelete: SetNull)
+  parentTask  Task?     @relation("TaskSubtasks", fields: [parentTaskId], references: [id], onDelete: SetNull)
+  subtasks    Task[]    @relation("TaskSubtasks")
   comments    TaskComment[]
   events      Event[]
   timeEntries TimeEntry[]
   taskLabels  TaskLabel[]
+}
+
+// ─── Board-Spalten ────────────────────────────────────────────────────────────
+model BoardColumn {
+  id        String   @id @default(cuid())
+  projectId String?  // null = globale Standard-Spalte
+  name      String
+  statusKey String   // interner Schlüssel z.B. "todo", "in_progress", "review", "done"
+  order     Int      @default(0)
+  wipLimit  Int?     // null = kein Limit
+  color     String   @default("#6b7280")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ─── E-Mail Posteingang ───────────────────────────────────────────────────────

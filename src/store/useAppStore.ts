@@ -70,6 +70,7 @@ export interface Task {
   sprint?: { id: string; name: string } | null;
   milestone?: { id: string; title: string; color: string } | null;
   taskLabels?: { label: Label }[] | null;
+  subtasks?: { id: string; status: string; title: string }[] | null;
 }
 
 export interface Project {

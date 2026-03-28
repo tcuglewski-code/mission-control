@@ -4,7 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { Calendar, AlertCircle, Play, Flag, Target, RefreshCw } from "lucide-react";
+import { Calendar, AlertCircle, Play, Flag, Target, RefreshCw, Hash } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 import { useAppStore, type Task, type Label } from "@/store/useAppStore";
 import { getRecurringLabel } from "@/lib/recurring";
@@ -52,6 +52,16 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
 
   const isInProgress = task.status === "in_progress";
 
+  // Subtask-Fortschritt
+  const subtaskTotal = task.subtasks?.length ?? 0;
+  const subtaskDone = task.subtasks?.filter((s) => s.status === "done").length ?? 0;
+  const subtaskPercent = subtaskTotal > 0 ? Math.round((subtaskDone / subtaskTotal) * 100) : 0;
+
+  // Beschreibungs-Snippet (max. 80 Zeichen)
+  const descSnippet = task.description
+    ? task.description.replace(/[#*_`]/g, "").slice(0, 80) + (task.description.length > 80 ? "…" : "")
+    : null;
+
   const handleStart = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (starting || isInProgress) return;
@@ -77,12 +87,21 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
       {...listeners}
       onClick={onClick}
       className={cn(
-        "bg-[#1c1c1c] border border-[#2a2a2a] rounded-lg p-3 cursor-pointer",
+        "relative bg-[#1c1c1c] border border-[#2a2a2a] rounded-lg p-3 cursor-pointer",
         "hover:border-[#3a3a3a] transition-colors group select-none",
         isDragging && "opacity-50 rotate-1 shadow-xl shadow-black/50 z-50"
       )}
     >
-      {/* Header: Priority dot + Title + Recurring Icon */}
+      {/* Hover-Vorschau Tooltip */}
+      {descSnippet && (
+        <div className="absolute bottom-full left-0 right-0 mb-1.5 z-50 hidden group-hover:block pointer-events-none">
+          <div className="bg-[#111] border border-[#3a3a3a] rounded-lg px-3 py-2 shadow-xl">
+            <p className="text-[11px] text-zinc-400 leading-relaxed">{descSnippet}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Header: Priority dot + Title + Story Points + Recurring */}
       <div className="flex items-start gap-2 mb-2">
         <div
           className={cn(
@@ -93,6 +112,16 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
         <p className="text-sm text-white leading-snug line-clamp-2 flex-1 group-hover:text-zinc-100">
           {task.title}
         </p>
+        {/* Story Points Badge */}
+        {task.storyPoints != null && task.storyPoints > 0 && (
+          <div
+            className="shrink-0 mt-0.5 flex items-center gap-0.5 bg-blue-500/15 border border-blue-500/25 text-blue-400 rounded px-1.5 py-0.5 text-[10px] font-bold"
+            title={`${task.storyPoints} Story Points`}
+          >
+            <Hash className="w-2.5 h-2.5" />
+            {task.storyPoints}
+          </div>
+        )}
         {task.recurring && task.recurringInterval && (
           <div
             className="shrink-0 mt-0.5"
@@ -175,6 +204,22 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
         </div>
       )}
 
+      {/* Subtask-Fortschritts-Leiste */}
+      {subtaskTotal > 0 && (
+        <div className="ml-4 mb-2">
+          <div className="flex items-center justify-between mb-0.5">
+            <span className="text-[9px] text-zinc-600">Subtasks</span>
+            <span className="text-[9px] text-zinc-600">{subtaskDone}/{subtaskTotal}</span>
+          </div>
+          <div className="h-1 bg-[#2a2a2a] rounded-full overflow-hidden">
+            <div
+              className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+              style={{ width: `${subtaskPercent}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Footer: DueDate + Assignee */}
       <div className="flex items-center justify-between ml-4">
         <div className="flex items-center gap-2">
@@ -182,7 +227,7 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
             <div
               className={cn(
                 "flex items-center gap-1 text-[11px]",
-                isOverdue ? "text-red-400" : "text-zinc-500"
+                isOverdue ? "text-red-400 font-medium" : "text-zinc-500"
               )}
             >
               {isOverdue ? (
@@ -193,6 +238,11 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
               <span>
                 {format(new Date(task.dueDate), "d. MMM", { locale: de })}
               </span>
+              {isOverdue && (
+                <span className="text-[9px] bg-red-500/15 text-red-400 border border-red-500/25 rounded px-1">
+                  überfällig
+                </span>
+              )}
             </div>
           )}
         </div>

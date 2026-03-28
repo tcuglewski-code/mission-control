@@ -2,7 +2,7 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { Plus } from "lucide-react";
+import { Plus, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TaskCard } from "./TaskCard";
 import type { Task } from "@/store/useAppStore";
@@ -12,6 +12,7 @@ interface KanbanColumnProps {
   title: string;
   color: string;
   tasks: Task[];
+  wipLimit?: number | null;
   onAddTask: () => void;
   onTaskClick: (task: Task) => void;
 }
@@ -21,10 +22,14 @@ export function KanbanColumn({
   title,
   color,
   tasks,
+  wipLimit,
   onAddTask,
   onTaskClick,
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id });
+
+  const isWipExceeded = wipLimit != null && tasks.length > wipLimit;
+  const isWipWarning = wipLimit != null && tasks.length === wipLimit;
 
   return (
     <div className="flex flex-col min-w-[280px] max-w-[280px]">
@@ -35,9 +40,27 @@ export function KanbanColumn({
           <span className="text-xs font-semibold text-zinc-300 uppercase tracking-wide">
             {title}
           </span>
-          <span className="text-xs text-zinc-600 bg-[#252525] px-1.5 py-0.5 rounded-full">
+          <span
+            className={cn(
+              "text-xs px-1.5 py-0.5 rounded-full",
+              isWipExceeded
+                ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                : isWipWarning
+                ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                : "text-zinc-600 bg-[#252525]"
+            )}
+          >
             {tasks.length}
+            {wipLimit != null && (
+              <span className="text-zinc-600">/{wipLimit}</span>
+            )}
           </span>
+          {isWipExceeded && (
+            <AlertTriangle
+              className="w-3.5 h-3.5 text-red-400"
+              title={`WIP-Limit überschritten! Max. ${wipLimit} Tasks`}
+            />
+          )}
         </div>
         <button
           onClick={onAddTask}
@@ -46,6 +69,29 @@ export function KanbanColumn({
           <Plus className="w-3.5 h-3.5" />
         </button>
       </div>
+
+      {/* WIP-Limit Indikator-Leiste */}
+      {wipLimit != null && (
+        <div className="mb-2 px-1">
+          <div className="h-0.5 bg-[#2a2a2a] rounded-full overflow-hidden">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all duration-300",
+                isWipExceeded ? "bg-red-500" : isWipWarning ? "bg-yellow-500" : "bg-emerald-500"
+              )}
+              style={{ width: `${Math.min((tasks.length / wipLimit) * 100, 100)}%` }}
+            />
+          </div>
+          <p className={cn(
+            "text-[9px] mt-0.5",
+            isWipExceeded ? "text-red-400" : "text-zinc-700"
+          )}>
+            {isWipExceeded
+              ? `⚠ WIP-Limit überschritten (max. ${wipLimit})`
+              : `WIP-Limit: ${tasks.length}/${wipLimit}`}
+          </p>
+        </div>
+      )}
 
       {/* Drop zone */}
       <div

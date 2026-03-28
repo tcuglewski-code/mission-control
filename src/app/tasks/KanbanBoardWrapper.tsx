@@ -15,6 +15,7 @@ interface KanbanBoardWrapperProps {
   initialTasks: Task[];
   projects: Project[];
   users: User[];
+  isAdmin?: boolean;
 }
 
 const SPRINT_NAMES: Record<string, string> = {
@@ -402,7 +403,7 @@ function buildParams(filters: FilterState, sort: SortState): URLSearchParams {
 
 // ─── Hauptkomponente ──────────────────────────────────────────────────────────
 
-export function KanbanBoardWrapper({ initialTasks, projects, users }: KanbanBoardWrapperProps) {
+export function KanbanBoardWrapper({ initialTasks, projects, users, isAdmin }: KanbanBoardWrapperProps) {
   const { tasks, setTasks, setProjects, setUsers } = useAppStore();
   const [view, setView] = useState<"kanban" | "sprint">("kanban");
   const [availableLabels, setAvailableLabels] = useState<Label[]>([]);
@@ -581,7 +582,7 @@ export function KanbanBoardWrapper({ initialTasks, projects, users }: KanbanBoar
         {view === "kanban" ? (
           <>
             <div className="flex-1 min-w-0 overflow-x-auto">
-              <KanbanBoard projects={projects} users={users} filteredTasks={filteredAndSortedTasks} />
+              <KanbanBoard projects={projects} users={users} filteredTasks={filteredAndSortedTasks} isAdmin={isAdmin} />
             </div>
             <LiveActivityFeed />
           </>
