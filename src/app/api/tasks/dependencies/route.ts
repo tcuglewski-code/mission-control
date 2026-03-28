@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionOrApiKey } from "@/lib/api-auth";
 
 // GET /api/tasks/dependencies?taskId=xxx — Abhängigkeiten für eine Task
+// GET /api/tasks/dependencies?all=true — Alle Abhängigkeiten (für Gantt-Ansicht)
 export async function GET(req: NextRequest) {
   try {
     const user = await getSessionOrApiKey(req);
@@ -11,10 +12,19 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
+    const all = searchParams.get("all") === "true";
     const taskId = searchParams.get("taskId");
 
+    // Alle Abhängigkeiten zurückgeben (für Gantt-Timeline)
+    if (all) {
+      const allDeps = await prisma.taskDependency.findMany({
+        select: { taskId: true, dependsOnId: true },
+      });
+      return NextResponse.json(allDeps);
+    }
+
     if (!taskId) {
-      return NextResponse.json({ error: "taskId erforderlich" }, { status: 400 });
+      return NextResponse.json({ error: "taskId oder all=true erforderlich" }, { status: 400 });
     }
 
     // Alle Abhängigkeiten dieser Task laden
@@ -22,7 +32,7 @@ export async function GET(req: NextRequest) {
       where: { taskId },
     });
 
-    // Details der Abhängigkeits-Tasks laden
+    // Tasks die DIESE Task blockieren (Vorgänger)
     const dependsOnIds = abhaengigkeiten.map((d) => d.dependsOnId);
     const abhaengigkeitsTasks = await prisma.task.findMany({
       where: { id: { in: dependsOnIds } },
@@ -35,9 +45,26 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    // Tasks die DURCH DIESE Task blockiert werden (Nachfolger)
+    const blockiertDeps = await prisma.taskDependency.findMany({
+      where: { dependsOnId: taskId },
+    });
+    const blockiertIds = blockiertDeps.map((d) => d.taskId);
+    const blockiertTasks = await prisma.task.findMany({
+      where: { id: { in: blockiertIds } },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        priority: true,
+        project: { select: { id: true, name: true, color: true } },
+      },
+    });
+
     return NextResponse.json({
       taskId,
       dependsOn: abhaengigkeitsTasks,
+      blocking: blockiertTasks,
     });
   } catch (error) {
     console.error("[GET /api/tasks/dependencies]", error);
@@ -71,13 +98,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Zirkuläre Abhängigkeit prüfen (einfache 1-Level-Prüfung)
-    const zirkel = await prisma.taskDependency.findFirst({
-      where: { taskId: dependsOnId, dependsOnId: taskId },
-    });
-    if (zirkel) {
+    // Tiefe Zirkel-Prüfung: Würde taskId erreichbar sein von dependsOnId ausgehend?
+    // (d.h. ist taskId ein Vorfahre von dependsOnId?)
+    async function istVorfahre(startId: string, zielId: string, besucht = new Set<string>()): Promise<boolean> {
+      if (startId === zielId) return true;
+      if (besucht.has(startId)) return false;
+      besucht.add(startId);
+      const vorfahren = await prisma.taskDependency.findMany({
+        where: { taskId: startId },
+        select: { dependsOnId: true },
+      });
+      for (const v of vorfahren) {
+        if (await istVorfahre(v.dependsOnId, zielId, besucht)) return true;
+      }
+      return false;
+    }
+
+    const hatZirkel = await istVorfahre(dependsOnId, taskId);
+    if (hatZirkel) {
       return NextResponse.json(
-        { error: "Zirkuläre Abhängigkeit erkannt" },
+        { error: "Zirkuläre Abhängigkeit erkannt — diese Verknüpfung würde einen Kreislauf erzeugen" },
         { status: 400 }
       );
     }

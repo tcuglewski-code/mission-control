@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { X, Trash2, MessageSquare, Send, Tag } from "lucide-react";
+import { X, Trash2, MessageSquare, Send, Tag, GitBranch, Link2, AlertTriangle } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
 import type { Task, Project, User, Sprint, Label, Milestone } from "@/store/useAppStore";
@@ -55,6 +55,16 @@ export function TaskModal({
   const [selectedLabelIds, setSelectedLabelIds] = useState<Set<string>>(new Set());
   const [labelDropdownOpen, setLabelDropdownOpen] = useState(false);
 
+  // Abhängigkeits-State
+  interface DepTask { id: string; title: string; status: string; project?: { name: string; color: string } | null; }
+  const [allTasks, setAllTasks] = useState<DepTask[]>([]);
+  const [dependsOnIds, setDependsOnIds] = useState<string[]>([]);
+  const [blockingTasks, setBlockingTasks] = useState<DepTask[]>([]);
+  const [depDropdownOpen, setDepDropdownOpen] = useState(false);
+  const [depSearch, setDepSearch] = useState("");
+  const [depError, setDepError] = useState<string | null>(null);
+  const [depLoading, setDepLoading] = useState(false);
+
   // Kommentar-State
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -92,7 +102,37 @@ export function TaskModal({
         if (Array.isArray(data)) setMilestones(data);
       })
       .catch(() => {});
+
+    // Load all tasks for dependency dropdown
+    fetch("/api/tasks")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setAllTasks(data);
+      })
+      .catch(() => {});
   }, []);
+
+  // Lade bestehende Abhängigkeiten wenn Task geöffnet
+  useEffect(() => {
+    if (!task?.id) {
+      setDependsOnIds([]);
+      setBlockingTasks([]);
+      return;
+    }
+    setDepLoading(true);
+    fetch(`/api/tasks/dependencies?taskId=${task.id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.dependsOn && Array.isArray(data.dependsOn)) {
+          setDependsOnIds(data.dependsOn.map((t: { id: string }) => t.id));
+        }
+        if (data.blocking && Array.isArray(data.blocking)) {
+          setBlockingTasks(data.blocking);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setDepLoading(false));
+  }, [task?.id]);
 
   // Kommentare laden wenn Task geöffnet wird
   useEffect(() => {
@@ -272,6 +312,43 @@ export function TaskModal({
       onClose();
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ─── Abhängigkeits-Handler ────────────────────────────────────────────────
+
+  const handleAddDependency = async (dependsOnId: string) => {
+    if (!task?.id) return;
+    setDepError(null);
+    try {
+      const res = await fetch("/api/tasks/dependencies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: task.id, dependsOnId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setDepError(data.error ?? "Fehler beim Hinzufügen der Abhängigkeit");
+        return;
+      }
+      setDependsOnIds((prev) => [...prev, dependsOnId]);
+    } catch {
+      setDepError("Netzwerkfehler");
+    }
+  };
+
+  const handleRemoveDependency = async (dependsOnId: string) => {
+    if (!task?.id) return;
+    setDepError(null);
+    try {
+      await fetch("/api/tasks/dependencies", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: task.id, dependsOnId }),
+      });
+      setDependsOnIds((prev) => prev.filter((id) => id !== dependsOnId));
+    } catch {
+      setDepError("Fehler beim Entfernen");
     }
   };
 
@@ -503,6 +580,152 @@ export function TaskModal({
               className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
             />
           </div>
+
+          {/* ─── Abhängigkeiten (nur bei bestehendem Task) ─── */}
+          {task && (
+            <div className="border-t border-[#2a2a2a] pt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <GitBranch className="w-3.5 h-3.5 text-zinc-400" />
+                <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">
+                  Abhängigkeiten
+                </h4>
+                {depLoading && <span className="text-[10px] text-zinc-600">Lädt...</span>}
+              </div>
+
+              {depError && (
+                <div className="flex items-center gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 mb-3">
+                  <AlertTriangle className="w-3 h-3 shrink-0" />
+                  {depError}
+                </div>
+              )}
+
+              {/* Abhängig von: */}
+              <div className="mb-3">
+                <label className="text-xs text-zinc-500 mb-1.5 block">Abhängig von:</label>
+
+                {/* Ausgewählte Abhängigkeiten */}
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {dependsOnIds.length === 0 ? (
+                    <span className="text-xs text-zinc-600 italic">Keine Abhängigkeiten</span>
+                  ) : (
+                    dependsOnIds.map((depId) => {
+                      const depTask = allTasks.find((t) => t.id === depId);
+                      return (
+                        <span
+                          key={depId}
+                          className="inline-flex items-center gap-1 text-xs bg-[#252525] border border-[#3a3a3a] rounded-full px-2 py-0.5"
+                        >
+                          {depTask?.project && (
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: depTask.project.color }} />
+                          )}
+                          <span className="text-zinc-300">{depTask?.title ?? depId}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveDependency(depId)}
+                            className="text-zinc-600 hover:text-red-400 transition-colors ml-0.5"
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        </span>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Dropdown zum Hinzufügen */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setDepDropdownOpen((v) => !v)}
+                    className="w-full text-left text-xs bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-1.5 text-zinc-500 hover:border-emerald-500/40 transition-colors flex items-center gap-1.5"
+                  >
+                    <Link2 className="w-3 h-3" />
+                    Abhängigkeit hinzufügen...
+                  </button>
+                  {depDropdownOpen && (
+                    <div className="absolute z-30 top-full left-0 mt-1 w-full bg-[#1c1c1c] border border-[#3a3a3a] rounded-lg shadow-xl overflow-hidden">
+                      <div className="p-2 border-b border-[#2a2a2a]">
+                        <input
+                          type="text"
+                          value={depSearch}
+                          onChange={(e) => setDepSearch(e.target.value)}
+                          placeholder="Task suchen..."
+                          className="w-full bg-[#252525] border border-[#3a3a3a] rounded px-2 py-1 text-xs text-white placeholder-zinc-600 focus:outline-none"
+                          autoFocus
+                        />
+                      </div>
+                      <div className="max-h-40 overflow-y-auto">
+                        {allTasks
+                          .filter(
+                            (t) =>
+                              t.id !== task.id &&
+                              !dependsOnIds.includes(t.id) &&
+                              t.title.toLowerCase().includes(depSearch.toLowerCase())
+                          )
+                          .slice(0, 20)
+                          .map((t) => (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => {
+                                handleAddDependency(t.id);
+                                setDepDropdownOpen(false);
+                                setDepSearch("");
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-white hover:bg-[#252525] text-left transition-colors"
+                            >
+                              {t.project && (
+                                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: t.project.color }} />
+                              )}
+                              <span className="flex-1 truncate">{t.title}</span>
+                              <span className="text-zinc-600 shrink-0">{t.project?.name}</span>
+                            </button>
+                          ))}
+                        {allTasks.filter(
+                          (t) =>
+                            t.id !== task.id &&
+                            !dependsOnIds.includes(t.id) &&
+                            t.title.toLowerCase().includes(depSearch.toLowerCase())
+                        ).length === 0 && (
+                          <div className="px-3 py-2 text-xs text-zinc-500">Keine Tasks gefunden</div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setDepDropdownOpen(false); setDepSearch(""); }}
+                        className="w-full px-3 py-1.5 text-xs text-zinc-500 hover:bg-[#252525] border-t border-[#2a2a2a] text-right"
+                      >
+                        Schließen
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Blockiert: */}
+              {blockingTasks.length > 0 && (
+                <div>
+                  <label className="text-xs text-zinc-500 mb-1.5 block">Blockiert folgende Tasks:</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {blockingTasks.map((t) => (
+                      <span
+                        key={t.id}
+                        className="inline-flex items-center gap-1 text-xs bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full px-2 py-0.5"
+                      >
+                        {t.project && (
+                          <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: t.project.color }} />
+                        )}
+                        {t.title}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-zinc-600 mt-1">
+                    Diese Tasks warten auf den Abschluss dieses Tasks.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Agent Prompt */}
           <div>
