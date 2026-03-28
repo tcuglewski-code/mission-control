@@ -207,6 +207,14 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                   )}
                 </span>
               )}
+              {/* Sprints verwalten */}
+              <Link
+                href={`/projects/${project.id}/sprints`}
+                className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 px-2 py-1 rounded hover:bg-emerald-500/10 border border-emerald-500/20 transition-colors"
+              >
+                <Flag className="w-3.5 h-3.5" />
+                Sprints
+              </Link>
               {/* HTML-Report im Browser öffnen */}
               <a
                 href={`/api/projects/${project.id}/pdf`}

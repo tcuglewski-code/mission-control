@@ -26,6 +26,7 @@ export async function GET(req: NextRequest) {
         ? { projectId: { in: user.projectAccess } }
         : {};
     const sprintId = searchParams.get("sprintId");
+    const noSprint = searchParams.get("noSprint") === "true";
 
     // Kalender: Monat-Filter (YYYY-MM) — filtert nach dueDate im angegebenen Monat
     const month = searchParams.get("month");
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest) {
         ...(status ? { status } : {}),
         ...(projectId ? { projectId } : {}),
         ...accessFilter,
-        ...(sprintId === "null" ? { sprintId: null } : sprintId ? { sprintId } : {}),
+        ...(noSprint ? { sprintId: null } : sprintId === "null" ? { sprintId: null } : sprintId ? { sprintId } : {}),
         ...monthFilter,
       },
       include: {

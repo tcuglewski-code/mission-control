@@ -69,6 +69,13 @@ export const AVAILABLE_WIDGETS: WidgetDefinition[] = [
     defaultOrder: 7,
     description: "Budget-Status aller Projekte",
   },
+  {
+    id: "aktueller-sprint",
+    title: "Aktueller Sprint",
+    defaultVisible: true,
+    defaultOrder: 8,
+    description: "Status des aktuellen Sprints",
+  },
 ];
 
 export const WIDGET_CONFIG_KEY = "mc_dashboard_widget_config";
