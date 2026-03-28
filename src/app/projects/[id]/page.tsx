@@ -7,6 +7,7 @@ import { de } from "date-fns/locale";
 import { ChevronLeft, CheckSquare, Users, FileText, FolderArchive, Globe, Github, ExternalLink, Smartphone, Download, Flag, Target, BarChart2, Clock } from "lucide-react";
 import { SaveAsTemplateButton } from "@/components/projects/SaveAsTemplateButton";
 import { ProjectActivityWidget } from "@/components/projects/ProjectActivityWidget";
+import { AiProjectSummary } from "@/components/projects/AiProjectSummary";
 import { getStatusBg, getStatusLabel, getInitials } from "@/lib/utils";
 import { requireServerSession, getAllowedProjectIds } from "@/lib/server-auth";
 import { LivingDescription } from "@/components/projects/LivingDescription";
@@ -503,6 +504,12 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                 createdAt: log.createdAt.toISOString(),
                 user: log.user ?? null,
               }))}
+            />
+
+            {/* KI-Zusammenfassung */}
+            <AiProjectSummary
+              projectId={project.id}
+              projectName={project.name}
             />
           </div>
         </div>

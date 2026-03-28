@@ -197,24 +197,60 @@ export function CommandPalette() {
       const newItems: CommandItem[] = [];
       const qLow = q.toLowerCase();
 
-      // Tasks
-      if (tasksRes.ok) {
-        const data = await tasksRes.json();
-        const tasks: Array<{ id: string; title: string; status: string }> =
-          Array.isArray(data) ? data : data.tasks ?? [];
-        tasks
-          .filter((t) => t.title.toLowerCase().includes(qLow))
-          .slice(0, 5)
-          .forEach((t) => {
-            newItems.push({
-              id: `task-${t.id}`,
-              label: t.title,
-              description: `Task · ${t.status}`,
-              icon: <Hash className="w-4 h-4" />,
-              href: `/tasks`,
-              category: "task",
+      // Tasks — erweiterte Suche via /api/tasks/search
+      if (q.length >= 2) {
+        try {
+          const searchRes = await fetch(`/api/tasks/search?q=${encodeURIComponent(q)}`);
+          if (searchRes.ok) {
+            const searchData = await searchRes.json();
+            const searchResults: Array<{
+              id: string;
+              title: string;
+              status: string;
+              descPreview?: string | null;
+              commentPreview?: string | null;
+              matchType: string;
+              project?: { name: string; color: string } | null;
+            }> = searchData.results ?? [];
+
+            searchResults.slice(0, 6).forEach((t) => {
+              const previewText = t.descPreview
+                ? `${t.descPreview.slice(0, 60)}${t.descPreview.length > 60 ? "…" : ""}`
+                : t.commentPreview
+                ? `Kommentar: ${t.commentPreview.slice(0, 50)}…`
+                : `Task · ${t.status}`;
+
+              newItems.push({
+                id: `task-${t.id}`,
+                label: t.title,
+                description: previewText,
+                icon: <Hash className="w-4 h-4" />,
+                href: `/tasks`,
+                category: "task",
+              });
             });
-          });
+          }
+        } catch {
+          // Fallback: einfache Suche
+          if (tasksRes.ok) {
+            const data = await tasksRes.json();
+            const tasks: Array<{ id: string; title: string; status: string }> =
+              Array.isArray(data) ? data : data.tasks ?? [];
+            tasks
+              .filter((t) => t.title.toLowerCase().includes(qLow))
+              .slice(0, 5)
+              .forEach((t) => {
+                newItems.push({
+                  id: `task-${t.id}`,
+                  label: t.title,
+                  description: `Task · ${t.status}`,
+                  icon: <Hash className="w-4 h-4" />,
+                  href: `/tasks`,
+                  category: "task",
+                });
+              });
+          }
+        }
       }
 
       // Projekte

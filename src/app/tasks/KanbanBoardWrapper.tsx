@@ -9,6 +9,7 @@ import type { FilterState, SortState } from "@/components/tasks/TaskFilter";
 import { useAppStore, type Task, type Project, type User, type Label, type Milestone } from "@/store/useAppStore";
 import { useTaskStream } from "@/hooks/useTaskStream";
 import { Sparkles, Wifi, WifiOff, X, FileUp, CheckCircle, FolderKanban } from "lucide-react";
+import { TaskSearchBar, type SearchResult } from "@/components/tasks/TaskSearchBar";
 
 interface KanbanBoardWrapperProps {
   initialTasks: Task[];
@@ -550,6 +551,18 @@ export function KanbanBoardWrapper({ initialTasks, projects, users }: KanbanBoar
           {filteredAndSortedTasks.length} von {activeTasks.length} Tasks
         </span>
       </div>
+
+      {/* ── Erweiterte Volltext-Suche ── */}
+      <TaskSearchBar
+        onSelectTask={(result: SearchResult) => {
+          // Scroll zu betreffendem Task im Kanban (öffnet Kanban-Filter auf Status)
+          // Einfachste Lösung: Status-Filter setzen sodass Task sichtbar ist
+          if (result.status) {
+            handleFiltersChange({ ...filters, status: result.status });
+          }
+        }}
+        className="w-full"
+      />
 
       {/* ── Erweitertes Filter-Panel ── */}
       <TaskFilter

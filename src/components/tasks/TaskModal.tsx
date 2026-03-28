@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { X, Trash2, MessageSquare, Send, Tag, GitBranch, Link2, AlertTriangle, RefreshCw } from "lucide-react";
+import { X, Trash2, MessageSquare, Send, Tag, GitBranch, Link2, AlertTriangle, RefreshCw, Sparkles } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
 import type { Task, Project, User, Sprint, Label, Milestone } from "@/store/useAppStore";
 import { TaskTimer } from "./TaskTimer";
+import { SimilarTasks } from "./SimilarTasks";
+import { LabelSuggestions } from "./LabelSuggestions";
 
 interface CommentReaction {
   id: string;
@@ -72,6 +74,10 @@ export function TaskModal({
   const [selectedLabelIds, setSelectedLabelIds] = useState<Set<string>>(new Set());
   const [labelDropdownOpen, setLabelDropdownOpen] = useState(false);
 
+  // KI-Beschreibung State
+  const [aiDescLoading, setAiDescLoading] = useState(false);
+  const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
+
   // Abhängigkeits-State
   interface DepTask { id: string; title: string; status: string; project?: { name: string; color: string } | null; }
   const [allTasks, setAllTasks] = useState<DepTask[]>([]);
@@ -120,14 +126,51 @@ export function TaskModal({
       })
       .catch(() => {});
 
-    // Load all tasks for dependency dropdown
+    // Load all tasks for dependency dropdown + ähnliche Tasks
     fetch("/api/tasks")
       .then((r) => r.json())
       .then((data) => {
         if (Array.isArray(data)) setAllTasks(data);
       })
       .catch(() => {});
+
+    // KI-Verfügbarkeit prüfen (einfacher Probe-Fetch)
+    fetch("/api/ai/task-description", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "__ai_check__" }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        // Wenn aiAvailable explizit false → Key fehlt
+        setAiAvailable(data.aiAvailable !== false);
+      })
+      .catch(() => setAiAvailable(false));
   }, []);
+
+  // KI-Beschreibung vorschlagen
+  const handleAiDescription = async () => {
+    if (!form.title.trim() || aiDescLoading) return;
+    setAiDescLoading(true);
+    try {
+      const res = await fetch("/api/ai/task-description", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: form.title,
+          projectId: form.projectId || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.description) {
+        setForm((prev) => ({ ...prev, description: data.description }));
+      }
+    } catch {
+      // silently ignore
+    } finally {
+      setAiDescLoading(false);
+    }
+  };
 
   // Lade bestehende Abhängigkeiten wenn Task geöffnet
   useEffect(() => {
@@ -447,7 +490,23 @@ export function TaskModal({
 
           {/* Description */}
           <div>
-            <label className="text-xs text-zinc-400 mb-1 block">Beschreibung</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs text-zinc-400">Beschreibung</label>
+              <button
+                type="button"
+                onClick={handleAiDescription}
+                disabled={aiDescLoading || !form.title.trim() || aiAvailable === false}
+                title={
+                  aiAvailable === false
+                    ? "KI nicht verfügbar — ANTHROPIC_API_KEY fehlt"
+                    : "KI-Beschreibung basierend auf Titel vorschlagen"
+                }
+                className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border border-purple-500/30 text-purple-400 hover:bg-purple-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <Sparkles className="w-2.5 h-2.5" />
+                {aiDescLoading ? "KI denkt..." : "KI vorschlagen"}
+              </button>
+            </div>
             <textarea
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -652,6 +711,14 @@ export function TaskModal({
               )}
             </div>
           </div>
+
+          {/* Smarte Label-Vorschläge basierend auf Titel */}
+          <LabelSuggestions
+            title={form.title}
+            availableLabels={availableLabels}
+            selectedLabelIds={selectedLabelIds}
+            onToggleLabel={handleToggleLabel}
+          />
 
           {/* DueDate */}
           <div>
@@ -938,6 +1005,15 @@ export function TaskModal({
               className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 resize-none font-mono"
             />
           </div>
+
+          {/* Ähnliche Tasks (Fuzzy-Match auf Titel) */}
+          {task && allTasks.length > 0 && (
+            <SimilarTasks
+              currentTaskId={task.id}
+              currentTitle={form.title}
+              allTasks={allTasks}
+            />
+          )}
 
           {/* Zeiterfassung Timer (nur bei bestehendem Task) */}
           {task && (
