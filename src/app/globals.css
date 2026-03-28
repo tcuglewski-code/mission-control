@@ -196,3 +196,51 @@
   color: hsl(var(--popover-foreground)) !important;
   border-color: hsl(var(--border)) !important;
 }
+
+/* ─── Accessibility: Focus-Ring ─────────────────────────────────────────── */
+/* Sichtbarer Focus-Ring für alle interaktiven Elemente bei Tastaturnavigation */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Buttons und Links ohne Outline nur bei Mausklick */
+button:not(:focus-visible),
+a:not(:focus-visible),
+[role="button"]:not(:focus-visible) {
+  outline: none;
+}
+
+/* Skip-to-Content Link */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  padding: 8px 16px;
+  z-index: 9999;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  transition: top 0.15s;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Accessibility: Sichtbarer Focus für alle interaktiven Elemente */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 0;
+}
+
+/* Stärkerer Kontrast für Icon-Buttons im Dark Mode */
+.dark button:focus-visible,
+.dark a:focus-visible {
+  outline-color: hsl(142, 76%, 50%);
+}
