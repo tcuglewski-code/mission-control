@@ -38,6 +38,7 @@ export const authConfig: NextAuthConfig = {
       if (user) {
         token.id = user.id;
         token.onboardingComplete = (user as any).onboardingComplete ?? false;
+        token.tourComplete = (user as any).tourComplete ?? false;
       }
       return token;
     },
@@ -45,6 +46,7 @@ export const authConfig: NextAuthConfig = {
       if (token.id) {
         session.user.id = token.id as string;
         (session.user as any).onboardingComplete = token.onboardingComplete ?? true;
+        (session.user as any).tourComplete = token.tourComplete ?? false;
       }
       return session;
     },

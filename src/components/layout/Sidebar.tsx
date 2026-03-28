@@ -250,6 +250,7 @@ export function Sidebar() {
         <div className="px-3 pb-2 space-y-1">
           <button
             onClick={() => { openQuickAdd(true); setSidebarOpen(false); }}
+            data-tour="quick-add"
             className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e] transition-colors"
           >
             <Zap className="w-4 h-4 shrink-0 text-emerald-500" />

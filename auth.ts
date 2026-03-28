@@ -37,6 +37,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           projectAccess: user.projectAccess,
           permissions: user.permissions ?? [],
           onboardingComplete: (user as any).onboardingComplete ?? false,
+          tourComplete: (user as any).tourComplete ?? false,
         };
       },
     }),

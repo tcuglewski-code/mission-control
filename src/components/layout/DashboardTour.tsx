@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { X, ArrowRight, SkipForward } from "lucide-react";
+import { X, ArrowRight, ArrowLeft, SkipForward } from "lucide-react";
 
 interface TourStep {
   id: string;
@@ -16,40 +16,40 @@ const TOUR_STEPS: TourStep[] = [
     id: "projects",
     title: "Deine Projekte",
     description:
-      "Hier findest du alle deine Projekte auf einen Blick. Klicke auf ein Projekt, um Details, Tasks und den Fortschritt zu sehen.",
+      "Hier findest du deine Projekte auf einen Blick. Klicke auf ein Projekt, um Details, Tasks und den Fortschritt zu sehen.",
     selector: '[href="/projects"]',
     placement: "right",
   },
   {
-    id: "tasks",
-    title: "Tasks erstellen",
+    id: "quick-add",
+    title: "Neue Tasks anlegen",
     description:
-      "Hier kannst du schnell neue Tasks erstellen. Nutze den Shortcut Strg+Shift+N (bzw. ⌘⇧N auf Mac) für noch schnelleren Zugriff.",
-    selector: '[href="/tasks"]',
+      "Neue Tasks anlegen (Strg+Umschalt+N). Klicke hier oder nutze den Shortcut, um blitzschnell einen neuen Task zu erstellen.",
+    selector: '[data-tour="quick-add"]',
     placement: "right",
   },
   {
     id: "search",
-    title: "Schnellsuche",
+    title: "Globale Suche",
     description:
-      "Mit der Suche findest du blitzschnell alles — Tasks, Projekte, Dokumente. Tastenkürzel: Cmd+K (Mac) oder Strg+K.",
-    selector: 'button[class*="Search"], button:has(.lucide-search)',
+      "Globale Suche (Strg+K). Mit der Schnellsuche findest du sofort alles — Tasks, Projekte, Dokumente und mehr.",
+    selector: 'button:has(.lucide-search), button[class*="search"]',
     placement: "bottom",
   },
   {
     id: "notifications",
-    title: "Benachrichtigungen",
+    title: "Benachrichtigungen und Aktivitäten",
     description:
       "Hier siehst du alle deine Benachrichtigungen — neue Kommentare, Deadlines, Team-Updates und mehr.",
     selector: '[data-tour="notifications"]',
     placement: "bottom",
   },
   {
-    id: "time",
-    title: "Zeiterfassung",
+    id: "calendar",
+    title: "Aufgaben im Kalender anzeigen",
     description:
-      "Unter Zeiterfassung kannst du deine Arbeitszeit pro Task tracken, Berichte erstellen und den Überblick behalten.",
-    selector: '[href="/time"]',
+      "Im Kalender siehst du alle deine Aufgaben und Deadlines in einer übersichtlichen Monats- oder Wochenansicht.",
+    selector: '[href="/calendar"]',
     placement: "right",
   },
 ];
@@ -64,7 +64,7 @@ function getTooltipPosition(
   target: DOMRect,
   placement: TourStep["placement"],
   tooltipW = 300,
-  tooltipH = 140
+  tooltipH = 160
 ): TooltipPosition {
   const margin = 12;
   const vw = window.innerWidth;
@@ -144,12 +144,18 @@ export function DashboardTour({ onComplete }: DashboardTourProps) {
     }
   }
 
+  function handleBack() {
+    if (stepIndex > 0) {
+      setVisible(false);
+      setTimeout(() => setStepIndex((i) => i - 1), 200);
+    }
+  }
+
   async function finishTour() {
     try {
-      await fetch("/api/onboarding", {
+      await fetch("/api/onboarding/tour-complete", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tourComplete: true }),
       });
     } catch {
       // Fehler ignorieren
@@ -159,7 +165,7 @@ export function DashboardTour({ onComplete }: DashboardTourProps) {
 
   // Tooltip-Position berechnen
   const tooltipW = 300;
-  const tooltipH = 160;
+  const tooltipH = 180;
   let pos: TooltipPosition = {
     top: window.innerHeight / 2 - tooltipH / 2,
     left: window.innerWidth / 2 - tooltipW / 2,
@@ -291,9 +297,18 @@ export function DashboardTour({ onComplete }: DashboardTourProps) {
               className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
             >
               <SkipForward className="w-3.5 h-3.5" />
-              Überspringen
+              Tour überspringen
             </button>
             <div className="flex-1" />
+            {stepIndex > 0 && (
+              <button
+                onClick={handleBack}
+                className="flex items-center gap-1.5 px-3 py-1.5 border border-[#2a2a2a] text-zinc-400 hover:text-white hover:border-[#3a3a3a] text-xs rounded-lg transition-colors"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Zurück
+              </button>
+            )}
             <button
               onClick={handleNext}
               className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium rounded-lg transition-colors"
