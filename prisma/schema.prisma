@@ -91,6 +91,7 @@ model Task {
   storyPoints          Int?
   sourceEmailId        String?
   // ─── Wiederkehrende Tasks ──────────────────────────────────────────────────
+  shortId              Int?               // Kurzreferenz für GitHub #NNN
   recurring            Boolean            @default(false)
   recurringInterval    RecurringInterval?
   recurringDay         Int?               // Wochentag 1-7 (Mo=1) oder Tag des Monats 1-31
@@ -483,6 +484,20 @@ model Invoice {
   paidAt      DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+// ─── Integrations-Konfiguration ───────────────────────────────────────────────
+model IntegrationConfig {
+  id           String    @id @default(cuid())
+  type         String    @unique // "github" | "slack" | "discord" | "smtp" | "webhook"
+  name         String
+  config       String    // JSON: { webhookUrl, token, projectId, events[], smtpHost, ... }
+  enabled      Boolean   @default(false)
+  status       String    @default("inactive") // "active" | "inactive" | "error"
+  lastTestedAt DateTime?
+  lastError    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }
 
 // ─── Meilensteine ─────────────────────────────────────────────────────────────

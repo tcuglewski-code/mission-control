@@ -57,17 +57,23 @@ interface WebhooksClientProps {
 const ALL_EVENTS = [
   "task.created",
   "task.updated",
+  "task.completed",
   "task.deleted",
+  "comment.added",
+  "milestone.completed",
   "ticket.created",
   "ticket.updated",
 ];
 
 const EVENT_COLORS: Record<string, string> = {
-  "task.created":   "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  "task.updated":   "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  "task.deleted":   "bg-red-500/10 text-red-400 border-red-500/20",
-  "ticket.created": "bg-purple-500/10 text-purple-400 border-purple-500/20",
-  "ticket.updated": "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  "task.created":        "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  "task.updated":        "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  "task.completed":      "bg-teal-500/10 text-teal-400 border-teal-500/20",
+  "task.deleted":        "bg-red-500/10 text-red-400 border-red-500/20",
+  "comment.added":       "bg-purple-500/10 text-purple-400 border-purple-500/20",
+  "milestone.completed": "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+  "ticket.created":      "bg-purple-500/10 text-purple-400 border-purple-500/20",
+  "ticket.updated":      "bg-amber-500/10 text-amber-400 border-amber-500/20",
 };
 
 // ─── Helper ───────────────────────────────────────────────────────────────────

@@ -45,31 +45,37 @@ function verifizierungSignatur(payload: string, signaturHeader: string, secret: 
 
 /**
  * Sucht nach Task-Referenzen in einer Commit-Message:
+ * - #NNN  → shortId numerisch (z.B. #42, closes #123)
  * - cuid-Muster: 20+ Kleinbuchstaben/Ziffern (z.B. cuid2-IDs)
- * - Kurz-SHA oder numerische IDs werden ignoriert
+ * - task:CUID explizit
  *
- * Gibt eine Liste potenzieller Task-IDs zurück.
+ * Gibt { cuidIds, shortIds } zurück.
  */
-function extrahiereTaskReferenzen(commitMessage: string): string[] {
-  const gefundeneIds: string[] = []
+function extrahiereTaskReferenzen(commitMessage: string): { cuidIds: string[]; shortIds: number[] } {
+  const cuidIds: string[] = [];
+  const shortIds: number[] = [];
 
-  // Muster 1: Explizite Referenz "task:CUID" oder "task: CUID"
-  const taskPraefixMuster = /\btask[:\s]+([a-z0-9]{20,})\b/gi
-  let treffer: RegExpExecArray | null
+  // Muster 1: #NNN numerische Referenzen (z.B. closes #42, fixes #123, ref #7)
+  const numericMuster = /#(\d+)\b/g;
+  let treffer: RegExpExecArray | null;
+  while ((treffer = numericMuster.exec(commitMessage)) !== null) {
+    const n = parseInt(treffer[1], 10);
+    if (!isNaN(n) && !shortIds.includes(n)) shortIds.push(n);
+  }
+
+  // Muster 2: Explizite Referenz "task:CUID" oder "task: CUID"
+  const taskPraefixMuster = /\btask[:\s]+([a-z0-9]{20,})\b/gi;
   while ((treffer = taskPraefixMuster.exec(commitMessage)) !== null) {
-    gefundeneIds.push(treffer[1])
+    if (!cuidIds.includes(treffer[1])) cuidIds.push(treffer[1]);
   }
 
-  // Muster 2: Rohe cuid (20+ Zeichen, nur Kleinbuchstaben + Ziffern) — typisches cuid2-Format
-  const cuidMuster = /\b([a-z][a-z0-9]{19,})\b/g
+  // Muster 3: Rohe cuid (20+ Zeichen, nur Kleinbuchstaben + Ziffern)
+  const cuidMuster = /\b([a-z][a-z0-9]{19,})\b/g;
   while ((treffer = cuidMuster.exec(commitMessage)) !== null) {
-    if (!gefundeneIds.includes(treffer[1])) {
-      gefundeneIds.push(treffer[1])
-    }
+    if (!cuidIds.includes(treffer[1])) cuidIds.push(treffer[1]);
   }
 
-  // Duplikate entfernen
-  return [...new Set(gefundeneIds)]
+  return { cuidIds: [...new Set(cuidIds)], shortIds: [...new Set(shortIds)] };
 }
 
 // ─── Haupthandler für POST /api/webhooks/github ───────────────────────────────
@@ -160,47 +166,56 @@ export async function POST(req: NextRequest) {
 
       // ── 6. Task-Referenzen in Commit-Messages suchen ─────────────────────
       for (const commit of relevanteCommits) {
-        const potenzielleIds = extrahiereTaskReferenzen(commit.message);
+        const { cuidIds, shortIds } = extrahiereTaskReferenzen(commit.message);
+        const commitKurzSha = commit.id.substring(0, 7);
+        const commitErsteZeile = commit.message.split("\n")[0];
 
-        for (const taskId of potenzielleIds) {
+        // Hilfsfunktion: Kommentar am Task erstellen
+        async function erstelleKommitKommentar(taskId: string, taskTitle: string) {
+          await prisma.taskComment.create({
+            data: {
+              taskId,
+              authorId: null,
+              authorName: `GitHub (${commit.author?.name ?? "Unbekannt"})`,
+              content: [
+                `🔗 **GitHub Commit referenziert diesen Task**`,
+                ``,
+                `**Commit:** [\`${commitKurzSha}\`](${commit.url ?? "#"})`,
+                `**Nachricht:** ${commitErsteZeile}`,
+                `**Autor:** ${commit.author?.name ?? "Unbekannt"}`,
+                `**Branch:** ${branch}`,
+                `**Repo:** ${repoFullName}`,
+              ].join("\n"),
+            },
+          });
+          taskKommentare++;
+          console.log(`[GitHub Webhook] Commit ${commitKurzSha} → TaskComment für Task ${taskId} (${taskTitle}) erstellt`);
+        }
+
+        // Cuid-IDs verarbeiten
+        for (const taskId of cuidIds) {
           try {
-            // Task in der DB suchen (nur Tasks im selben Projekt, Sicherheitscheck)
             const task = await prisma.task.findFirst({
-              where: {
-                id: taskId,
-                projectId: projekt.id,
-              },
+              where: { id: taskId, projectId: projekt.id },
             });
+            if (task) await erstelleKommitKommentar(task.id, task.title);
+          } catch (fehler) {
+            console.error(`[GitHub Webhook] Fehler bei cuid-Referenz ${taskId}:`, fehler);
+          }
+        }
 
-            if (task) {
-              // TaskComment erstellen: Commit-Info als Kommentar am Task
-              const commitKurzSha = commit.id.substring(0, 7);
-              const commitErsteZeile = commit.message.split("\n")[0];
-
-              await prisma.taskComment.create({
-                data: {
-                  taskId: task.id,
-                  authorId: null, // Kein User-Kontext bei Webhook
-                  content: [
-                    `🔗 **GitHub Commit referenziert diesen Task**`,
-                    ``,
-                    `**Commit:** [\`${commitKurzSha}\`](${commit.url ?? "#"})`,
-                    `**Nachricht:** ${commitErsteZeile}`,
-                    `**Autor:** ${commit.author?.name ?? "Unbekannt"}`,
-                    `**Branch:** ${branch}`,
-                    `**Repo:** ${repoFullName}`,
-                  ].join("\n"),
-                },
-              });
-
-              taskKommentare++;
-              console.log(
-                `[GitHub Webhook] Commit ${commitKurzSha} → TaskComment für Task ${task.id} (${task.title}) erstellt`
-              );
+        // Numerische shortId-Referenzen verarbeiten (#NNN)
+        for (const shortId of shortIds) {
+          try {
+            const task = await prisma.task.findFirst({
+              where: { shortId, projectId: projekt.id },
+            });
+            if (task) await erstelleKommitKommentar(task.id, task.title);
+            else {
+              console.log(`[GitHub Webhook] Kein Task mit shortId #${shortId} in Projekt ${projekt.name} gefunden`);
             }
           } catch (fehler) {
-            // Einzelner Task-Fehler soll nicht den gesamten Webhook abbrechen
-            console.error(`[GitHub Webhook] Fehler beim Erstellen des TaskComments für ID ${taskId}:`, fehler);
+            console.error(`[GitHub Webhook] Fehler bei shortId #${shortId}:`, fehler);
           }
         }
       }

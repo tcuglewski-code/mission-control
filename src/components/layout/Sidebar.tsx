@@ -39,6 +39,7 @@ import {
   Banknote,
   Mail,
   BarChart2,
+  Plug,
 } from "lucide-react";
 import { useKeyboardShortcutsModal } from "@/hooks/useKeyboardShortcutsModal";
 import { useQuickAdd } from "@/hooks/useQuickAdd";
@@ -202,6 +203,24 @@ export function Sidebar() {
                 )}
                 <UserCog className={cn("w-4 h-4 shrink-0", pathname === "/settings/users" ? "text-blue-400" : "")} />
                 <span>Benutzerverwaltung</span>
+              </Link>
+            )}
+            {role === "admin" && (
+              <Link
+                href="/settings/integrations"
+                onClick={() => setSidebarOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors relative group",
+                  pathname === "/settings/integrations"
+                    ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
+                    : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+                )}
+              >
+                {pathname === "/settings/integrations" && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-blue-500 rounded-r-full" />
+                )}
+                <Plug className={cn("w-4 h-4 shrink-0", pathname === "/settings/integrations" ? "text-blue-400" : "")} />
+                <span>Integrationen</span>
               </Link>
             )}
           </div>

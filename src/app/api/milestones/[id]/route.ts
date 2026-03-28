@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionOrApiKey } from "@/lib/api-auth";
 import { hasPermission, PERMISSIONS } from "@/lib/permissions";
 import { logActivity } from "@/lib/audit";
+import { triggerWebhooks } from "@/lib/webhooks";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -100,6 +101,11 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       projectId: milestone.projectId,
       details: { status: milestone.status },
     });
+
+    // Webhook: Meilenstein als abgeschlossen markiert
+    if (status === "completed" && existing.status !== "completed") {
+      triggerWebhooks("milestone.completed", { milestone }, milestone.projectId ?? undefined);
+    }
 
     return NextResponse.json(milestone);
   } catch (error) {

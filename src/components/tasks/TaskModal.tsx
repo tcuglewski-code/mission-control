@@ -368,8 +368,13 @@ export function TaskModal({
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
       <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#2a2a2a] sticky top-0 bg-[#1c1c1c] z-10">
-          <h2 className="text-sm font-semibold text-white">
+          <h2 className="text-sm font-semibold text-white flex items-center gap-2">
             {task ? "Task bearbeiten" : "Neuer Task"}
+            {task && (task as unknown as { shortId?: number | null }).shortId && (
+              <span className="text-xs font-mono text-zinc-500 bg-[#252525] px-1.5 py-0.5 rounded">
+                #{(task as unknown as { shortId?: number | null }).shortId}
+              </span>
+            )}
           </h2>
           <button
             onClick={onClose}
@@ -884,39 +889,55 @@ export function TaskModal({
                 ) : comments.length === 0 ? (
                   <p className="text-xs text-zinc-600 italic">Noch keine Kommentare. Sei der Erste!</p>
                 ) : (
-                  comments.map((comment) => (
+                  comments.map((comment) => {
+                    const isGitHubCommit = comment.authorName?.startsWith("GitHub (") || comment.content?.includes("🔗 **GitHub Commit");
+                    return (
                     <div
                       key={comment.id}
-                      className="group bg-[#171717] border border-[#2a2a2a] rounded-lg px-3 py-2.5"
+                      className={`group border rounded-lg px-3 py-2.5 ${isGitHubCommit ? "bg-[#0d1117] border-[#30363d]" : "bg-[#171717] border-[#2a2a2a]"}`}
                     >
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
-                          <span className="w-5 h-5 rounded-full bg-emerald-600 flex items-center justify-center text-[10px] font-bold text-white">
-                            {comment.authorName.charAt(0).toUpperCase()}
-                          </span>
-                          <span className="text-xs font-medium text-zinc-300">
+                          {isGitHubCommit ? (
+                            <span className="w-5 h-5 rounded-full bg-[#24292e] flex items-center justify-center text-[10px] font-bold text-white border border-[#444]">
+                              <GitBranch className="w-3 h-3" />
+                            </span>
+                          ) : (
+                            <span className="w-5 h-5 rounded-full bg-emerald-600 flex items-center justify-center text-[10px] font-bold text-white">
+                              {comment.authorName.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                          <span className={`text-xs font-medium ${isGitHubCommit ? "text-[#58a6ff]" : "text-zinc-300"}`}>
                             {comment.authorName}
                           </span>
+                          {isGitHubCommit && (
+                            <span className="text-[10px] text-zinc-600 bg-[#21262d] px-1.5 py-0.5 rounded border border-[#30363d]">
+                              Commit-Aktivität
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] text-zinc-600">
                             {timeAgo(comment.createdAt)}
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteComment(comment.id)}
-                            className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-400 transition-all"
-                            title="Kommentar löschen"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
+                          {!isGitHubCommit && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteComment(comment.id)}
+                              className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-400 transition-all"
+                              title="Kommentar löschen"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
                         </div>
                       </div>
                       <p className="text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap">
                         {comment.content}
                       </p>
                     </div>
-                  ))
+                    );
+                  })
                 )}
                 <div ref={commentsEndRef} />
               </div>

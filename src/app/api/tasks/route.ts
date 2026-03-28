@@ -103,6 +103,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
 
+    // shortId: Höchste bestehende shortId im Projekt (oder global) + 1
+    const lastTask = await prisma.task.findFirst({
+      where: projectId ? { projectId, shortId: { not: null } } : { shortId: { not: null } },
+      orderBy: { shortId: "desc" },
+      select: { shortId: true },
+    });
+    const nextShortId = (lastTask?.shortId ?? 0) + 1;
+
     const task = await prisma.task.create({
       data: {
         title,
@@ -110,6 +118,7 @@ export async function POST(req: NextRequest) {
         status: status ?? "backlog",
         priority: priority ?? "medium",
         labels,
+        shortId: nextShortId,
         dueDate: dueDate ? new Date(dueDate) : null,
         startDate: startDate ? new Date(startDate) : null,
         agentPrompt: agentPrompt || null,
