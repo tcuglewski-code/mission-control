@@ -4,19 +4,29 @@ import { useEffect, useState, useCallback } from "react";
 import { use } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import Link from "next/link";
-import { ChevronLeft, Plus, Printer, Pencil, Trash2, X, CheckCircle } from "lucide-react";
+import { ChevronLeft, Plus, Printer, Trash2, X, CheckCircle } from "lucide-react";
 
 // ─── Typen ────────────────────────────────────────────────────────────────────
+interface InvoiceItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  vatRate: number;
+}
+
 interface Invoice {
   id: string;
   number: string;
   description: string | null;
   amount: number;
-  status: "OPEN" | "PAID" | "OVERDUE" | "CANCELLED";
+  status: "OPEN" | "PAID" | "OVERDUE" | "CANCELLED" | "DRAFT";
+  invoiceDate?: string;
   dueDate: string;
   paidAt: string | null;
   createdAt: string;
   project: { id: string; name: string; color: string };
+  items?: InvoiceItem[];
 }
 
 interface Project {
@@ -52,128 +62,7 @@ function statusBadge(status: string) {
   );
 }
 
-// ─── Modal: Neue Rechnung ─────────────────────────────────────────────────────
-interface NewInvoiceModalProps {
-  projectId: string;
-  onClose: () => void;
-  onCreated: () => void;
-}
-
-function NewInvoiceModal({ projectId, onClose, onCreated }: NewInvoiceModalProps) {
-  const today = new Date().toISOString().split("T")[0];
-  const [form, setForm] = useState({
-    number: "",
-    description: "",
-    amount: "",
-    dueDate: today,
-  });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/invoices", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, projectId, amount: parseFloat(form.amount) }),
-      });
-      if (!res.ok) {
-        const d = await res.json();
-        setError(d.error ?? "Fehler beim Speichern");
-        setSaving(false);
-        return;
-      }
-      onCreated();
-      onClose();
-    } catch {
-      setError("Netzwerkfehler");
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#1c1c1e] border border-zinc-700 rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-semibold text-white">Neue Rechnung erstellen</h2>
-          <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {error && (
-          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-300">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs text-zinc-400 mb-1">Rechnungsnummer *</label>
-            <input
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
-              placeholder="RE-2024-001"
-              value={form.number}
-              onChange={(e) => setForm({ ...form, number: e.target.value })}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-zinc-400 mb-1">Beschreibung</label>
-            <input
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
-              placeholder="Leistungsbeschreibung…"
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-zinc-400 mb-1">Betrag (€) *</label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
-              placeholder="1500.00"
-              value={form.amount}
-              onChange={(e) => setForm({ ...form, amount: e.target.value })}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-zinc-400 mb-1">Fälligkeitsdatum *</label>
-            <input
-              type="date"
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
-              value={form.dueDate}
-              onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-              required
-            />
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 text-sm rounded-lg border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 transition-colors"
-            >
-              Abbrechen
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-1 px-4 py-2 text-sm rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition-colors disabled:opacity-50"
-            >
-              {saving ? "Wird gespeichert…" : "Rechnung erstellen"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
+// Rechnungsformular ausgelagert in: /projects/[id]/invoices/new/page.tsx
 
 // ─── Print CSS ────────────────────────────────────────────────────────────────
 const PRINT_CSS = `
@@ -196,7 +85,7 @@ export default function ProjectFinancePage({ params }: { params: Promise<{ id: s
   const [project, setProject] = useState<Project | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
+  // Rechnungsformular ist eine eigene Seite: /projects/[id]/invoices/new
 
   const loadData = useCallback(async () => {
     try {
@@ -323,13 +212,13 @@ export default function ProjectFinancePage({ params }: { params: Promise<{ id: s
                 <Printer className="w-4 h-4" />
                 PDF exportieren
               </button>
-              <button
-                onClick={() => setShowModal(true)}
+              <Link
+                href={`/projects/${projectId}/invoices/new`}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 Neue Rechnung
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -413,7 +302,14 @@ export default function ProjectFinancePage({ params }: { params: Promise<{ id: s
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-center gap-1">
-                            {inv.status === "OPEN" && (
+                            <Link
+                              href={`/invoices/${inv.id}/pdf`}
+                              title="PDF anzeigen"
+                              className="p-1.5 text-zinc-500 hover:text-blue-400 transition-colors rounded"
+                            >
+                              <Printer className="w-4 h-4" />
+                            </Link>
+                            {(inv.status === "OPEN" || inv.status === "OVERDUE") && (
                               <button
                                 title="Als bezahlt markieren"
                                 onClick={() => handleStatusChange(inv, "PAID")}
@@ -461,13 +357,7 @@ export default function ProjectFinancePage({ params }: { params: Promise<{ id: s
         </div>
       </AppShell>
 
-      {showModal && (
-        <NewInvoiceModal
-          projectId={projectId}
-          onClose={() => setShowModal(false)}
-          onCreated={loadData}
-        />
-      )}
+      {/* Modals are now separate pages — /projects/[id]/invoices/new */}
     </>
   );
 }

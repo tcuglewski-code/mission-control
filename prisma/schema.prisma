@@ -484,17 +484,42 @@ model FileDoc {
 
 // ─── Rechnungen / Invoices ────────────────────────────────────────────────────
 model Invoice {
-  id          String    @id @default(cuid())
-  projectId   String
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  number      String    // Rechnungsnummer z.B. RE-2024-001
-  description String?
-  amount      Float     // Betrag in €
-  status      String    @default("OPEN") // OPEN | PAID | OVERDUE | CANCELLED
-  dueDate     DateTime
-  paidAt      DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id             String        @id @default(cuid())
+  projectId      String
+  project        Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  number         String        // Rechnungsnummer z.B. RE-2024-001
+  description    String?
+  amount         Float         // Brutto-Betrag in €
+  status         String        @default("OPEN") // OPEN | PAID | OVERDUE | CANCELLED | DRAFT
+  invoiceDate    DateTime      @default(now())
+  dueDate        DateTime
+  paidAt         DateTime?
+  // Zahlungseingang
+  paymentMethod  String?       // "Überweisung" | "Bar" | "EC" | "PayPal"
+  paymentAmount  Float?        // Tatsächlich bezahlter Betrag
+  paymentDate    DateTime?     // Zahlungseingangsdatum
+  // Kundenadresse
+  clientName     String?
+  clientAddress  String?       // Mehrzeilig
+  // Zahlungsbedingungen + Bank
+  paymentTerms   String?       @default("Zahlbar innerhalb von 14 Tagen ohne Abzug.")
+  bankDetails    String?       @default("Koch Aufforstung GmbH · IBAN: DE00 0000 0000 0000 0000 00 · BIC: XXXXXXXX")
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  items          InvoiceItem[]
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Float    @default(1)
+  unitPrice   Float
+  vatRate     Float    @default(19) // 7 oder 19 (Prozent)
+  position    Int      @default(0)  // Reihenfolge
+  createdAt   DateTime @default(now())
 }
 
 // ─── Persönliche Tagesnotizen ─────────────────────────────────────────────────
