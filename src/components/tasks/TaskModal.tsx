@@ -44,6 +44,8 @@ export function TaskModal({
   onSave,
   onDelete,
 }: TaskModalProps) {
+  const FIBONACCI = [1, 2, 3, 5, 8, 13, 21];
+
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -57,6 +59,7 @@ export function TaskModal({
     assigneeId: "",
     sprintId: "",
     milestoneId: "",
+    storyPoints: null as number | null,
     recurring: false,
     recurringInterval: "WEEKLY" as "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY",
     recurringDay: "" as string,
@@ -296,6 +299,7 @@ export function TaskModal({
         assigneeId: task.assigneeId ?? "",
         sprintId: task.sprintId ?? "",
         milestoneId: task.milestoneId ?? "",
+        storyPoints: task.storyPoints ?? null,
         recurring: task.recurring ?? false,
         recurringInterval: (task.recurringInterval as "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY") ?? "WEEKLY",
         recurringDay: task.recurringDay?.toString() ?? "",
@@ -348,6 +352,7 @@ export function TaskModal({
         assigneeId: form.assigneeId || null,
         sprintId: form.sprintId || null,
         milestoneId: form.milestoneId || null,
+        storyPoints: form.storyPoints ?? null,
         recurring: form.recurring,
         recurringInterval: form.recurring ? form.recurringInterval : null,
         recurringDay: form.recurring && form.recurringDay ? parseInt(form.recurringDay) : null,
@@ -480,6 +485,36 @@ export function TaskModal({
                 <option value="high">High</option>
                 <option value="critical">Critical</option>
               </select>
+            </div>
+          </div>
+
+          {/* Story Points */}
+          <div>
+            <label className="text-xs text-zinc-400 mb-1.5 block">Story Points</label>
+            <div className="flex flex-wrap gap-1.5">
+              {FIBONACCI.map((sp) => (
+                <button
+                  key={sp}
+                  type="button"
+                  onClick={() => setForm({ ...form, storyPoints: form.storyPoints === sp ? null : sp })}
+                  className={`w-9 h-9 rounded-lg text-xs font-semibold border transition-all ${
+                    form.storyPoints === sp
+                      ? "bg-emerald-600 border-emerald-500 text-white"
+                      : "bg-[#252525] border-[#3a3a3a] text-zinc-400 hover:border-emerald-500/40 hover:text-white"
+                  }`}
+                >
+                  {sp}
+                </button>
+              ))}
+              {form.storyPoints !== null && (
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, storyPoints: null })}
+                  className="px-2 h-9 rounded-lg text-xs text-zinc-600 hover:text-zinc-400 border border-[#2a2a2a] hover:border-[#3a3a3a] transition-colors"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           </div>
 

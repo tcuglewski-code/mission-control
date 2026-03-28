@@ -441,6 +441,15 @@ export function SprintBoardClient({ sprint: initialSprint, backlogTasks: initial
                 Sprint abschließen
               </button>
             )}
+            {sprint.status === "completed" && sprint.projectId && (
+              <Link
+                href={`/projects/${sprint.projectId}/retrospective?sprintId=${sprint.id}`}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-emerald-400 hover:text-emerald-300 border border-emerald-500/20 hover:border-emerald-500/40 rounded-lg transition-colors"
+              >
+                <TrendingUp className="w-3.5 h-3.5" />
+                Retrospektive
+              </Link>
+            )}
           </div>
         </div>
 

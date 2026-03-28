@@ -543,6 +543,24 @@ model ProjectShare {
   createdAt DateTime  @default(now())
 }
 
+// ─── Sprint-Retrospektive ─────────────────────────────────────────────────────
+model Retrospective {
+  id        String     @id @default(cuid())
+  sprintId  String     @unique
+  createdAt DateTime   @default(now())
+  items     RetroItem[]
+}
+
+model RetroItem {
+  id        String       @id @default(cuid())
+  retroId   String
+  type      String       // "gut" | "schlecht" | "verbesserung"
+  text      String
+  votes     Int          @default(0)
+  retro     Retrospective @relation(fields: [retroId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+}
+
 // ─── Report-Scheduler ─────────────────────────────────────────────────────────
 model ProjectReportSchedule {
   id        String    @id @default(cuid())

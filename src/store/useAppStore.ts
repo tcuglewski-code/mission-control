@@ -51,6 +51,7 @@ export interface Task {
   startDate?: Date | null;
   agentPrompt?: string | null;
   timeSpentSeconds?: number;
+  storyPoints?: number | null;
   projectId?: string | null;
   assigneeId?: string | null;
   sprintId?: string | null;
