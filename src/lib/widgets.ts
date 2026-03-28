@@ -97,6 +97,13 @@ export const AVAILABLE_WIDGETS: WidgetDefinition[] = [
     defaultOrder: 11,
     description: "Top 5 Projekte nach Budget-Auslastung — Warnung bei >80% / >100%",
   },
+  {
+    id: "angebote",
+    title: "Angebote",
+    defaultVisible: true,
+    defaultOrder: 12,
+    description: "Offene Angebote, Annahmerate und durchschnittliche Angebotssumme",
+  },
 ];
 
 export const WIDGET_CONFIG_KEY = "mc_dashboard_widget_config";

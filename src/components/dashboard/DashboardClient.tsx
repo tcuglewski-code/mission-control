@@ -19,6 +19,7 @@ import { AktuellerSprintWidget } from "./widgets/AktuellerSprintWidget";
 import { ZuletztBesuchtWidget } from "./widgets/ZuletztBesuchtWidget";
 import { LiveFeedWidget } from "./widgets/LiveFeedWidget";
 import { ProjektBudgetsWidget } from "./widgets/ProjektBudgetsWidget";
+import { AngeboteWidget } from "./widgets/AngeboteWidget";
 
 // --- Shared types (serialized from server) ---
 
@@ -152,6 +153,8 @@ export function DashboardClient({
         return <LiveFeedWidget />;
       case "projekt-budgets":
         return <ProjektBudgetsWidget />;
+      case "angebote":
+        return <AngeboteWidget />;
       default:
         return null;
     }

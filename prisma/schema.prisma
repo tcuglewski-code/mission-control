@@ -705,6 +705,25 @@ model ProjectCost {
   updatedAt   DateTime @updatedAt
 }
 
+// ─── Angebote / Quotes (Sprint GU) ───────────────────────────────────────────
+model Quote {
+  id          String   @id @default(cuid())
+  number      String   @unique  // AN-2026-001
+  projectId   String?
+  clientName  String
+  clientEmail String?
+  title       String
+  items       Json     // Array von { description, quantity, unitPrice, vatRate }
+  validUntil  DateTime
+  status      String   @default("draft") // draft | sent | accepted | declined | expired | invoiced
+  note        String?
+  pdfUrl      String?
+  amount      Float    @default(0) // Brutto-Gesamtbetrag
+  invoiceId   String?  // Falls umgewandelt → Rechnung-ID
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 // ─── Gespeicherte Ansichten (Sprint FZ) ───────────────────────────────────────
 model SavedView {
   id        String   @id @default(cuid())
