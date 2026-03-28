@@ -37,8 +37,14 @@ interface MemberProfile extends TeamUser {
   logs: Array<{ id: string; action: string; entityName: string; createdAt: string }>;
 }
 
+interface UserTimeStat {
+  weekMinutes: number;
+  monthMinutes: number;
+}
+
 interface TeamClientProps {
   initialUsers: TeamUser[];
+  userTimeStats?: Record<string, UserTimeStat>;
 }
 
 // ─── Statische Agent-Profile ─────────────────────────────────────────────────
@@ -300,7 +306,7 @@ function MemberProfileModal({ userId, onClose }: { userId: string; onClose: () =
 
 // ─── Haupt-Komponente ────────────────────────────────────────────────────────
 
-export function TeamClient({ initialUsers }: TeamClientProps) {
+export function TeamClient({ initialUsers, userTimeStats = {} }: TeamClientProps) {
   const [users, setUsers] = useState<TeamUser[]>(initialUsers);
   const [showModal, setShowModal] = useState(false);
   const [editUser, setEditUser] = useState<TeamUser | null>(null);
@@ -413,6 +419,67 @@ export function TeamClient({ initialUsers }: TeamClientProps) {
           )}
         </div>
       </div>
+
+      {/* ─── Team Zeiterfassung ─── */}
+      {Object.keys(userTimeStats).length > 0 && (
+        <div className="mb-8 bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Clock className="w-4 h-4 text-purple-400" />
+            <h2 className="text-sm font-semibold text-white">Team-Zeiterfassung</h2>
+            <span className="text-[10px] text-zinc-600 ml-2">Diese Woche / Dieser Monat</span>
+          </div>
+          <div className="space-y-3">
+            {users
+              .filter((u) => userTimeStats[u.id])
+              .sort((a, b) => (userTimeStats[b.id]?.weekMinutes ?? 0) - (userTimeStats[a.id]?.weekMinutes ?? 0))
+              .map((u) => {
+                const stats = userTimeStats[u.id];
+                const weekHours = Math.round((stats.weekMinutes / 60) * 10) / 10;
+                const monthHours = Math.round((stats.monthMinutes / 60) * 10) / 10;
+                const capacity = u.weeklyCapacity ?? 40;
+                const weekPercent = Math.min(Math.round((weekHours / capacity) * 100), 120);
+                const isOvertime = weekHours > capacity;
+
+                return (
+                  <div key={u.id} className="flex items-center gap-4">
+                    <div className="w-7 h-7 rounded-full bg-[#252525] border border-[#3a3a3a] flex items-center justify-center text-[10px] font-bold text-zinc-300 shrink-0">
+                      {u.avatar || u.name[0]}
+                    </div>
+                    <div className="w-28 shrink-0">
+                      <p className="text-xs text-white truncate">{u.name}</p>
+                      <p className="text-[9px] text-zinc-600">{u.role === "agent" ? "KI-Agent" : "Mensch"}</p>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-[10px] font-medium ${isOvertime ? "text-red-400" : "text-zinc-400"}`}>
+                          {weekHours}h Woche
+                          {isOvertime && <span className="ml-1 text-[9px]">⚠ +{Math.round((weekHours - capacity) * 10) / 10}h Überstunden</span>}
+                        </span>
+                        <span className="text-[10px] text-zinc-600">{monthHours}h Monat</span>
+                      </div>
+                      <div className="h-1.5 bg-[#2a2a2a] rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            weekPercent > 100 ? "bg-red-500" : weekPercent > 80 ? "bg-yellow-500" : "bg-purple-500"
+                          }`}
+                          style={{ width: `${Math.min(weekPercent, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                    <span className={`text-xs font-mono tabular-nums w-10 text-right ${
+                      weekPercent > 100 ? "text-red-400" : weekPercent > 80 ? "text-yellow-400" : "text-zinc-400"
+                    }`}>
+                      {weekPercent}%
+                    </span>
+                  </div>
+                );
+              })}
+            {users.filter((u) => userTimeStats[u.id]).length === 0 && (
+              <p className="text-xs text-zinc-600 text-center py-4">Keine Zeitdaten für diesen Zeitraum</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ─── Mission Banner ─── */}
       <div className="mb-8 rounded-xl border border-emerald-500/20 bg-gradient-to-r from-emerald-900/30 to-blue-900/30 px-8 py-5 text-center">

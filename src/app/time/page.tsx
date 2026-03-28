@@ -15,7 +15,7 @@ export default async function TimePage() {
     ? { id: { in: authUser.projectAccess } }
     : {};
 
-  const [entries, projects] = await Promise.all([
+  const [entries, projects, users] = await Promise.all([
     prisma.timeEntry.findMany({
       include: {
         task: {
@@ -27,18 +27,29 @@ export default async function TimePage() {
         },
       },
       orderBy: { startTime: "desc" },
-      take: 200,
+      take: 500,
     }),
     prisma.project.findMany({
       where: projectWhere,
       select: { id: true, name: true, color: true },
       orderBy: { name: "asc" },
     }),
+    // Nur Admins sehen den User-Filter
+    authUser.role === "admin"
+      ? prisma.user.findMany({
+          select: { id: true, name: true, email: true },
+          orderBy: { name: "asc" },
+        })
+      : Promise.resolve([]),
   ]);
 
   return (
-    <AppShell title="Zeiterfassung" subtitle="Arbeitszeit-Tracking">
-      <TimeTrackingClient initialEntries={entries} projects={projects} />
+    <AppShell title="Zeiterfassung" subtitle="Auswertung & Export">
+      <TimeTrackingClient
+        initialEntries={entries as any}
+        projects={projects}
+        users={users}
+      />
     </AppShell>
   );
 }

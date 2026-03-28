@@ -4,7 +4,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import Link from "next/link";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { ChevronLeft, CheckSquare, Users, FileText, FolderArchive, Activity, Globe, Github, ExternalLink, Smartphone, Download, Flag, Target, BarChart2 } from "lucide-react";
+import { ChevronLeft, CheckSquare, Users, FileText, FolderArchive, Activity, Globe, Github, ExternalLink, Smartphone, Download, Flag, Target, BarChart2, Clock } from "lucide-react";
 import { getStatusBg, getStatusLabel, formatRelativeTime, getActionLabel, getEntityTypeLabel, getInitials } from "@/lib/utils";
 import { requireServerSession, getAllowedProjectIds } from "@/lib/server-auth";
 import { LivingDescription } from "@/components/projects/LivingDescription";
@@ -257,6 +257,14 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               >
                 <BarChart2 className="w-3.5 h-3.5" />
                 Status-Report
+              </Link>
+              {/* Zeiterfassung */}
+              <Link
+                href={`/projects/${project.id}/time`}
+                className="flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 px-2 py-1 rounded hover:bg-purple-500/10 border border-purple-500/20 transition-colors"
+              >
+                <Clock className="w-3.5 h-3.5" />
+                Zeiterfassung
               </Link>
               {/* HTML-Report im Browser öffnen */}
               <a

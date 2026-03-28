@@ -49,6 +49,7 @@ model Project {
   stack         String?  // Tech stack description
   budget          Float?   // Geplantes Budget in €
   budgetUsed      Float?   @default(0) // Verbrauchtes Budget
+  hourBudget      Float?   // Geplante Stunden (Stundenbudget)
   archived    Boolean   @default(false)
   archivedAt  DateTime?
   createdAt   DateTime @default(now())
