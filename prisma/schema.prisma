@@ -375,6 +375,11 @@ model AuthUser {
   permissions   String[] // Granulare Rechte z.B. ["projects.view", "tasks.view"]
   notifEmailDigest   Boolean @default(true)
   notifPush          Boolean @default(false)
+  notifPrefs         String? // JSON: { eventPrefs: {...}, quietHoursStart, quietHoursEnd, digestFrequency, digestTime }
+  quietHoursStart    Int     @default(22)  // Ruhezeit ab (Stunde 0-23)
+  quietHoursEnd      Int     @default(8)   // Ruhezeit bis (Stunde 0-23)
+  digestFrequency    String  @default("daily") // "daily" | "weekly" | "never"
+  digestTime         String  @default("08:00") // HH:MM
   onboardingComplete Boolean @default(false)
   tourComplete       Boolean @default(false)
   theme              String  @default("system") // "light" | "dark" | "wald" | "system"
@@ -383,6 +388,18 @@ model AuthUser {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   notifications Notification[]
+}
+
+// ─── Fehler-Protokoll ─────────────────────────────────────────────────────────
+model ErrorLog {
+  id         String   @id @default(cuid())
+  path       String
+  method     String   @default("GET")
+  statusCode Int      @default(500)
+  message    String
+  stack      String?
+  userId     String?
+  createdAt  DateTime @default(now())
 }
 
 model Notification {

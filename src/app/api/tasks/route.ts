@@ -5,6 +5,7 @@ import { getSessionOrApiKey } from "@/lib/api-auth";
 import { hasPermission, PERMISSIONS } from "@/lib/permissions";
 import { logActivity } from "@/lib/audit";
 import { createNotification, getAuthUserIdByUserId } from "@/lib/notifications";
+import { logApiError } from "@/lib/error-log";
 
 export async function GET(req: NextRequest) {
   try {
@@ -85,6 +86,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(tasks);
   } catch (error) {
     console.error("[GET /api/tasks]", error);
+    await logApiError({ path: "/api/tasks", method: "GET", statusCode: 500, message: String(error) });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -195,6 +197,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(task, { status: 201 });
   } catch (error) {
     console.error("[POST /api/tasks]", error);
+    await logApiError({ path: "/api/tasks", method: "POST", statusCode: 500, message: String(error) });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

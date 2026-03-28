@@ -45,6 +45,8 @@ import {
   Bookmark,
   Trash2,
   Radio,
+  Activity,
+  BellRing,
 } from "lucide-react";
 import { useKeyboardShortcutsModal } from "@/hooks/useKeyboardShortcutsModal";
 import { useQuickAdd } from "@/hooks/useQuickAdd";
@@ -425,6 +427,40 @@ export function Sidebar() {
                 <span>Benutzerverwaltung</span>
               </Link>
             )}
+
+            <Link
+              href="/settings/notifications"
+              onClick={() => setSidebarOpen(false)}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
+                pathname === "/settings/notifications"
+                  ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
+                  : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+              )}
+            >
+              {pathname === "/settings/notifications" && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-orange-500 rounded-r-full" />
+              )}
+              <BellRing className={cn("w-4 h-4 shrink-0", pathname === "/settings/notifications" ? "text-orange-400" : "")} />
+              <span>Benachrichtigungen</span>
+            </Link>
+
+            <Link
+              href="/settings/system"
+              onClick={() => setSidebarOpen(false)}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
+                pathname === "/settings/system"
+                  ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
+                  : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+              )}
+            >
+              {pathname === "/settings/system" && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-red-500 rounded-r-full" />
+              )}
+              <Activity className={cn("w-4 h-4 shrink-0", pathname === "/settings/system" ? "text-red-400" : "")} />
+              <span>System-Status</span>
+            </Link>
           </div>
 
           {/* Admin links */}
