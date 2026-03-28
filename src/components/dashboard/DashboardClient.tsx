@@ -18,6 +18,7 @@ import { BudgetUebersichtWidget } from "./widgets/BudgetUebersichtWidget";
 import { AktuellerSprintWidget } from "./widgets/AktuellerSprintWidget";
 import { ZuletztBesuchtWidget } from "./widgets/ZuletztBesuchtWidget";
 import { FokusZeitWidget } from "./widgets/FokusZeitWidget";
+import { KundenWidget } from "./widgets/KundenWidget";
 
 // --- Shared types (serialized from server) ---
 
@@ -149,6 +150,8 @@ export function DashboardClient({
         return <ZuletztBesuchtWidget />;
       case "fokus-zeit":
         return <FokusZeitWidget />;
+      case "kunden":
+        return <KundenWidget />;
       default:
         return null;
     }

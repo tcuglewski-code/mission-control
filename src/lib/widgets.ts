@@ -90,6 +90,13 @@ export const AVAILABLE_WIDGETS: WidgetDefinition[] = [
     defaultOrder: 10,
     description: "Pomodoro-Statistiken für heute",
   },
+  {
+    id: "kunden",
+    title: "Kunden",
+    defaultVisible: true,
+    defaultOrder: 13,
+    description: "Top 3 Kunden nach Umsatz + Neukunden diesen Monat",
+  },
 ];
 
 export const WIDGET_CONFIG_KEY = "mc_dashboard_widget_config";

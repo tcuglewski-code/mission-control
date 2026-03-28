@@ -50,6 +50,8 @@ model Project {
   budget          Float?   // Geplantes Budget in €
   budgetUsed      Float?   @default(0) // Verbrauchtes Budget
   hourBudget      Float?   // Geplante Stunden (Stundenbudget)
+  clientId    String?
+  client      Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
   archived    Boolean   @default(false)
   archivedAt  DateTime?
   createdAt   DateTime @default(now())
@@ -481,6 +483,9 @@ model Invoice {
   amount      Float     // Betrag in €
   status      String    @default("OPEN") // OPEN | PAID | OVERDUE | CANCELLED
   dueDate     DateTime
+  // Kunden-Verknüpfung
+  clientId       String?
+  client         Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
   paidAt      DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -575,3 +580,54 @@ model ProjectReportSchedule {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
+
+// ─── Kunden / CRM (Sprint GV) ────────────────────────────────────────────────
+model Client {
+  id            String   @id @default(cuid())
+  name          String
+  contactPerson String?
+  email         String?
+  phone         String?
+  address       String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  projects  Project[]
+  invoices  Invoice[]
+  quotes    Quote[]
+}
+
+// ─── Angebote / Quotes (Sprint GU) ───────────────────────────────────────────
+model Quote {
+  id          String   @id @default(cuid())
+  number      String   @unique
+  projectId   String?
+  clientId    String?
+  client      Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  clientName  String
+  clientEmail String?
+  title       String
+  items       Json
+  validUntil  DateTime
+  status      String   @default("draft")
+  note        String?
+  pdfUrl      String?
+  amount      Float    @default(0)
+  invoiceId   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ─── Gespeicherte Ansichten ───────────────────────────────────────────────────
+model SavedView {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  filterRaw String
+  icon      String?
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
