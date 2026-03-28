@@ -105,7 +105,7 @@ export async function PUT(
     const { id } = await params;
     const body = await req.json();
     const { name, description, longDescription, status, progress, priority, color,
-            githubRepo, liveUrl, vercelUrl, expoProjectId, stack } = body;
+            githubRepo, liveUrl, vercelUrl, expoProjectId, stack, archived } = body;
 
     const project = await prisma.project.update({
       where: { id },
@@ -122,6 +122,8 @@ export async function PUT(
         ...(vercelUrl !== undefined && { vercelUrl }),
         ...(expoProjectId !== undefined && { expoProjectId }),
         ...(stack !== undefined && { stack }),
+        ...(archived === true && { archived: true, archivedAt: new Date() }),
+        ...(archived === false && { archived: false, archivedAt: null }),
       },
     });
 

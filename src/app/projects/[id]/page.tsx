@@ -4,10 +4,17 @@ import { AppShell } from "@/components/layout/AppShell";
 import Link from "next/link";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
+import dynamic from "next/dynamic";
 import { ChevronLeft, CheckSquare, Users, FileText, Activity, Globe, Github, ExternalLink, Smartphone, Download } from "lucide-react";
 import { getStatusBg, getStatusLabel, formatRelativeTime, getActionLabel, getEntityTypeLabel, getInitials } from "@/lib/utils";
 import { requireServerSession, getAllowedProjectIds } from "@/lib/server-auth";
 import { LivingDescription } from "@/components/projects/LivingDescription";
+
+// PDF-Button: nur client-side, kein SSR (wegen @react-pdf/renderer)
+const ProjectPDFButton = dynamic(
+  () => import("@/components/projects/ProjectReportPDF").then((m) => m.ProjectPDFButton),
+  { ssr: false, loading: () => null }
+);
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -160,7 +167,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               <span className={`text-xs px-2 py-1 rounded border ${getStatusBg(project.status)}`}>
                 {getStatusLabel(project.status)}
               </span>
-              {/* PDF-Report exportieren */}
+              {/* HTML-Report im Browser öffnen */}
               <a
                 href={`/api/projects/${project.id}/pdf`}
                 target="_blank"
@@ -170,6 +177,11 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                 <Download className="w-3.5 h-3.5" />
                 Report exportieren
               </a>
+              {/* PDF direkt herunterladen (React PDF) */}
+              <ProjectPDFButton
+                projectId={project.id}
+                projectName={project.name}
+              />
             </div>
           </div>
 

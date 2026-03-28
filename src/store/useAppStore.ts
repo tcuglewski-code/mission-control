@@ -52,6 +52,8 @@ export interface Project {
   liveUrl?: string | null;
   vercelUrl?: string | null;
   expoProjectId?: string | null;
+  archived?: boolean;
+  archivedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
   _count?: { tasks: number; members: number };

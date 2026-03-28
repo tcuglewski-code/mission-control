@@ -40,7 +40,10 @@ export default async function ProjectsPage() {
         take: 5,
       },
     },
-    orderBy: { updatedAt: "desc" },
+    orderBy: [
+      { archived: "asc" },   // aktive zuerst
+      { updatedAt: "desc" },
+    ],
   });
 
   return (
