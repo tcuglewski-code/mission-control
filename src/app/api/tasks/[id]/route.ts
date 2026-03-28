@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { triggerWebhooks } from "@/lib/webhooks";
 import { getSessionOrApiKey } from "@/lib/api-auth";
 import { hasPermission, PERMISSIONS } from "@/lib/permissions";
+import { logActivity } from "@/lib/audit";
 
 export async function GET(
   req: NextRequest,
@@ -110,6 +111,15 @@ async function updateTask(id: string, body: Record<string, unknown>) {
         metadata: JSON.stringify({ field: "status", to: status }),
       },
     });
+    // Erweitert: logActivity für Audit Trail
+    void logActivity({
+      action:       status === "done" ? "completed" : "updated",
+      resource:     "task",
+      resourceId:   task.id,
+      resourceName: task.title,
+      projectId:    task.projectId ?? undefined,
+      details:      { field: "status", to: status },
+    });
 
     // Auto-recalculate project progress
     if (task.projectId) {
@@ -202,6 +212,16 @@ export async function DELETE(
 
     await prisma.task.delete({ where: { id } });
     triggerWebhooks("task.deleted", { taskId: id, title: task.title }, task.projectId ?? undefined);
+
+    void logActivity({
+      userId:       user.id,
+      userEmail:    user.email,
+      action:       "deleted",
+      resource:     "task",
+      resourceId:   id,
+      resourceName: task.title,
+      projectId:    task.projectId ?? undefined,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

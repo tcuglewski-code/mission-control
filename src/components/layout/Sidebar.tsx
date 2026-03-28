@@ -26,6 +26,7 @@ import {
   GanttChartSquare,
   Newspaper,
   BotIcon,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/useAppStore";
@@ -126,24 +127,42 @@ export function Sidebar() {
             );
           })}
 
-          {/* Admin link */}
+          {/* Admin links */}
           {role === "admin" && (
-            <Link
-              href="/admin/users"
-              onClick={() => setSidebarOpen(false)}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors relative group",
-                pathname.startsWith("/admin")
-                  ? "bg-[#252525] text-white"
-                  : "text-zinc-400 hover:text-white hover:bg-[#1e1e1e]"
-              )}
-            >
-              {pathname.startsWith("/admin") && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-amber-500 rounded-r-full" />
-              )}
-              <ShieldCheck className={cn("w-4 h-4 shrink-0", pathname.startsWith("/admin") ? "text-amber-400" : "")} />
-              <span>Benutzer</span>
-            </Link>
+            <>
+              <Link
+                href="/admin/users"
+                onClick={() => setSidebarOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors relative group",
+                  pathname === "/admin/users"
+                    ? "bg-[#252525] text-white"
+                    : "text-zinc-400 hover:text-white hover:bg-[#1e1e1e]"
+                )}
+              >
+                {pathname === "/admin/users" && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-amber-500 rounded-r-full" />
+                )}
+                <ShieldCheck className={cn("w-4 h-4 shrink-0", pathname === "/admin/users" ? "text-amber-400" : "")} />
+                <span>Benutzer</span>
+              </Link>
+              <Link
+                href="/admin/audit"
+                onClick={() => setSidebarOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors relative group",
+                  pathname === "/admin/audit"
+                    ? "bg-[#252525] text-white"
+                    : "text-zinc-400 hover:text-white hover:bg-[#1e1e1e]"
+                )}
+              >
+                {pathname === "/admin/audit" && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-amber-500 rounded-r-full" />
+                )}
+                <ClipboardList className={cn("w-4 h-4 shrink-0", pathname === "/admin/audit" ? "text-amber-400" : "")} />
+                <span>Audit Trail</span>
+              </Link>
+            </>
           )}
         </nav>
 

@@ -171,8 +171,11 @@ model ActivityLog {
   entityId   String
   entityName String
   userId     String?
+  userEmail  String?
   projectId  String?
   metadata   String?
+  details    Json?
+  ipAddress  String?
   createdAt  DateTime @default(now())
   user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)

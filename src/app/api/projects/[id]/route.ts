@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionOrApiKey } from "@/lib/api-auth";
 import { hasPermission, PERMISSIONS } from "@/lib/permissions";
+import { logActivity } from "@/lib/audit";
 
 export async function GET(
   req: NextRequest,
@@ -137,6 +138,19 @@ export async function PUT(
       },
     });
 
+    // Audit Trail: speziell Archivierung loggen
+    const actionLabel = archived === true ? "archived" : "updated";
+    void logActivity({
+      userId:       user.id,
+      userEmail:    user.email,
+      action:       actionLabel,
+      resource:     "project",
+      resourceId:   project.id,
+      resourceName: project.name,
+      projectId:    project.id,
+      details:      archived !== undefined ? { archived } : undefined,
+    });
+
     return NextResponse.json(project);
   } catch (error) {
     console.error("[PUT /api/projects/[id]]", error);
@@ -176,6 +190,15 @@ export async function DELETE(
     }
 
     await prisma.project.delete({ where: { id } });
+
+    void logActivity({
+      userId:       user.id,
+      userEmail:    user.email,
+      action:       "deleted",
+      resource:     "project",
+      resourceId:   id,
+      resourceName: project.name,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

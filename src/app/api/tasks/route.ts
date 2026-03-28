@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { triggerWebhooks } from "@/lib/webhooks";
 import { getSessionOrApiKey } from "@/lib/api-auth";
 import { hasPermission, PERMISSIONS } from "@/lib/permissions";
+import { logActivity } from "@/lib/audit";
 
 export async function GET(req: NextRequest) {
   try {
@@ -99,14 +100,15 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    await prisma.activityLog.create({
-      data: {
-        action: "created",
-        entityType: "task",
-        entityId: task.id,
-        entityName: task.title,
-        projectId: task.projectId,
-      },
+    await logActivity({
+      userId:       user.id,
+      userEmail:    user.email,
+      action:       "created",
+      resource:     "task",
+      resourceId:   task.id,
+      resourceName: task.title,
+      projectId:    task.projectId ?? undefined,
+      details:      { status: task.status, priority: task.priority },
     });
 
     triggerWebhooks("task.created", { task }, task.projectId ?? undefined);
