@@ -356,3 +356,15 @@ model WebhookEinstellung {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// ─── Ankündigungen ────────────────────────────────────────────────────────────
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  priority  String   @default("normal") // "normal", "wichtig", "dringend"
+  authorId  String?
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

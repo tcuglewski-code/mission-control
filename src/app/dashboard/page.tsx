@@ -3,6 +3,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { StatsRow } from "@/components/dashboard/StatsRow";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { ActiveProjects } from "@/components/dashboard/ActiveProjects";
+import { AnnouncementsWidget } from "@/components/dashboard/AnnouncementsWidget";
 import { startOfDay, endOfDay } from "date-fns";
 import { requireServerSession, getAllowedProjectIds } from "@/lib/server-auth";
 
@@ -25,6 +26,7 @@ export default async function DashboardPage() {
     activityToday,
     recentLogs,
     projects,
+    recentAnnouncements,
   ] = await Promise.all([
     // Tasks nur aus erlaubten Projekten
     prisma.task.count({
@@ -64,6 +66,10 @@ export default async function DashboardPage() {
       orderBy: { updatedAt: "desc" },
       take: 5,
     }),
+    prisma.announcement.findMany({
+      orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
+      take: 3,
+    }),
   ]);
 
   return (
@@ -83,7 +89,8 @@ export default async function DashboardPage() {
           <div className="lg:col-span-3">
             <RecentActivity logs={recentLogs} />
           </div>
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-6">
+            <AnnouncementsWidget announcements={recentAnnouncements} />
             <ActiveProjects projects={projects} />
           </div>
         </div>

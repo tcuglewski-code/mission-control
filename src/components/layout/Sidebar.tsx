@@ -31,6 +31,7 @@ import {
   Moon,
   Sun,
   LayoutTemplate,
+  Megaphone,
 } from "lucide-react";
 import { useKeyboardShortcutsModal } from "@/hooks/useKeyboardShortcutsModal";
 import { useQuickAdd } from "@/hooks/useQuickAdd";
@@ -40,6 +41,7 @@ import { useThemeStore } from "@/store/useThemeStore";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/announcements", icon: Megaphone, label: "Ankündigungen" },
   { href: "/tasks", icon: CheckSquare, label: "Aufgaben" },
   { href: "/sprints", icon: Flag, label: "Sprints" },
   { href: "/timeline", icon: GanttChartSquare, label: "Timeline" },
