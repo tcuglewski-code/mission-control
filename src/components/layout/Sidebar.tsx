@@ -30,6 +30,7 @@ import {
   Keyboard,
   Moon,
   Sun,
+  LayoutTemplate,
 } from "lucide-react";
 import { useKeyboardShortcutsModal } from "@/hooks/useKeyboardShortcutsModal";
 import { useQuickAdd } from "@/hooks/useQuickAdd";
@@ -55,6 +56,7 @@ const navItems = [
   { href: "/webhooks", icon: Webhook, label: "Webhooks" },
   { href: "/agents", icon: BotIcon, label: "Agenten" },
   { href: "/diagram", icon: GitGraph, label: "Diagramm" },
+  { href: "/templates", icon: LayoutTemplate, label: "Vorlagen" },
 ];
 
 function ThemeToggleButton() {
