@@ -752,3 +752,37 @@ model SavedView {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// ─── Auto-Loop (Ralph Loop) ───────────────────────────────────────────────────
+model LoopTask {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  repo        String    // ka-forstmanager | ka-app | mission-control | wordpress | research
+  priority    String    @default("medium") // high | medium | low
+  status      String    @default("todo")   // todo | in_progress | done | failed
+  result      String?
+  errorMsg    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  startedAt   DateTime?
+  completedAt DateTime?
+}
+
+model LoopSettings {
+  id               String   @id @default("singleton")
+  enabled          Boolean  @default(false)
+  scheduleExpr     String   @default("0,30 1-4 * * *")
+  timezone         String   @default("Europe/Berlin")
+  maxTasksPerNight Int      @default(8)
+  model            String   @default("anthropic/claude-opus-4-5")
+  updatedAt        DateTime @updatedAt
+}
+
+model LoopLog {
+  id        String   @id @default(cuid())
+  taskId    String?
+  message   String
+  level     String   @default("info") // info | success | error | warning
+  createdAt DateTime @default(now())
+}
