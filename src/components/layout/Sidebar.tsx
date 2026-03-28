@@ -71,6 +71,8 @@ const navItems = [
   { href: "/invoice-templates", icon: FileText, label: "Rechnungsvorlagen" },
   { href: "/activity", icon: ActivitySquare, label: "Aktivitäten" },
   { href: "/analytics", icon: BarChart2, label: "Analytics" },
+  { href: "/reports/weekly", icon: ClipboardList, label: "Team-Report" },
+  { href: "/reports/export", icon: FileText, label: "CSV Export" },
   { href: "/memory", icon: Brain, label: "Memory" },
   { href: "/docs", icon: FileText, label: "Dokumente" },
   { href: "/documents", icon: FolderArchive, label: "Dateiverwaltung" },

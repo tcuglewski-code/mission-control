@@ -20,8 +20,40 @@ import {
   Share2,
   Copy,
   ExternalLink,
+  FileText,
+  Shield,
+  GitCommitHorizontal,
+  Clock,
+  Download,
 } from "lucide-react";
 import { getHealthScoreBg, getHealthScoreLabel, getHealthScoreDot } from "@/lib/health-score";
+
+interface RiskTask {
+  id: string;
+  title: string;
+  priority: string;
+  status: string;
+  dueDate: string | null;
+  assignee: string | null;
+  overdueScore: number;
+  riskScore: number;
+}
+
+interface MilestoneTimeline {
+  id: string;
+  title: string;
+  status: string;
+  dueDate: string | null;
+  completedAt: string | null;
+  description: string | null;
+}
+
+interface MemberContribution {
+  name: string;
+  completedTasks: number;
+  minutesTracked: number;
+  taskIds: string[];
+}
 
 interface ReportData {
   project: {
@@ -35,6 +67,10 @@ interface ReportData {
   healthScore: number;
   reportDate: string;
   weekRange: string;
+  executiveSummary: string;
+  riskTasks: RiskTask[];
+  milestoneTimeline: MilestoneTimeline[];
+  memberContributions: MemberContribution[];
   completedThisWeek: Array<{
     id: string;
     title: string;
@@ -86,21 +122,42 @@ const PRIORITY_COLOR: Record<string, string> = {
   low: "text-zinc-400",
 };
 
-const ACTION_LABEL: Record<string, string> = {
-  created: "erstellt",
-  updated: "aktualisiert",
-  deleted: "gelöscht",
-  completed: "abgeschlossen",
-  status_changed: "Status geändert",
-  assigned: "zugewiesen",
-  commented: "kommentiert",
+const PRIORITY_BG: Record<string, string> = {
+  critical: "bg-red-500/20 border-red-500/30",
+  high: "bg-orange-500/20 border-orange-500/30",
+  medium: "bg-yellow-500/20 border-yellow-500/30",
+  low: "bg-zinc-500/20 border-zinc-500/30",
 };
+
+const STATUS_LABEL: Record<string, string> = {
+  todo: "Offen",
+  backlog: "Backlog",
+  in_progress: "In Arbeit",
+  in_review: "In Review",
+  done: "Erledigt",
+  blocked: "Blockiert",
+  cancelled: "Abgebrochen",
+};
+
+const MILESTONE_STATUS_LABEL: Record<string, string> = {
+  completed: "Erreicht",
+  in_progress: "In Arbeit",
+  not_started: "Nicht gestartet",
+  cancelled: "Abgebrochen",
+};
+
+function fmtMinutes(minutes: number) {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m} Min.`;
+  if (m === 0) return `${h} Std.`;
+  return `${h}h ${m}m`;
+}
 
 export function ProjectReportClient({ reportData, projectId }: Props) {
   const [emailSending, setEmailSending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
-
   const [shareLoading, setShareLoading] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
@@ -111,6 +168,10 @@ export function ProjectReportClient({ reportData, projectId }: Props) {
     healthScore,
     reportDate,
     weekRange,
+    executiveSummary,
+    riskTasks,
+    milestoneTimeline,
+    memberContributions,
     completedThisWeek,
     newTasksThisWeek,
     blockades,
@@ -120,19 +181,16 @@ export function ProjectReportClient({ reportData, projectId }: Props) {
     budgetInfo,
   } = reportData;
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = () => window.print();
 
   const handleEmail = async () => {
     setEmailSending(true);
     setEmailError(null);
     try {
-      // Stub: In der Produktion würde hier ein API-Aufruf zum E-Mail-Versand erfolgen
       await new Promise((resolve) => setTimeout(resolve, 1200));
       setEmailSent(true);
       setTimeout(() => setEmailSent(false), 4000);
-    } catch (err) {
+    } catch {
       setEmailError("Fehler beim Senden. Bitte erneut versuchen.");
     } finally {
       setEmailSending(false);
@@ -166,11 +224,13 @@ export function ProjectReportClient({ reportData, projectId }: Props) {
   const scoreLabel = getHealthScoreLabel(healthScore);
   const scoreDot = getHealthScoreDot(healthScore);
 
+  const csvExportUrl = `/api/reports/export?type=tasks&format=csv&projectId=${projectId}`;
+
   return (
     <div>
       {/* Report Header */}
       <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl p-6 print:bg-white print:border-zinc-200">
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <div
@@ -186,12 +246,12 @@ export function ProjectReportClient({ reportData, projectId }: Props) {
               <h1 className="text-xl font-bold text-white print:text-black">{project.name}</h1>
             </div>
             <p className="text-sm text-zinc-400 print:text-zinc-600">
-              Wöchentlicher Status-Report · KW {weekRange}
+              Projekt-Report · {weekRange}
             </p>
             <p className="text-xs text-zinc-600 print:text-zinc-400 mt-0.5">Erstellt am {reportDate}</p>
           </div>
 
-          {/* Actions (hide on print) */}
+          {/* Actions */}
           <div className="flex items-center gap-2 flex-wrap print:hidden">
             <button
               onClick={handlePrint}
@@ -200,6 +260,13 @@ export function ProjectReportClient({ reportData, projectId }: Props) {
               <Printer className="w-3.5 h-3.5" />
               Drucken / PDF
             </button>
+            <a
+              href={csvExportUrl}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs text-zinc-300 hover:text-white bg-[#252525] hover:bg-[#2e2e2e] border border-[#2a2a2a] rounded-lg transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              CSV Export
+            </a>
             <button
               onClick={handleShare}
               disabled={shareLoading}
@@ -237,7 +304,7 @@ export function ProjectReportClient({ reportData, projectId }: Props) {
               ) : (
                 <Mail className="w-3.5 h-3.5" />
               )}
-              {emailSent ? "Gesendet!" : "Report per E-Mail"}
+              {emailSent ? "Gesendet!" : "Per E-Mail"}
             </button>
           </div>
         </div>
@@ -245,8 +312,6 @@ export function ProjectReportClient({ reportData, projectId }: Props) {
         {emailError && (
           <p className="text-xs text-red-400 mt-2 print:hidden">{emailError}</p>
         )}
-
-        {/* Share URL */}
         {shareUrl && (
           <div className="mt-3 flex items-center gap-2 p-2.5 bg-blue-500/10 border border-blue-500/30 rounded-lg print:hidden">
             <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />
@@ -315,6 +380,181 @@ export function ProjectReportClient({ reportData, projectId }: Props) {
           color="text-yellow-400"
         />
       </div>
+
+      {/* ─── Executive Summary ─────────────────────────────────────────────── */}
+      <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl p-5 print:bg-white print:border-zinc-200">
+        <div className="flex items-center gap-2 mb-3">
+          <FileText className="w-4 h-4 text-blue-400" />
+          <h3 className="text-sm font-semibold text-white print:text-black">Executive Summary</h3>
+        </div>
+        <p className="text-sm text-zinc-300 leading-relaxed print:text-zinc-700">
+          {executiveSummary}
+        </p>
+      </div>
+
+      {/* ─── Risk Matrix ───────────────────────────────────────────────────── */}
+      {riskTasks.length > 0 && (
+        <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl p-5 print:bg-white print:border-zinc-200">
+          <div className="flex items-center gap-2 mb-4">
+            <Shield className="w-4 h-4 text-orange-400" />
+            <h3 className="text-sm font-semibold text-white print:text-black">Risk-Matrix</h3>
+            <span className="text-xs text-zinc-600 ml-auto">Sortiert nach Risiko-Score</span>
+          </div>
+          <div className="space-y-2">
+            {riskTasks.map((task) => (
+              <div
+                key={task.id}
+                className={`flex items-center gap-3 p-3 rounded-lg border ${PRIORITY_BG[task.priority] ?? "bg-zinc-500/10 border-zinc-500/20"}`}
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-zinc-200 truncate">{task.title}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className={`text-[10px] font-medium ${PRIORITY_COLOR[task.priority] ?? "text-zinc-400"}`}>
+                      {PRIORITY_LABEL[task.priority] ?? task.priority}
+                    </span>
+                    <span className="text-[10px] text-zinc-600">·</span>
+                    <span className="text-[10px] text-zinc-500">{STATUS_LABEL[task.status] ?? task.status}</span>
+                    {task.dueDate && (
+                      <>
+                        <span className="text-[10px] text-zinc-600">·</span>
+                        <span className={`text-[10px] ${task.overdueScore > 0 ? "text-red-400" : "text-zinc-500"}`}>
+                          {task.overdueScore > 0
+                            ? `${task.overdueScore} Tage überfällig`
+                            : `Fällig ${format(new Date(task.dueDate), "d. MMM", { locale: de })}`}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  {task.assignee && (
+                    <p className="text-xs text-zinc-500">{task.assignee}</p>
+                  )}
+                  <p className="text-xs font-bold text-zinc-400 tabular-nums">
+                    Score: {task.riskScore}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ─── Timeline / Meilensteine ───────────────────────────────────────── */}
+      {milestoneTimeline.length > 0 && (
+        <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl p-5 print:bg-white print:border-zinc-200">
+          <div className="flex items-center gap-2 mb-4">
+            <GitCommitHorizontal className="w-4 h-4 text-purple-400" />
+            <h3 className="text-sm font-semibold text-white print:text-black">
+              Meilenstein-Timeline
+            </h3>
+          </div>
+          <div className="relative">
+            {/* Vertikale Linie */}
+            <div className="absolute left-3.5 top-0 bottom-0 w-px bg-[#2a2a2a]" />
+            <div className="space-y-4 pl-8">
+              {milestoneTimeline.map((m) => {
+                const isCompleted = m.status === "completed";
+                const isOverdue =
+                  !isCompleted && m.dueDate && new Date(m.dueDate) < new Date();
+
+                return (
+                  <div key={m.id} className="relative">
+                    {/* Kreis */}
+                    <div
+                      className={`absolute -left-[22px] w-3.5 h-3.5 rounded-full border-2 ${
+                        isCompleted
+                          ? "bg-emerald-500 border-emerald-500"
+                          : isOverdue
+                          ? "bg-red-500 border-red-500"
+                          : "bg-[#1c1c1c] border-[#3a3a3a]"
+                      }`}
+                    />
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className={`text-sm font-medium ${isCompleted ? "text-emerald-400" : isOverdue ? "text-red-400" : "text-zinc-200"}`}>
+                          {m.title}
+                        </p>
+                        {m.description && (
+                          <p className="text-xs text-zinc-500 mt-0.5">{m.description}</p>
+                        )}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span
+                          className={`text-[10px] px-1.5 py-0.5 rounded ${
+                            isCompleted
+                              ? "bg-emerald-500/20 text-emerald-400"
+                              : isOverdue
+                              ? "bg-red-500/20 text-red-400"
+                              : "bg-zinc-500/20 text-zinc-400"
+                          }`}
+                        >
+                          {MILESTONE_STATUS_LABEL[m.status] ?? m.status}
+                        </span>
+                        {m.dueDate && (
+                          <p className="text-[10px] text-zinc-600 mt-1">
+                            {isCompleted && m.completedAt
+                              ? `Abgeschlossen ${format(new Date(m.completedAt), "d. MMM yyyy", { locale: de })}`
+                              : `Fällig ${format(new Date(m.dueDate), "d. MMM yyyy", { locale: de })}`}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Mitarbeiter-Beitrag ───────────────────────────────────────────── */}
+      {memberContributions.length > 0 && (
+        <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl p-5 print:bg-white print:border-zinc-200">
+          <div className="flex items-center gap-2 mb-4">
+            <Users className="w-4 h-4 text-teal-400" />
+            <h3 className="text-sm font-semibold text-white print:text-black">
+              Mitarbeiter-Beiträge
+            </h3>
+          </div>
+          <div className="space-y-3">
+            {memberContributions.map((member) => (
+              <div
+                key={member.name}
+                className="flex items-center gap-3 py-2 border-b border-[#222] last:border-0"
+              >
+                <div className="w-8 h-8 rounded-full bg-[#252525] border border-[#3a3a3a] flex items-center justify-center text-[10px] font-bold text-zinc-300 shrink-0">
+                  {member.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()
+                    .slice(0, 2)}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-zinc-200">{member.name}</p>
+                  <div className="flex items-center gap-3 mt-0.5">
+                    {member.completedTasks > 0 && (
+                      <span className="text-[11px] text-emerald-400">
+                        ✓ {member.completedTasks} Task{member.completedTasks !== 1 ? "s" : ""} abgeschlossen
+                      </span>
+                    )}
+                    {member.minutesTracked > 0 && (
+                      <span className="text-[11px] text-blue-400">
+                        <Clock className="w-3 h-3 inline mr-0.5" />
+                        {fmtMinutes(member.minutesTracked)} erfasst
+                      </span>
+                    )}
+                    {member.completedTasks === 0 && member.minutesTracked === 0 && (
+                      <span className="text-[11px] text-zinc-600">Keine Einträge</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Abgeschlossene Tasks */}
@@ -389,7 +629,7 @@ export function ProjectReportClient({ reportData, projectId }: Props) {
 
         {/* Meilensteine */}
         <ReportSection
-          title="Meilensteine"
+          title="Meilensteine (diese Woche)"
           icon={<Flag className="w-4 h-4 text-yellow-400" />}
           count={milestonesReached.length + milestonesMissed.length}
           emptyText="Keine Meilenstein-Aktivität diese Woche"
@@ -512,6 +752,44 @@ export function ProjectReportClient({ reportData, projectId }: Props) {
         </div>
       </div>
 
+      {/* CSV Export Leiste */}
+      <div className="bg-[#161616] border border-[#2a2a2a] rounded-xl p-4 print:hidden">
+        <div className="flex items-center gap-2 mb-3">
+          <Download className="w-4 h-4 text-zinc-400" />
+          <h3 className="text-sm font-semibold text-white">CSV / Daten-Export</h3>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          <a
+            href={`/api/reports/export?type=tasks&format=csv&projectId=${projectId}`}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs text-zinc-300 hover:text-white bg-[#1c1c1c] hover:bg-[#2a2a2a] border border-[#2a2a2a] rounded-lg transition-colors"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Tasks exportieren
+          </a>
+          <a
+            href={`/api/reports/export?type=time&format=csv&projectId=${projectId}`}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs text-zinc-300 hover:text-white bg-[#1c1c1c] hover:bg-[#2a2a2a] border border-[#2a2a2a] rounded-lg transition-colors"
+          >
+            <Clock className="w-3.5 h-3.5" />
+            Zeiterfassung exportieren
+          </a>
+          <a
+            href={`/api/reports/export?type=invoices&format=csv&projectId=${projectId}`}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs text-zinc-300 hover:text-white bg-[#1c1c1c] hover:bg-[#2a2a2a] border border-[#2a2a2a] rounded-lg transition-colors"
+          >
+            <DollarSign className="w-3.5 h-3.5" />
+            Rechnungen exportieren
+          </a>
+          <a
+            href="/reports/weekly"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg transition-colors"
+          >
+            <Activity className="w-3.5 h-3.5" />
+            Wöchentlicher Team-Report
+          </a>
+        </div>
+      </div>
+
       {/* Print Styles */}
       <style jsx global>{`
         @media print {
@@ -521,8 +799,9 @@ export function ProjectReportClient({ reportData, projectId }: Props) {
           .print\\:text-black { color: black !important; }
           .print\\:text-zinc-600 { color: #52525b !important; }
           .print\\:text-zinc-400 { color: #a1a1aa !important; }
+          .print\\:text-zinc-700 { color: #3f3f46 !important; }
           body { background: white !important; }
-          .bg-\\[\\#0a0a0a\\], .bg-\\[\\#1c1c1c\\], .bg-\\[\\#161616\\] {
+          .bg-\\[\\#0a0a0a\\], .bg-\\[\\#1c1c1c\\], .bg-\\[\\#161616\\], .bg-\\[\\#252525\\] {
             background-color: white !important;
           }
         }
@@ -571,10 +850,10 @@ function ReportSection({
 }) {
   const isEmpty = count === 0;
   return (
-    <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl p-5">
+    <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl p-5 print:bg-white print:border-zinc-200">
       <div className="flex items-center gap-2 mb-4">
         {icon}
-        <h3 className="text-sm font-semibold text-white">{title}</h3>
+        <h3 className="text-sm font-semibold text-white print:text-black">{title}</h3>
         {count !== null && (
           <span className="text-xs text-zinc-600 ml-auto">{count}</span>
         )}
