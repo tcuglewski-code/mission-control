@@ -122,11 +122,14 @@ model Sprint {
 }
 
 model TaskComment {
-  id        String   @id @default(cuid())
-  content   String
-  taskId    String
-  authorId  String?
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  content     String
+  taskId      String
+  authorId    String?
+  authorName  String   @default("Amadeus")
+  authorEmail String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }
 

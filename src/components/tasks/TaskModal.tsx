@@ -1,10 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X, Trash2 } from "lucide-react";
-import { format } from "date-fns";
+import { useState, useEffect, useRef } from "react";
+import { X, Trash2, MessageSquare, Send } from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
+import { de } from "date-fns/locale";
 import type { Task, Project, User, Sprint } from "@/store/useAppStore";
 import { TaskTimer } from "./TaskTimer";
+
+interface TaskComment {
+  id: string;
+  content: string;
+  authorName: string;
+  authorEmail?: string | null;
+  createdAt: string;
+}
 
 interface TaskModalProps {
   task?: Task | null;
@@ -41,6 +50,14 @@ export function TaskModal({
   const [loading, setLoading] = useState(false);
   const [sprints, setSprints] = useState<Sprint[]>([]);
 
+  // Kommentar-State
+  const [comments, setComments] = useState<TaskComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [newComment, setNewComment] = useState("");
+  const [commentAuthor, setCommentAuthor] = useState("Amadeus");
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const commentsEndRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     // Load active sprints for dropdown
     fetch("/api/sprints?status=active")
@@ -50,6 +67,62 @@ export function TaskModal({
       })
       .catch(() => {});
   }, []);
+
+  // Kommentare laden wenn Task geöffnet wird
+  useEffect(() => {
+    if (!task?.id) return;
+    setCommentsLoading(true);
+    fetch(`/api/tasks/${task.id}/comments`)
+      .then((r) => r.json())
+      .then((data: TaskComment[]) => {
+        if (Array.isArray(data)) setComments(data);
+      })
+      .catch(() => {})
+      .finally(() => setCommentsLoading(false));
+  }, [task?.id]);
+
+  const handleAddComment = async () => {
+    if (!task?.id || !newComment.trim() || submittingComment) return;
+    setSubmittingComment(true);
+    try {
+      const res = await fetch(`/api/tasks/${task.id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: newComment.trim(),
+          authorName: commentAuthor.trim() || "Amadeus",
+        }),
+      });
+      if (res.ok) {
+        const created: TaskComment = await res.json();
+        setComments((prev) => [...prev, created]);
+        setNewComment("");
+        setTimeout(() => commentsEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+      }
+    } catch {
+      // silently ignore
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!task?.id) return;
+    if (!confirm("Kommentar löschen?")) return;
+    try {
+      const res = await fetch(`/api/tasks/${task.id}/comments/${commentId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setComments((prev) => prev.filter((c) => c.id !== commentId));
+      }
+    } catch {
+      // silently ignore
+    }
+  };
+
+  const timeAgo = (date: string) =>
+    formatDistanceToNow(new Date(date), { addSuffix: true, locale: de });
 
   useEffect(() => {
     if (task) {
@@ -270,6 +343,97 @@ export function TaskModal({
               <label className="text-xs text-zinc-400 mb-2 block">⏱ Zeiterfassung</label>
               <div className="bg-[#171717] border border-[#2a2a2a] rounded-lg p-3">
                 <TaskTimer taskId={task.id} taskTitle={task.title} />
+              </div>
+            </div>
+          )}
+
+          {/* Kommentar-Sektion (nur bei bestehendem Task) */}
+          {task && (
+            <div className="border-t border-[#2a2a2a] pt-4 mt-2">
+              <div className="flex items-center gap-2 mb-3">
+                <MessageSquare className="w-3.5 h-3.5 text-zinc-400" />
+                <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">
+                  Diskussion ({comments.length})
+                </h4>
+              </div>
+
+              {/* Kommentar-Liste */}
+              <div className="space-y-3 max-h-48 overflow-y-auto mb-3">
+                {commentsLoading ? (
+                  <p className="text-xs text-zinc-600 italic">Lädt...</p>
+                ) : comments.length === 0 ? (
+                  <p className="text-xs text-zinc-600 italic">Noch keine Kommentare. Sei der Erste!</p>
+                ) : (
+                  comments.map((comment) => (
+                    <div
+                      key={comment.id}
+                      className="group bg-[#171717] border border-[#2a2a2a] rounded-lg px-3 py-2.5"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-emerald-600 flex items-center justify-center text-[10px] font-bold text-white">
+                            {comment.authorName.charAt(0).toUpperCase()}
+                          </span>
+                          <span className="text-xs font-medium text-zinc-300">
+                            {comment.authorName}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-zinc-600">
+                            {timeAgo(comment.createdAt)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteComment(comment.id)}
+                            className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-400 transition-all"
+                            title="Kommentar löschen"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                        {comment.content}
+                      </p>
+                    </div>
+                  ))
+                )}
+                <div ref={commentsEndRef} />
+              </div>
+
+              {/* Neuer Kommentar */}
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={commentAuthor}
+                  onChange={(e) => setCommentAuthor(e.target.value)}
+                  placeholder="Dein Name"
+                  className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-1.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50"
+                />
+                <div className="flex gap-2">
+                  <textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                        e.preventDefault();
+                        handleAddComment();
+                      }
+                    }}
+                    placeholder="Kommentar hinzufügen... (Strg+Enter zum Senden)"
+                    rows={2}
+                    className="flex-1 bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 resize-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddComment}
+                    disabled={!newComment.trim() || submittingComment}
+                    className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white rounded-lg transition-colors flex items-center gap-1.5 text-xs font-medium self-end"
+                  >
+                    <Send className="w-3 h-3" />
+                    {submittingComment ? "..." : "Senden"}
+                  </button>
+                </div>
               </div>
             </div>
           )}
