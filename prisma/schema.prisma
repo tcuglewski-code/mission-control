@@ -419,13 +419,16 @@ model TaskDependency {
 
 // ─── Projekt-Vorlagen ─────────────────────────────────────────────────────────
 model ProjectTemplate {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  category    String?  // "aufforstung", "pflege", "saatgut", etc.
-  tasks       Json     // Array von Task-Definitionen
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  category      String?  // "aufforstung", "pflege", "saatgut", etc.
+  tasks         Json     // Array von Task-Definitionen
+  isSystem      Boolean  @default(false)  // System-Vorlagen (forstspezifisch)
+  createdBy     String?  // User ID des Erstellers
+  createdByName String?  // Anzeigename des Erstellers
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 // ─── Webhook Einstellungen (ausgehend) ────────────────────────────────────────

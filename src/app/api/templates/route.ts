@@ -2,51 +2,58 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionOrApiKey } from "@/lib/api-auth";
 
-// Seed-Daten: 3 Basis-Vorlagen
-const SEED_TEMPLATES = [
+// ─── Forstspezifische System-Vorlagen ─────────────────────────────────────────
+const SYSTEM_TEMPLATES = [
   {
-    name: "Aufforstung Standard",
-    description: "Standardvorlage für Aufforstungsprojekte",
+    name: "Aufforstungsprojekt",
+    description: "Vollständige Vorlage für Aufforstungsprojekte — von der Flächenanalyse bis zur Abnahme",
     category: "aufforstung",
+    isSystem: true,
     tasks: [
-      { title: "Fläche vermessen", description: "GPS-Vermessung der Aufforstungsfläche", priority: "high" },
-      { title: "Baumarten auswählen", description: "Geeignete Baumarten für Standort und Klima bestimmen", priority: "high" },
-      { title: "Pflanzlöcher vorbereiten", description: "Pflanzlöcher in vorgegebenem Raster ausheben", priority: "medium" },
-      { title: "Pflanzung durchführen", description: "Setzlinge einpflanzen und wässern", priority: "high" },
-      { title: "Dokumentation", description: "Fotodokumentation und Abschlussbericht erstellen", priority: "medium" },
+      { title: "Flächenanalyse", description: "Geländeaufnahme, Bodenproben, Klimaeignung prüfen", priority: "high", offsetDays: 0 },
+      { title: "Förderantrag stellen", description: "Förderprogramme recherchieren und Antrag einreichen", priority: "high", offsetDays: 7 },
+      { title: "Baumarten-Auswahl", description: "Geeignete Baumarten für Standort, Klima und Förderbedingungen bestimmen", priority: "high", offsetDays: 14 },
+      { title: "Pflanzung", description: "Setzlinge einpflanzen, Pflanzlöcher vorbereiten, wässern", priority: "high", offsetDays: 30 },
+      { title: "Kulturpflege Jahr 1", description: "Anwuchskontrolle, Nachpflanzungen, Unkrautbekämpfung", priority: "medium", offsetDays: 90 },
+      { title: "Kulturpflege Jahr 2", description: "Zweite Pflegemaßnahme, Schutzmaßnahmen kontrollieren", priority: "medium", offsetDays: 455 },
+      { title: "Kulturpflege Jahr 3", description: "Dritte Pflegemaßnahme, Bestandsentwicklung dokumentieren", priority: "medium", offsetDays: 820 },
+      { title: "Abnahme", description: "Behördliche Abnahme, Fördermittelnachweis, Abschlussbericht", priority: "high", offsetDays: 1095 },
     ],
   },
   {
-    name: "Waldpflege",
-    description: "Vorlage für Waldpflegeprojekte und Durchforstung",
-    category: "pflege",
+    name: "Wiederbewaldung nach Schaden",
+    description: "Vorlage für Wiederbewaldungsprojekte nach Kalamitäten (Sturm, Käfer, Brand)",
+    category: "aufforstung",
+    isSystem: true,
     tasks: [
-      { title: "Bestandsaufnahme", description: "Aktuellen Waldbestand kartieren und bewerten", priority: "high" },
-      { title: "Pflegeplan erstellen", description: "Maßnahmen planen und priorisieren", priority: "high" },
-      { title: "Durchforstung", description: "Schwache und kranke Bäume entnehmen", priority: "medium" },
-      { title: "Kulturpflege", description: "Jungpflanzen von Konkurrenzvegetation befreien", priority: "medium" },
-      { title: "Abnahme und Protokoll", description: "Maßnahmen abnehmen und dokumentieren", priority: "low" },
+      { title: "Schadensaufnahme", description: "Schadensausmaß kartieren, Ursache dokumentieren, Fotos erstellen", priority: "high", offsetDays: 0 },
+      { title: "Räumung", description: "Schadholz räumen, Fläche für Neupflanzung vorbereiten", priority: "high", offsetDays: 7 },
+      { title: "Förderantrag stellen", description: "Kalamitätsförderprogramme beantragen, Gutachten beifügen", priority: "high", offsetDays: 14 },
+      { title: "Pflanzung", description: "Standortgerechte Baumarten einpflanzen, Schutzmaßnahmen installieren", priority: "high", offsetDays: 45 },
     ],
   },
   {
     name: "Saatguternte",
-    description: "Vorlage für die Saatguternte-Kampagne",
+    description: "Vorlage für die Saatguternte-Kampagne — von der Planung bis zur Einlagerung",
     category: "saatgut",
+    isSystem: true,
     tasks: [
-      { title: "Erntereife prüfen", description: "Reifegrad des Saatguts an Mutterbäumen kontrollieren", priority: "high" },
-      { title: "Team einteilen", description: "Ernteteams zusammenstellen und briefen", priority: "high" },
-      { title: "Ernte durchführen", description: "Saatgut von Mutterbäumen ernten", priority: "high" },
-      { title: "Trocknung", description: "Saatgut schonend trocknen und aufbereiten", priority: "medium" },
-      { title: "Lagerung", description: "Saatgut kühl und trocken einlagern, Chargen dokumentieren", priority: "medium" },
+      { title: "Ernteplanung", description: "Erntetermine festlegen, Teams einteilen, Ernteflächen kartieren", priority: "high", offsetDays: 0 },
+      { title: "Baumauswahl", description: "Geeignete Mutterbäume auswählen, Reifekontrolle durchführen", priority: "high", offsetDays: 7 },
+      { title: "Ernte", description: "Saatgut von Mutterbäumen ernten, Mengen dokumentieren", priority: "high", offsetDays: 14 },
+      { title: "Aufbereitung", description: "Saatgut reinigen, trocknen und sortieren", priority: "medium", offsetDays: 21 },
+      { title: "Lagerung", description: "Saatgut kühl und trocken einlagern, Chargendokumentation erstellen", priority: "medium", offsetDays: 28 },
     ],
   },
 ];
 
-async function ensureSeedTemplates() {
-  const count = await prisma.projectTemplate.count();
-  if (count === 0) {
+async function ensureSystemTemplates() {
+  const systemCount = await prisma.projectTemplate.count({ where: { isSystem: true } });
+  if (systemCount === 0) {
+    // Alte Seed-Templates (nicht-system) löschen falls vorhanden
+    await prisma.projectTemplate.deleteMany({ where: { isSystem: false, createdBy: null } });
     await prisma.projectTemplate.createMany({
-      data: SEED_TEMPLATES,
+      data: SYSTEM_TEMPLATES,
     });
   }
 }
@@ -58,10 +65,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await ensureSeedTemplates();
+    await ensureSystemTemplates();
 
     const templates = await prisma.projectTemplate.findMany({
-      orderBy: { createdAt: "asc" },
+      orderBy: [{ isSystem: "desc" }, { createdAt: "asc" }],
     });
 
     return NextResponse.json(templates);
@@ -95,6 +102,9 @@ export async function POST(req: NextRequest) {
         description: description || null,
         category: category || null,
         tasks,
+        isSystem: false,
+        createdBy: user.id,
+        createdByName: user.name || user.email || "Unbekannt",
       },
     });
 
