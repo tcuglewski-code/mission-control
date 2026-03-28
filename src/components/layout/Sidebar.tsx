@@ -48,6 +48,8 @@ import { useThemeStore } from "@/store/useThemeStore";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/my-day", icon: Sun, label: "Mein Tag" },
+  { href: "/my-week", icon: CalendarDays, label: "Meine Woche" },
   { href: "/announcements", icon: Megaphone, label: "Ankündigungen" },
   { href: "/tasks", icon: CheckSquare, label: "Aufgaben" },
   { href: "/inbox", icon: Mail, label: "Posteingang" },

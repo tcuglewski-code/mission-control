@@ -485,6 +485,27 @@ model Invoice {
   updatedAt   DateTime  @updatedAt
 }
 
+// ─── Persönliche Tagesnotizen ─────────────────────────────────────────────────
+model UserDayNote {
+  id        String   @id @default(cuid())
+  userId    String
+  date      String   // ISO-Datum "2024-03-28"
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([userId, date])
+}
+
+// ─── Heutiger Fokus (max. 3 Tasks) ────────────────────────────────────────────
+model UserTaskFocus {
+  id        String   @id @default(cuid())
+  userId    String
+  taskId    String
+  date      String   // ISO-Datum "2024-03-28"
+  createdAt DateTime @default(now())
+  @@unique([userId, taskId, date])
+}
+
 // ─── Meilensteine ─────────────────────────────────────────────────────────────
 model Milestone {
   id          String    @id @default(cuid())
