@@ -56,6 +56,12 @@ export interface Task {
   sprintId?: string | null;
   milestoneId?: string | null;
   sourceEmailId?: string | null;
+  // Wiederkehrende Tasks
+  recurring?: boolean;
+  recurringInterval?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | null;
+  recurringDay?: number | null;
+  recurringEndDate?: Date | null;
+  parentTaskId?: string | null;
   createdAt: Date;
   updatedAt: Date;
   project?: { id: string; name: string; color: string } | null;

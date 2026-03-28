@@ -381,6 +381,7 @@ function filtersFromParams(params: URLSearchParams): FilterState {
     milestoneId: params.get("milestoneId") ?? "",
     dueDateFrom: params.get("dueDateFrom") ?? "",
     dueDateTo: params.get("dueDateTo") ?? "",
+    recurring: params.get("recurring") ?? "",
   };
 }
 
@@ -487,6 +488,7 @@ export function KanbanBoardWrapper({ initialTasks, projects, users }: KanbanBoar
         if (!t.dueDate) return false;
         if (new Date(t.dueDate) > new Date(filters.dueDateTo + "T23:59:59")) return false;
       }
+      if (filters.recurring === "true" && !t.recurring) return false;
       return true;
     });
     return sortTasks(result, sort);

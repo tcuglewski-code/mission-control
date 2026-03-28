@@ -4,9 +4,10 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { Calendar, AlertCircle, Play, Flag, Target } from "lucide-react";
+import { Calendar, AlertCircle, Play, Flag, Target, RefreshCw } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 import { useAppStore, type Task, type Label } from "@/store/useAppStore";
+import { getRecurringLabel } from "@/lib/recurring";
 import { useState } from "react";
 
 interface TaskCardProps {
@@ -81,7 +82,7 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
         isDragging && "opacity-50 rotate-1 shadow-xl shadow-black/50 z-50"
       )}
     >
-      {/* Header: Priority dot + Title */}
+      {/* Header: Priority dot + Title + Recurring Icon */}
       <div className="flex items-start gap-2 mb-2">
         <div
           className={cn(
@@ -92,6 +93,14 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
         <p className="text-sm text-white leading-snug line-clamp-2 flex-1 group-hover:text-zinc-100">
           {task.title}
         </p>
+        {task.recurring && task.recurringInterval && (
+          <div
+            className="shrink-0 mt-0.5"
+            title={`Wiederkehrend — ${getRecurringLabel(task.recurringInterval, task.recurringDay)}`}
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-emerald-400 opacity-80" />
+          </div>
+        )}
       </div>
 
       {/* Priority label */}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { X, Trash2, MessageSquare, Send, Tag, GitBranch, Link2, AlertTriangle } from "lucide-react";
+import { X, Trash2, MessageSquare, Send, Tag, GitBranch, Link2, AlertTriangle, RefreshCw } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
 import type { Task, Project, User, Sprint, Label, Milestone } from "@/store/useAppStore";
@@ -47,6 +47,10 @@ export function TaskModal({
     assigneeId: "",
     sprintId: "",
     milestoneId: "",
+    recurring: false,
+    recurringInterval: "WEEKLY" as "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY",
+    recurringDay: "" as string,
+    recurringEndDate: "",
   });
   const [loading, setLoading] = useState(false);
   const [sprints, setSprints] = useState<Sprint[]>([]);
@@ -246,6 +250,10 @@ export function TaskModal({
         assigneeId: task.assigneeId ?? "",
         sprintId: task.sprintId ?? "",
         milestoneId: task.milestoneId ?? "",
+        recurring: task.recurring ?? false,
+        recurringInterval: (task.recurringInterval as "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY") ?? "WEEKLY",
+        recurringDay: task.recurringDay?.toString() ?? "",
+        recurringEndDate: task.recurringEndDate ? format(new Date(task.recurringEndDate), "yyyy-MM-dd") : "",
       });
       // Load existing task labels
       if (task.taskLabels) {
@@ -294,6 +302,10 @@ export function TaskModal({
         assigneeId: form.assigneeId || null,
         sprintId: form.sprintId || null,
         milestoneId: form.milestoneId || null,
+        recurring: form.recurring,
+        recurringInterval: form.recurring ? form.recurringInterval : null,
+        recurringDay: form.recurring && form.recurringDay ? parseInt(form.recurringDay) : null,
+        recurringEndDate: form.recurring && form.recurringEndDate ? new Date(form.recurringEndDate) : null,
         // Pass selected label IDs for new tasks (handled by caller)
         _labelIds: Array.from(selectedLabelIds),
       } as Partial<Task> & { _labelIds: string[] });
@@ -579,6 +591,112 @@ export function TaskModal({
               onChange={(e) => setForm({ ...form, startDate: e.target.value })}
               className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
             />
+          </div>
+
+          {/* ─── Wiederkehrend ──────────────────────────────────────────────── */}
+          <div className="border border-[#2a2a2a] rounded-xl p-4 space-y-3">
+            {/* Toggle */}
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-zinc-300 flex items-center gap-2">
+                <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />
+                Wiederkehrend
+              </label>
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, recurring: !form.recurring })}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                  form.recurring ? "bg-emerald-600" : "bg-zinc-700"
+                }`}
+              >
+                <span
+                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                    form.recurring ? "translate-x-4" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Recurring options — nur wenn aktiv */}
+            {form.recurring && (
+              <div className="space-y-3 pt-1">
+                {/* Intervall */}
+                <div>
+                  <label className="text-xs text-zinc-500 mb-1 block">Intervall</label>
+                  <select
+                    value={form.recurringInterval}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        recurringInterval: e.target.value as "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY",
+                        recurringDay: "",
+                      })
+                    }
+                    className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+                  >
+                    <option value="DAILY">Täglich</option>
+                    <option value="WEEKLY">Wöchentlich</option>
+                    <option value="MONTHLY">Monatlich</option>
+                    <option value="YEARLY">Jährlich</option>
+                  </select>
+                </div>
+
+                {/* Wochentag (nur bei WEEKLY) */}
+                {form.recurringInterval === "WEEKLY" && (
+                  <div>
+                    <label className="text-xs text-zinc-500 mb-1 block">Wochentag</label>
+                    <select
+                      value={form.recurringDay}
+                      onChange={(e) => setForm({ ...form, recurringDay: e.target.value })}
+                      className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+                    >
+                      <option value="">Gleicher Wochentag</option>
+                      <option value="1">Montag</option>
+                      <option value="2">Dienstag</option>
+                      <option value="3">Mittwoch</option>
+                      <option value="4">Donnerstag</option>
+                      <option value="5">Freitag</option>
+                      <option value="6">Samstag</option>
+                      <option value="7">Sonntag</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Tag des Monats (nur bei MONTHLY) */}
+                {form.recurringInterval === "MONTHLY" && (
+                  <div>
+                    <label className="text-xs text-zinc-500 mb-1 block">Tag des Monats</label>
+                    <select
+                      value={form.recurringDay}
+                      onChange={(e) => setForm({ ...form, recurringDay: e.target.value })}
+                      className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+                    >
+                      <option value="">Gleicher Tag</option>
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                        <option key={d} value={d.toString()}>
+                          {d}.
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Enddatum */}
+                <div>
+                  <label className="text-xs text-zinc-500 mb-1 block">
+                    Enddatum (optional)
+                  </label>
+                  <input
+                    type="date"
+                    value={form.recurringEndDate}
+                    onChange={(e) => setForm({ ...form, recurringEndDate: e.target.value })}
+                    className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+                  />
+                  <p className="text-[10px] text-zinc-600 mt-1">
+                    Wenn leer, wiederholt sich der Task unbegrenzt.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ─── Abhängigkeiten (nur bei bestehendem Task) ─── */}

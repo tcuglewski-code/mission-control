@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
     const projectId = searchParams.get("projectId");
+    const recurringOnly = searchParams.get("recurring") === "true";
 
     // BUG FIX: Non-admins sehen NUR Tasks aus explizit freigegebenen Projekten.
     const accessFilter =
@@ -46,6 +47,7 @@ export async function GET(req: NextRequest) {
         ...accessFilter,
         ...(noSprint ? { sprintId: null } : sprintId === "null" ? { sprintId: null } : sprintId ? { sprintId } : {}),
         ...monthFilter,
+        ...(recurringOnly ? { recurring: true } : {}),
       },
       include: {
         project: { select: { id: true, name: true, color: true } },
@@ -90,6 +92,11 @@ export async function POST(req: NextRequest) {
       sprintId,
       milestoneId,
       sourceEmailId,
+      recurring,
+      recurringInterval,
+      recurringDay,
+      recurringEndDate,
+      parentTaskId,
     } = body;
 
     if (!title) {
@@ -111,6 +118,11 @@ export async function POST(req: NextRequest) {
         sprintId: sprintId || null,
         milestoneId: milestoneId || null,
         sourceEmailId: sourceEmailId || null,
+        recurring: recurring ?? false,
+        recurringInterval: recurringInterval || null,
+        recurringDay: recurringDay ?? null,
+        recurringEndDate: recurringEndDate ? new Date(recurringEndDate) : null,
+        parentTaskId: parentTaskId || null,
       },
       include: {
         project: { select: { id: true, name: true, color: true } },

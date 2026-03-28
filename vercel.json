@@ -11,6 +11,10 @@
     {
       "path": "/api/invoices/overdue-check",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/recurring/generate",
+      "schedule": "0 0 * * *"
     }
   ]
 }

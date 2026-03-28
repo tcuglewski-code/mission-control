@@ -24,6 +24,7 @@ export interface FilterState {
   milestoneId: string;
   dueDateFrom: string;
   dueDateTo: string;
+  recurring: string; // "true" | ""
 }
 
 export type SortField = "dueDate" | "priority" | "createdAt" | "updatedAt" | "title";
@@ -49,6 +50,7 @@ export const EMPTY_FILTERS: FilterState = {
   milestoneId: "",
   dueDateFrom: "",
   dueDateTo: "",
+  recurring: "",
 };
 
 export const DEFAULT_SORT: SortState = { field: "createdAt", direction: "desc" };
@@ -209,6 +211,8 @@ export function TaskFilter({
       badges.push({ key: "dueDateFrom", label: `Ab: ${filters.dueDateFrom}` });
     if (filters.dueDateTo)
       badges.push({ key: "dueDateTo", label: `Bis: ${filters.dueDateTo}` });
+    if (filters.recurring)
+      badges.push({ key: "recurring", label: "🔄 Wiederkehrend" });
     return badges;
   };
 
@@ -284,6 +288,18 @@ export function TaskFilter({
             </button>
           ))}
         </div>
+
+        {/* Wiederkehrend Quick-Filter */}
+        <button
+          onClick={() => setField("recurring", filters.recurring ? "" : "true")}
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition-colors ${
+            filters.recurring
+              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+              : "bg-[#1c1c1c] border-[#2a2a2a] text-zinc-400 hover:text-zinc-200 hover:border-[#3a3a3a]"
+          }`}
+        >
+          🔄 Wiederkehrend
+        </button>
 
         {/* Speichern */}
         {activeCount > 0 && (
@@ -425,6 +441,19 @@ export function TaskFilter({
                 onChange={(e) => setField("dueDateTo", e.target.value)}
                 className="w-full bg-[#252525] border border-[#3a3a3a] text-xs text-zinc-300 rounded-lg px-2.5 py-1.5 focus:outline-none hover:border-[#4a4a4a] [color-scheme:dark]"
               />
+            </div>
+
+            {/* Wiederkehrend */}
+            <div className="space-y-1">
+              <label className="text-[10px] text-zinc-500 uppercase tracking-wider">Typ</label>
+              <select
+                value={filters.recurring}
+                onChange={(e) => setField("recurring", e.target.value)}
+                className="w-full bg-[#252525] border border-[#3a3a3a] text-xs text-zinc-300 rounded-lg px-2.5 py-1.5 focus:outline-none hover:border-[#4a4a4a]"
+              >
+                <option value="">Alle Tasks</option>
+                <option value="true">🔄 Nur Wiederkehrende</option>
+              </select>
             </div>
           </div>
         </div>

@@ -8,6 +8,13 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum RecurringInterval {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
 model User {
   id             String   @id @default(cuid())
   name           String
@@ -79,11 +86,17 @@ model Task {
   dueDate          DateTime?
   startDate        DateTime?
   agentPrompt      String?
-  timeSpentSeconds Int       @default(0)
-  storyPoints      Int?
-  sourceEmailId    String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  timeSpentSeconds     Int       @default(0)
+  storyPoints          Int?
+  sourceEmailId        String?
+  // ─── Wiederkehrende Tasks ──────────────────────────────────────────────────
+  recurring            Boolean            @default(false)
+  recurringInterval    RecurringInterval?
+  recurringDay         Int?               // Wochentag 1-7 (Mo=1) oder Tag des Monats 1-31
+  recurringEndDate     DateTime?          // Wann endet die Wiederholung
+  parentTaskId         String?            // ID der Ursprungs-Task (bei erzeugten Kopien)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
   projectId   String?
   assigneeId  String?
   sprintId    String?

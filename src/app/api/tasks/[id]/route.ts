@@ -5,6 +5,7 @@ import { getSessionOrApiKey } from "@/lib/api-auth";
 import { hasPermission, PERMISSIONS } from "@/lib/permissions";
 import { logActivity } from "@/lib/audit";
 import { createNotification, getAuthUserIdByUserId } from "@/lib/notifications";
+import { calcNextDueDate, type RecurringIntervalType } from "@/lib/recurring";
 
 export async function GET(
   req: NextRequest,
@@ -64,6 +65,11 @@ async function updateTask(id: string, body: Record<string, unknown>) {
     milestoneId,
     timeSpentSeconds,
     storyPoints,
+    recurring,
+    recurringInterval,
+    recurringDay,
+    recurringEndDate,
+    parentTaskId,
   } = body as {
     title?: string;
     description?: string;
@@ -79,6 +85,11 @@ async function updateTask(id: string, body: Record<string, unknown>) {
     milestoneId?: string | null;
     timeSpentSeconds?: number;
     storyPoints?: number | null;
+    recurring?: boolean;
+    recurringInterval?: RecurringIntervalType | null;
+    recurringDay?: number | null;
+    recurringEndDate?: string | null;
+    parentTaskId?: string | null;
   };
 
   const task = await prisma.task.update({
@@ -98,6 +109,11 @@ async function updateTask(id: string, body: Record<string, unknown>) {
       ...(milestoneId !== undefined && { milestoneId: milestoneId || null }),
       ...(timeSpentSeconds !== undefined && { timeSpentSeconds }),
       ...(storyPoints !== undefined && { storyPoints: storyPoints ?? null }),
+      ...(recurring !== undefined && { recurring }),
+      ...(recurringInterval !== undefined && { recurringInterval: recurringInterval ?? null }),
+      ...(recurringDay !== undefined && { recurringDay: recurringDay ?? null }),
+      ...(recurringEndDate !== undefined && { recurringEndDate: recurringEndDate ? new Date(recurringEndDate) : null }),
+      ...(parentTaskId !== undefined && { parentTaskId: parentTaskId ?? null }),
     },
     include: {
       project: { select: { id: true, name: true, color: true } },
@@ -107,6 +123,63 @@ async function updateTask(id: string, body: Record<string, unknown>) {
       taskLabels: { include: { label: true } },
     },
   });
+
+  // ─── Auto-create nächste Instanz wenn wiederkehrend und abgeschlossen ─────
+  if (status === "done" && task.recurring && task.recurringInterval) {
+    // Prüfe ob Enddatum überschritten
+    const now = new Date();
+    const endDateOk = !task.recurringEndDate || task.recurringEndDate > now;
+
+    if (endDateOk) {
+      // Bestimme Root-Task-ID (parentTaskId falls vorhanden, sonst eigene ID)
+      const rootId = task.parentTaskId ?? task.id;
+
+      // Berechne nächstes Fälligkeitsdatum
+      const baseDue = task.dueDate ?? now;
+      const nextDue = calcNextDueDate(
+        baseDue,
+        task.recurringInterval as RecurringIntervalType,
+        task.recurringDay
+      );
+
+      // Prüfe ob bereits eine offene Instanz mit diesem Fälligkeitsdatum existiert
+      const startOfDay = new Date(nextDue);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(nextDue);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const existing = await prisma.task.findFirst({
+        where: {
+          parentTaskId: rootId,
+          status: { not: "done" },
+          dueDate: { gte: startOfDay, lte: endOfDay },
+        },
+      });
+
+      if (!existing) {
+        await prisma.task.create({
+          data: {
+            title: task.title,
+            description: task.description,
+            priority: task.priority,
+            status: "todo",
+            labels: task.labels,
+            agentPrompt: task.agentPrompt,
+            projectId: task.projectId,
+            assigneeId: task.assigneeId,
+            sprintId: task.sprintId,
+            milestoneId: task.milestoneId,
+            dueDate: nextDue,
+            recurring: task.recurring,
+            recurringInterval: task.recurringInterval,
+            recurringDay: task.recurringDay,
+            recurringEndDate: task.recurringEndDate,
+            parentTaskId: rootId,
+          },
+        });
+      }
+    }
+  }
 
   if (status !== undefined) {
     await prisma.activityLog.create({
