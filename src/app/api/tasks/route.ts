@@ -40,10 +40,12 @@ export async function GET(req: NextRequest) {
       monthFilter = { dueDate: { gte: start, lte: end } };
     }
 
+    const noProject = searchParams.get("noProject") === "true";
+
     const tasks = await prisma.task.findMany({
       where: {
         ...(status ? { status } : {}),
-        ...(projectId ? { projectId } : {}),
+        ...(noProject ? { projectId: null } : projectId ? { projectId } : {}),
         ...accessFilter,
         ...(noSprint ? { sprintId: null } : sprintId === "null" ? { sprintId: null } : sprintId ? { sprintId } : {}),
         ...monthFilter,

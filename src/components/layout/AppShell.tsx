@@ -1,6 +1,7 @@
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { BottomTabNav } from "./BottomTabNav";
+import { QuickCaptureFAB } from "./QuickCaptureFAB";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -25,6 +26,7 @@ export function AppShell({ children, title, subtitle, noScroll }: AppShellProps)
         </main>
       </div>
       <BottomTabNav />
+      <QuickCaptureFAB />
     </div>
   );
 }

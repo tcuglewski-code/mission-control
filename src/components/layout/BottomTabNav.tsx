@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, CheckSquare, FolderKanban, Bell } from "lucide-react";
+import { LayoutDashboard, CheckSquare, FolderKanban, Bell, Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/tasks", icon: CheckSquare, label: "Aufgaben" },
+  { href: "/task-inbox", icon: Inbox, label: "Inbox" },
   { href: "/projects", icon: FolderKanban, label: "Projekte" },
-  { href: "/inbox", icon: Bell, label: "Benachrichtigungen" },
+  { href: "/inbox", icon: Bell, label: "Nachrichten" },
 ];
 
 export function BottomTabNav() {
@@ -26,7 +27,7 @@ export function BottomTabNav() {
               key={tab.href}
               href={tab.href}
               className={cn(
-                "flex-1 flex flex-col items-center justify-center min-h-[56px] gap-1 text-[11px] font-medium transition-colors",
+                "flex-1 flex flex-col items-center justify-center min-h-[56px] gap-1 text-[10px] font-medium transition-colors",
                 isActive
                   ? "text-emerald-500"
                   : "text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white"

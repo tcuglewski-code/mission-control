@@ -15,9 +15,16 @@ const SHORTCUTS = [
     ],
   },
   {
-    category: "Tasks",
+    category: "Tasks & Erfassung",
     items: [
-      { keys: ["⌘", "⇧", "N"], label: "Neuen Task erstellen (Quick-Add)" },
+      { keys: ["Q"], label: "Quick-Capture öffnen (wenn kein Eingabefeld aktiv)" },
+      { keys: ["⌘", "⇧", "N"], label: "Neuen Task erstellen (Desktop)" },
+    ],
+  },
+  {
+    category: "Hilfe",
+    items: [
+      { keys: ["?"], label: "Tastenkürzel-Übersicht anzeigen" },
     ],
   },
 ];
@@ -31,17 +38,26 @@ function Key({ children }: { children: React.ReactNode }) {
 }
 
 export function KeyboardShortcutsModal() {
-  const { open, setOpen } = useKeyboardShortcutsModal();
+  const { open, setOpen, toggle } = useKeyboardShortcutsModal();
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // ? → Shortcuts-Overlay öffnen/schließen (nur wenn kein Input fokussiert)
+      if (e.key === "?" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const tag = (document.activeElement as HTMLElement)?.tagName?.toLowerCase();
+        if (tag !== "input" && tag !== "textarea" && tag !== "select") {
+          e.preventDefault();
+          toggle();
+          return;
+        }
+      }
       if (e.key === "Escape" && open) {
         setOpen(false);
       }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [open, setOpen]);
+  }, [open, setOpen, toggle]);
 
   if (!open) return null;
 
@@ -99,6 +115,10 @@ export function KeyboardShortcutsModal() {
               Drücke{" "}
               <kbd className="text-[10px] bg-[#2a2a2a] px-1 py-0.5 rounded text-zinc-500">
                 Esc
+              </kbd>{" "}
+              oder{" "}
+              <kbd className="text-[10px] bg-[#2a2a2a] px-1 py-0.5 rounded text-zinc-500">
+                ?
               </kbd>{" "}
               zum Schließen
             </p>
