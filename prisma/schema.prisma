@@ -88,6 +88,23 @@ model Task {
   comments    TaskComment[]
   events      Event[]
   timeEntries TimeEntry[]
+  taskLabels  TaskLabel[]
+}
+
+model Label {
+  id         String      @id @default(cuid())
+  name       String      @unique
+  color      String      @default("#6b7280")
+  createdAt  DateTime    @default(now())
+  taskLabels TaskLabel[]
+}
+
+model TaskLabel {
+  taskId  String
+  labelId String
+  task    Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label   Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
+  @@id([taskId, labelId])
 }
 
 model TimeEntry {

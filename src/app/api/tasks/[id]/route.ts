@@ -26,6 +26,7 @@ export async function GET(
         project: { select: { id: true, name: true, color: true } },
         assignee: { select: { id: true, name: true, avatar: true } },
         sprint: { select: { id: true, name: true } },
+        taskLabels: { include: { label: true } },
       },
     });
 
@@ -97,6 +98,7 @@ async function updateTask(id: string, body: Record<string, unknown>) {
       project: { select: { id: true, name: true, color: true } },
       assignee: { select: { id: true, name: true, avatar: true } },
       sprint: { select: { id: true, name: true } },
+      taskLabels: { include: { label: true } },
     },
   });
 

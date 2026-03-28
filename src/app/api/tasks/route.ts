@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
         project: { select: { id: true, name: true, color: true } },
         assignee: { select: { id: true, name: true, avatar: true } },
         sprint: { select: { id: true, name: true } },
+        taskLabels: { include: { label: true } },
       },
       orderBy: { createdAt: "desc" },
     });

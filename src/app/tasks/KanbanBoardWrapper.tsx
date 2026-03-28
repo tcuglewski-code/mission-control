@@ -3,9 +3,9 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { KanbanBoard } from "@/components/tasks/KanbanBoard";
 import { LiveActivityFeed } from "@/components/tasks/LiveActivityFeed";
-import { useAppStore, type Task, type Project, type User } from "@/store/useAppStore";
+import { useAppStore, type Task, type Project, type User, type Label } from "@/store/useAppStore";
 import { useTaskStream } from "@/hooks/useTaskStream";
-import { Sparkles, Wifi, WifiOff, X, FileUp, CheckCircle } from "lucide-react";
+import { Sparkles, Wifi, WifiOff, X, FileUp, CheckCircle, Tag } from "lucide-react";
 
 interface KanbanBoardWrapperProps {
   initialTasks: Task[];
@@ -382,6 +382,8 @@ export function KanbanBoardWrapper({ initialTasks, projects, users }: KanbanBoar
   const [view, setView] = useState<"kanban" | "sprint">("kanban");
   const [filterProject, setFilterProject] = useState<string>("");
   const [filterPriority, setFilterPriority] = useState<string>("");
+  const [filterLabel, setFilterLabel] = useState<string>("");
+  const [availableLabels, setAvailableLabels] = useState<Label[]>([]);
   const [zeigeKiModal, setZeigeKiModal] = useState(false);
   const [zeigeCsvModal, setZeigeCsvModal] = useState(false);
 
@@ -405,15 +407,25 @@ export function KanbanBoardWrapper({ initialTasks, projects, users }: KanbanBoar
     setUsers(users);
   }, []);
 
+  useEffect(() => {
+    fetch("/api/labels")
+      .then((r) => r.json())
+      .then((data: Label[]) => {
+        if (Array.isArray(data)) setAvailableLabels(data);
+      })
+      .catch(() => {});
+  }, []);
+
   const activeTasks = tasks.length > 0 ? tasks : initialTasks;
 
   const filteredTasks = useMemo(() => {
     return activeTasks.filter((t) => {
       if (filterProject && t.projectId !== filterProject) return false;
       if (filterPriority && t.priority !== filterPriority) return false;
+      if (filterLabel && !t.taskLabels?.some((tl) => tl.label.id === filterLabel)) return false;
       return true;
     });
-  }, [activeTasks, filterProject, filterPriority]);
+  }, [activeTasks, filterProject, filterPriority, filterLabel]);
 
   return (
     <>
@@ -493,9 +505,22 @@ export function KanbanBoardWrapper({ initialTasks, projects, users }: KanbanBoar
             ))}
           </select>
 
-          {(filterProject || filterPriority) && (
+          <select
+            value={filterLabel}
+            onChange={(e) => setFilterLabel(e.target.value)}
+            className="bg-[#1c1c1c] border border-[#2a2a2a] text-xs text-zinc-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#3a3a3a] hover:border-[#3a3a3a] transition-colors"
+          >
+            <option value="">Alle Labels</option>
+            {availableLabels.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+
+          {(filterProject || filterPriority || filterLabel) && (
             <button
-              onClick={() => { setFilterProject(""); setFilterPriority(""); }}
+              onClick={() => { setFilterProject(""); setFilterPriority(""); setFilterLabel(""); }}
               className="text-xs text-zinc-500 hover:text-zinc-300 px-2 py-1.5 rounded-lg hover:bg-[#1c1c1c] border border-transparent hover:border-[#2a2a2a] transition-colors"
             >
               ✕ Reset

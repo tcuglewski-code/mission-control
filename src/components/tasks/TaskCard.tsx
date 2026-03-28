@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { Calendar, AlertCircle, Play, Flag } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
-import { useAppStore, type Task } from "@/store/useAppStore";
+import { useAppStore, type Task, type Label } from "@/store/useAppStore";
 import { useState } from "react";
 
 interface TaskCardProps {
@@ -123,6 +123,29 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
             <Flag className="w-2.5 h-2.5" />
             {task.sprint.name}
           </span>
+        </div>
+      )}
+
+      {/* Label chips */}
+      {task.taskLabels && task.taskLabels.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-2 ml-4">
+          {task.taskLabels.map(({ label }: { label: Label }) => (
+            <span
+              key={label.id}
+              className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+              style={{
+                backgroundColor: `${label.color}25`,
+                color: label.color,
+                border: `1px solid ${label.color}40`,
+              }}
+            >
+              <span
+                className="w-1.5 h-1.5 rounded-full shrink-0"
+                style={{ backgroundColor: label.color }}
+              />
+              {label.name}
+            </span>
+          ))}
         </div>
       )}
 

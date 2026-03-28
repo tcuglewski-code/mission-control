@@ -123,13 +123,14 @@ export function KanbanBoard({ projects, users, filteredTasks }: KanbanBoardProps
     }
   };
 
-  const handleSaveTask = async (data: Partial<Task>) => {
+  const handleSaveTask = async (data: Partial<Task> & { _labelIds?: string[] }) => {
+    const { _labelIds, ...taskData } = data;
     if (editingTask && editingTask.id) {
       // Update
       const res = await fetch(`/api/tasks/${editingTask.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(taskData),
       });
       if (res.ok) {
         const updated = await res.json();
@@ -140,11 +141,27 @@ export function KanbanBoard({ projects, users, filteredTasks }: KanbanBoardProps
       const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, status: newTaskStatus }),
+        body: JSON.stringify({ ...taskData, status: newTaskStatus }),
       });
       if (res.ok) {
         const created = await res.json();
-        setTasks([...tasks, created]);
+        // Assign labels to new task
+        if (_labelIds && _labelIds.length > 0) {
+          await Promise.all(
+            _labelIds.map((labelId) =>
+              fetch(`/api/tasks/${created.id}/labels`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ labelId }),
+              })
+            )
+          );
+          // Reload task with labels
+          const refreshed = await fetch(`/api/tasks/${created.id}`).then((r) => r.json());
+          setTasks([...tasks, refreshed]);
+        } else {
+          setTasks([...tasks, created]);
+        }
       }
     }
   };

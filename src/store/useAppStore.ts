@@ -17,6 +17,12 @@ export interface Sprint {
   tasks?: { id: string; status: string; title: string }[];
 }
 
+export interface Label {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -36,6 +42,7 @@ export interface Task {
   project?: { id: string; name: string; color: string } | null;
   assignee?: { id: string; name: string; avatar?: string | null } | null;
   sprint?: { id: string; name: string } | null;
+  taskLabels?: { label: Label }[] | null;
 }
 
 export interface Project {

@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, Trash2, MessageSquare, Send } from "lucide-react";
+import { X, Trash2, MessageSquare, Send, Tag } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
-import type { Task, Project, User, Sprint } from "@/store/useAppStore";
+import type { Task, Project, User, Sprint, Label } from "@/store/useAppStore";
 import { TaskTimer } from "./TaskTimer";
 
 interface TaskComment {
@@ -49,6 +49,9 @@ export function TaskModal({
   });
   const [loading, setLoading] = useState(false);
   const [sprints, setSprints] = useState<Sprint[]>([]);
+  const [availableLabels, setAvailableLabels] = useState<Label[]>([]);
+  const [selectedLabelIds, setSelectedLabelIds] = useState<Set<string>>(new Set());
+  const [labelDropdownOpen, setLabelDropdownOpen] = useState(false);
 
   // Kommentar-State
   const [comments, setComments] = useState<TaskComment[]>([]);
@@ -64,6 +67,14 @@ export function TaskModal({
       .then((r) => r.json())
       .then((data: Sprint[]) => {
         if (Array.isArray(data)) setSprints(data);
+      })
+      .catch(() => {});
+
+    // Load available labels
+    fetch("/api/labels")
+      .then((r) => r.json())
+      .then((data: Label[]) => {
+        if (Array.isArray(data)) setAvailableLabels(data);
       })
       .catch(() => {});
   }, []);
@@ -139,8 +150,38 @@ export function TaskModal({
         assigneeId: task.assigneeId ?? "",
         sprintId: task.sprintId ?? "",
       });
+      // Load existing task labels
+      if (task.taskLabels) {
+        setSelectedLabelIds(new Set(task.taskLabels.map((tl) => tl.label.id)));
+      } else {
+        setSelectedLabelIds(new Set());
+      }
+    } else {
+      setSelectedLabelIds(new Set());
     }
   }, [task]);
+
+  const handleToggleLabel = async (labelId: string) => {
+    const newSet = new Set(selectedLabelIds);
+    if (newSet.has(labelId)) {
+      newSet.delete(labelId);
+      // If editing existing task, remove via API
+      if (task?.id) {
+        await fetch(`/api/tasks/${task.id}/labels/${labelId}`, { method: "DELETE" }).catch(() => {});
+      }
+    } else {
+      newSet.add(labelId);
+      // If editing existing task, add via API
+      if (task?.id) {
+        await fetch(`/api/tasks/${task.id}/labels`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ labelId }),
+        }).catch(() => {});
+      }
+    }
+    setSelectedLabelIds(newSet);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,7 +196,9 @@ export function TaskModal({
         projectId: form.projectId || null,
         assigneeId: form.assigneeId || null,
         sprintId: form.sprintId || null,
-      });
+        // Pass selected label IDs for new tasks (handled by caller)
+        _labelIds: Array.from(selectedLabelIds),
+      } as Partial<Task> & { _labelIds: string[] });
       onClose();
     } finally {
       setLoading(false);
@@ -291,27 +334,88 @@ export function TaskModal({
             </select>
           </div>
 
-          {/* Labels + DueDate + StartDate */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-zinc-400 mb-1 block">Labels</label>
-              <input
-                type="text"
-                value={form.labels}
-                onChange={(e) => setForm({ ...form, labels: e.target.value })}
-                placeholder="frontend,api,bug"
-                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50"
-              />
+          {/* Labels */}
+          <div>
+            <label className="text-xs text-zinc-400 mb-1 block flex items-center gap-1">
+              <Tag className="w-3 h-3" /> Labels
+            </label>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setLabelDropdownOpen((v) => !v)}
+                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-left focus:outline-none focus:border-emerald-500/50 flex items-center gap-2 flex-wrap min-h-[38px]"
+              >
+                {selectedLabelIds.size === 0 ? (
+                  <span className="text-zinc-600">Labels auswählen...</span>
+                ) : (
+                  availableLabels
+                    .filter((l) => selectedLabelIds.has(l.id))
+                    .map((label) => (
+                      <span
+                        key={label.id}
+                        className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full font-medium"
+                        style={{
+                          backgroundColor: `${label.color}25`,
+                          color: label.color,
+                          border: `1px solid ${label.color}40`,
+                        }}
+                      >
+                        <span
+                          className="w-1.5 h-1.5 rounded-full"
+                          style={{ backgroundColor: label.color }}
+                        />
+                        {label.name}
+                      </span>
+                    ))
+                )}
+              </button>
+              {labelDropdownOpen && (
+                <div className="absolute z-20 top-full left-0 mt-1 w-full bg-[#1c1c1c] border border-[#3a3a3a] rounded-lg shadow-xl overflow-hidden">
+                  {availableLabels.length === 0 ? (
+                    <div className="px-3 py-2 text-xs text-zinc-500">Keine Labels vorhanden</div>
+                  ) : (
+                    availableLabels.map((label) => {
+                      const selected = selectedLabelIds.has(label.id);
+                      return (
+                        <button
+                          key={label.id}
+                          type="button"
+                          onClick={() => handleToggleLabel(label.id)}
+                          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-[#252525] text-left transition-colors"
+                        >
+                          <span
+                            className="w-3 h-3 rounded-full shrink-0"
+                            style={{ backgroundColor: label.color }}
+                          />
+                          <span className="text-sm text-white flex-1">{label.name}</span>
+                          {selected && (
+                            <span className="text-emerald-400 text-xs">✓</span>
+                          )}
+                        </button>
+                      );
+                    })
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setLabelDropdownOpen(false)}
+                    className="w-full px-3 py-2 text-xs text-zinc-500 hover:bg-[#252525] text-right border-t border-[#2a2a2a]"
+                  >
+                    Schließen
+                  </button>
+                </div>
+              )}
             </div>
-            <div>
-              <label className="text-xs text-zinc-400 mb-1 block">Fällig am</label>
-              <input
-                type="date"
-                value={form.dueDate}
-                onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
-              />
-            </div>
+          </div>
+
+          {/* DueDate */}
+          <div>
+            <label className="text-xs text-zinc-400 mb-1 block">Fällig am</label>
+            <input
+              type="date"
+              value={form.dueDate}
+              onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+            />
           </div>
 
           {/* Start Date */}
