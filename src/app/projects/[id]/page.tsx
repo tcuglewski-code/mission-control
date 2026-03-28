@@ -4,13 +4,16 @@ import { AppShell } from "@/components/layout/AppShell";
 import Link from "next/link";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { ChevronLeft, CheckSquare, Users, FileText, Activity, Globe, Github, ExternalLink, Smartphone, Download, Flag, Target } from "lucide-react";
+import { ChevronLeft, CheckSquare, Users, FileText, Activity, Globe, Github, ExternalLink, Smartphone, Download, Flag, Target, BarChart2 } from "lucide-react";
 import { getStatusBg, getStatusLabel, formatRelativeTime, getActionLabel, getEntityTypeLabel, getInitials } from "@/lib/utils";
 import { requireServerSession, getAllowedProjectIds } from "@/lib/server-auth";
 import { LivingDescription } from "@/components/projects/LivingDescription";
 import { BudgetCard } from "@/components/projects/BudgetCard";
 import { ProjectPDFButton } from "@/components/projects/ProjectPDFButtonWrapper";
 import { MilestoneList } from "@/components/milestones/MilestoneList";
+import { ProjectStatusBanner } from "@/components/projects/ProjectStatusBanner";
+import { HealthScoreBadge } from "@/components/projects/HealthScoreBadge";
+import { calculateHealthScore } from "@/lib/health-score";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -117,6 +120,30 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   };
 
   const today = new Date();
+
+  // Health Score
+  const hasActiveSprint = false; // sprints not loaded here — add if needed
+  const lastLog = project.logs[0];
+  const healthScore = calculateHealthScore({
+    tasks: project.tasks,
+    hasActiveSprint,
+    lastActivityAt: lastLog?.createdAt ?? null,
+  });
+
+  // Status Banner Daten
+  const openTasksCount =
+    project.tasks.filter(
+      (t) => t.status === "todo" || t.status === "backlog" || t.status === "in_progress" || t.status === "in_review"
+    ).length;
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+  const dueTodayCount = project.tasks.filter(
+    (t) =>
+      t.dueDate &&
+      new Date(t.dueDate) >= todayStart &&
+      new Date(t.dueDate) <= todayEnd &&
+      t.status !== "done"
+  ).length;
   const nextMilestone = project.milestones.find(
     (m) => m.status !== "completed" && m.status !== "cancelled" && m.dueDate && new Date(m.dueDate) >= today
   );
@@ -215,6 +242,14 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                 <Flag className="w-3.5 h-3.5" />
                 Sprints
               </Link>
+              {/* Status-Report */}
+              <Link
+                href={`/projects/${project.id}/report`}
+                className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded hover:bg-blue-500/10 border border-blue-500/20 transition-colors"
+              >
+                <BarChart2 className="w-3.5 h-3.5" />
+                Status-Report
+              </Link>
               {/* HTML-Report im Browser öffnen */}
               <a
                 href={`/api/projects/${project.id}/pdf`}
@@ -223,7 +258,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                 className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white px-2 py-1 rounded hover:bg-[#252525] border border-[#2a2a2a] transition-colors"
               >
                 <Download className="w-3.5 h-3.5" />
-                Report exportieren
+                Export
               </a>
               {/* PDF direkt herunterladen (React PDF) */}
               <ProjectPDFButton
@@ -231,6 +266,18 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                 projectName={project.name}
               />
             </div>
+          </div>
+
+          {/* Health Score + Status Banner */}
+          <div className="mb-4 flex flex-col gap-2">
+            <HealthScoreBadge score={healthScore} />
+            <ProjectStatusBanner
+              projectId={project.id}
+              openTasks={openTasksCount}
+              inSprintTasks={0}
+              dueTodayTasks={dueTodayCount}
+              lastActivityAt={lastLog?.createdAt ?? null}
+            />
           </div>
 
           {/* Progress */}

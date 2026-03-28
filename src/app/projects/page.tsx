@@ -4,6 +4,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { ProjectsClient } from "./ProjectsClient";
 import { redirect } from "next/navigation";
 import { hasPermission, PERMISSIONS } from "@/lib/permissions";
+import { calculateHealthScore } from "@/lib/health-score";
 
 export default async function ProjectsPage() {
   // Auth check — load session and user fresh from DB
@@ -39,6 +40,17 @@ export default async function ProjectsPage() {
         include: { user: { select: { id: true, name: true, avatar: true } } },
         take: 5,
       },
+      tasks: {
+        select: { status: true, priority: true, dueDate: true, updatedAt: true, createdAt: true },
+      },
+      sprints: {
+        select: { status: true },
+      },
+      logs: {
+        select: { createdAt: true },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+      },
     },
     orderBy: [
       { archived: "asc" },   // aktive zuerst
@@ -46,10 +58,22 @@ export default async function ProjectsPage() {
     ],
   });
 
+  // Health Scores berechnen
+  const projectsWithHealth = projects.map((p) => {
+    const hasActiveSprint = p.sprints.some((s) => s.status === "active");
+    const lastActivity = p.logs[0]?.createdAt ?? null;
+    const healthScore = calculateHealthScore({
+      tasks: p.tasks,
+      hasActiveSprint,
+      lastActivityAt: lastActivity,
+    });
+    return { ...p, healthScore };
+  });
+
   return (
     <AppShell title="Projekte" subtitle="Alle Projekte">
       <div className="p-6">
-        <ProjectsClient initialProjects={projects} />
+        <ProjectsClient initialProjects={projectsWithHealth as any} />
       </div>
     </AppShell>
   );

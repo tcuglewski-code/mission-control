@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { Globe, Github } from "lucide-react";
 import { getStatusBg, getStatusLabel, getPriorityColor, getPriorityLabel, getInitials } from "@/lib/utils";
+import { HealthScoreBadge } from "@/components/projects/HealthScoreBadge";
 
 interface ProjectCardProps {
   project: {
@@ -18,6 +19,7 @@ interface ProjectCardProps {
     liveUrl?: string | null;
     createdAt: Date;
     updatedAt: Date;
+    healthScore?: number;
     _count?: { tasks: number; members: number };
     members?: { user: { id: string; name: string; avatar?: string | null } }[];
   };
@@ -112,9 +114,14 @@ export function ProjectCard({ project }: ProjectCardProps) {
               {project._count?.tasks ?? 0} Tasks
             </span>
           </div>
-          <span className="text-[11px] text-zinc-600">
-            {format(new Date(project.updatedAt), "d. MMM", { locale: de })}
-          </span>
+          <div className="flex items-center gap-2">
+            {project.healthScore !== undefined && (
+              <HealthScoreBadge score={project.healthScore} size="sm" />
+            )}
+            <span className="text-[11px] text-zinc-600">
+              {format(new Date(project.updatedAt), "d. MMM", { locale: de })}
+            </span>
+          </div>
         </div>
       </div>
     </Link>
