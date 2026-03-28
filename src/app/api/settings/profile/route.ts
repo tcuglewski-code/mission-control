@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
     notifPush: (user as any).notifPush ?? false,
     theme: (user as any).theme ?? "system",
     compact: (user as any).compact ?? false,
+    hourlyRate: (user as any).hourlyRate ?? 0,
     createdAt: user.createdAt,
   });
 }
@@ -85,6 +86,11 @@ export async function PATCH(req: NextRequest) {
     updateData.compact = Boolean(compact);
   }
 
+  const { hourlyRate } = body;
+  if (hourlyRate !== undefined) {
+    updateData.hourlyRate = Math.max(0, Number(hourlyRate) || 0);
+  }
+
   try {
     const updated = await prisma.authUser.update({
       where: { id: session.id },
@@ -101,6 +107,7 @@ export async function PATCH(req: NextRequest) {
       notifPush: (updated as any).notifPush ?? false,
       theme: (updated as any).theme ?? "system",
       compact: (updated as any).compact ?? false,
+      hourlyRate: (updated as any).hourlyRate ?? 0,
     });
   } catch (e) {
     console.error("[settings/profile] PATCH error:", e);

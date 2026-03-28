@@ -18,6 +18,7 @@ import { BudgetUebersichtWidget } from "./widgets/BudgetUebersichtWidget";
 import { AktuellerSprintWidget } from "./widgets/AktuellerSprintWidget";
 import { ZuletztBesuchtWidget } from "./widgets/ZuletztBesuchtWidget";
 import { LiveFeedWidget } from "./widgets/LiveFeedWidget";
+import { ProjektBudgetsWidget } from "./widgets/ProjektBudgetsWidget";
 
 // --- Shared types (serialized from server) ---
 
@@ -149,6 +150,8 @@ export function DashboardClient({
         return <ZuletztBesuchtWidget />;
       case "live-feed":
         return <LiveFeedWidget />;
+      case "projekt-budgets":
+        return <ProjektBudgetsWidget />;
       default:
         return null;
     }

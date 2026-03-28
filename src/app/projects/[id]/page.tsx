@@ -4,7 +4,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import Link from "next/link";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { ChevronLeft, CheckSquare, Users, FileText, FolderArchive, Globe, Github, ExternalLink, Smartphone, Download, Flag, Target, BarChart2, Clock, Settings, Share2 } from "lucide-react";
+import { ChevronLeft, CheckSquare, Users, FileText, FolderArchive, Globe, Github, ExternalLink, Smartphone, Download, Flag, Target, BarChart2, Clock, Settings, Share2, Wallet } from "lucide-react";
 import { SaveAsTemplateButton } from "@/components/projects/SaveAsTemplateButton";
 import { ProjectActivityWidget } from "@/components/projects/ProjectActivityWidget";
 import { AiProjectSummary } from "@/components/projects/AiProjectSummary";
@@ -298,6 +298,14 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               >
                 <Clock className="w-3.5 h-3.5" />
                 Zeiterfassung
+              </Link>
+              {/* Kostenplanung */}
+              <Link
+                href={`/projects/${project.id}/costs`}
+                className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 px-2 py-1 rounded hover:bg-emerald-500/10 border border-emerald-500/20 transition-colors"
+              >
+                <Wallet className="w-3.5 h-3.5" />
+                Kosten
               </Link>
               {/* HTML-Report im Browser öffnen */}
               <a

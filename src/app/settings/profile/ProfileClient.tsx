@@ -69,6 +69,7 @@ export function ProfileClient() {
   // Profil form
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
+  const [editHourlyRate, setEditHourlyRate] = useState<string>("0");
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMsg, setProfileMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
@@ -122,6 +123,7 @@ export function ProfileClient() {
         setProfile(data);
         setEditName(data.username);
         setEditEmail(data.email ?? "");
+        setEditHourlyRate(String((data as ProfileData & { hourlyRate?: number }).hourlyRate ?? 0));
         setNotifEmail(data.notifEmailDigest);
         setNotifPush(data.notifPush);
       }
@@ -148,7 +150,7 @@ export function ProfileClient() {
       const res = await fetch("/api/settings/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: editName, email: editEmail || null }),
+        body: JSON.stringify({ username: editName, email: editEmail || null, hourlyRate: parseFloat(editHourlyRate) || 0 }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -391,6 +393,25 @@ export function ProfileClient() {
                 className="w-full bg-gray-50 dark:bg-[#1c1c1c] border border-gray-200 dark:border-[#2a2a2a] rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500/50 transition-colors"
                 placeholder="name@example.com"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-zinc-500 mb-1.5">
+                Stundensatz (€/h)
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-zinc-400">€</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={editHourlyRate}
+                  onChange={(e) => setEditHourlyRate(e.target.value)}
+                  className="w-28 bg-gray-50 dark:bg-[#1c1c1c] border border-gray-200 dark:border-[#2a2a2a] rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500/50 transition-colors"
+                  placeholder="0"
+                />
+                <span className="text-xs text-zinc-500">pro Stunde — für Personalkosten-Kalkulation</span>
+              </div>
             </div>
 
             <div>

@@ -25,6 +25,7 @@ model User {
   tools          String?  // JSON array of tool names
   skills         String?  // JSON array of skill names
   weeklyCapacity Int      @default(40) // Wochenkapazität in Stunden
+  hourlyRate     Float    @default(0)  // Stundensatz in € für Personalkosten-Kalkulation
   createdAt      DateTime @default(now())
   tasks          Task[]
   projects       ProjectMember[]
@@ -66,6 +67,7 @@ model Project {
   webhooks   Webhook[]
   invoices   Invoice[]
   favorites  ProjectFavorite[]
+  costs      ProjectCost[]
 }
 
 model ProjectMember {
@@ -377,6 +379,7 @@ model AuthUser {
   tourComplete       Boolean @default(false)
   theme              String  @default("system") // "light" | "dark" | "wald" | "system"
   compact            Boolean @default(false)    // Kompaktmodus
+  hourlyRate         Float   @default(0)        // Stundensatz in € für Personalkosten
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   notifications Notification[]
@@ -687,6 +690,19 @@ model ProjectReportSchedule {
   active    Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+}
+
+// ─── Projekt-Kosten (Sprint GS) ───────────────────────────────────────────────
+model ProjectCost {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  category    String   @default("Sonstiges") // "Material" | "Personal" | "Fahrtkosten" | "Sonstiges"
+  amount      Float
+  description String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 // ─── Gespeicherte Ansichten (Sprint FZ) ───────────────────────────────────────

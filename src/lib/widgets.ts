@@ -90,6 +90,13 @@ export const AVAILABLE_WIDGETS: WidgetDefinition[] = [
     defaultOrder: 10,
     description: "Letzte 5 Team-Aktionen in Echtzeit (30s Auto-Update)",
   },
+  {
+    id: "projekt-budgets",
+    title: "Projekt-Budgets",
+    defaultVisible: true,
+    defaultOrder: 11,
+    description: "Top 5 Projekte nach Budget-Auslastung — Warnung bei >80% / >100%",
+  },
 ];
 
 export const WIDGET_CONFIG_KEY = "mc_dashboard_widget_config";
