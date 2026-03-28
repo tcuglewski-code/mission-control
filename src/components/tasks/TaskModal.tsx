@@ -537,8 +537,13 @@ export function TaskModal({
 
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center sm:justify-center sm:p-4">
-      <div className="bg-[#1c1c1c] border border-[#2a2a2a] sm:rounded-xl w-full sm:max-w-lg shadow-2xl h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#2a2a2a] sticky top-0 bg-[#1c1c1c] z-10">
+      <div className="bg-[#1c1c1c] border border-[#2a2a2a] sm:rounded-xl w-full sm:max-w-lg shadow-2xl sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-2xl animate-slide-up sm:animate-none
+        h-[95dvh] sm:h-auto max-h-[95dvh] sm:max-h-[90vh]">
+        {/* Mobile Drag-Handle */}
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+          <div className="w-10 h-1 bg-zinc-600 rounded-full" />
+        </div>
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-[#2a2a2a] sticky top-0 bg-[#1c1c1c] z-10">
           <div className="flex items-center gap-3">
             <h2 className="text-sm font-semibold text-white">
               {task ? "Task bearbeiten" : "Neuer Task"}
@@ -551,7 +556,7 @@ export function TaskModal({
           </div>
           <button
             onClick={onClose}
-            className="text-zinc-500 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-[#252525] transition-colors"
+            className="text-zinc-400 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-[#252525] bg-[#252525] sm:bg-transparent transition-colors border border-[#3a3a3a] sm:border-transparent"
             aria-label="Schließen"
           >
             <X className="w-5 h-5" />

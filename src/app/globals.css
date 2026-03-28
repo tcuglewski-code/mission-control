@@ -244,3 +244,28 @@ select:focus-visible {
 .dark a:focus-visible {
   outline-color: hsl(142, 76%, 50%);
 }
+
+/* ─── Mobile Sheet-Animation (von unten einschwingen) ──────────────────── */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes slideDown {
+  from { transform: translateY(0);    opacity: 1; }
+  to   { transform: translateY(100%); opacity: 0; }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+/* ─── Swipe-Aktionen auf TaskCards ─────────────────────────────────────── */
+.swipe-hint-done {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+.swipe-hint-delete {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.4);
+}

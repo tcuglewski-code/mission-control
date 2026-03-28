@@ -160,8 +160,8 @@ function ColumnManagerModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl w-full max-w-lg shadow-2xl max-h-[80vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center sm:justify-center sm:p-4">
+      <div className="bg-[#1c1c1c] border border-[#2a2a2a] sm:rounded-xl rounded-t-2xl w-full sm:max-w-lg shadow-2xl max-h-[85vh] sm:max-h-[80vh] flex flex-col animate-slide-up sm:animate-none">
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#2a2a2a]">
           <div className="flex items-center gap-2">
             <Settings2 className="w-4 h-4 text-zinc-400" />

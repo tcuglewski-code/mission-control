@@ -5,7 +5,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import {
-  Calendar, AlertCircle, Play, Flag, Target, RefreshCw, Hash, ShieldAlert, Zap, Check,
+  Calendar, AlertCircle, Play, Flag, Target, RefreshCw, Hash, ShieldAlert, Zap, Check, CheckCheck, Trash2,
 } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 import { useAppStore, type Task, type Label } from "@/store/useAppStore";
@@ -78,6 +78,60 @@ export function TaskCard({
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Swipe-Gesten (Mobile) ─────────────────────────────────────────────────
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const [swipeDelta, setSwipeDelta] = useState(0);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const dx = e.touches[0].clientX - touchStartX.current;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    // Nur horizontales Swipe verarbeiten
+    if (Math.abs(dy) > Math.abs(dx)) return;
+    if (Math.abs(dx) > 10) {
+      e.preventDefault();
+      setSwipeDelta(Math.max(-120, Math.min(120, dx)));
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(async () => {
+    if (swipeDelta > 80) {
+      // Swipe Right → Als erledigt markieren
+      setSwipeDelta(0);
+      updateTaskStatus(task.id, "done");
+      try {
+        await fetch(`/api/tasks/${task.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "done" }),
+        });
+      } catch { /* rollback */ updateTaskStatus(task.id, task.status); }
+    } else if (swipeDelta < -80) {
+      // Swipe Left → Löschen-Bestätigung
+      setSwipeDelta(0);
+      setShowDeleteConfirm(true);
+    } else {
+      setSwipeDelta(0);
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  }, [swipeDelta, task.id, task.status, updateTaskStatus]);
+
+  const handleConfirmDelete = async () => {
+    setShowDeleteConfirm(false);
+    try {
+      await fetch(`/api/tasks/${task.id}`, { method: "DELETE" });
+      setTasks(tasks.filter((t) => t.id !== task.id));
+    } catch { /* ignore */ }
+  };
 
   const {
     attributes,
@@ -236,16 +290,62 @@ export function TaskCard({
     }
   }, [task.id, task.status, updateTaskStatus, onInlineSave]);
 
+  // Swipe-Hinweis-Klasse
+  const swipeClass =
+    swipeDelta > 40 ? "swipe-hint-done" :
+    swipeDelta < -40 ? "swipe-hint-delete" : "";
+
   return (
+    <>
+    {/* Löschen-Bestätigung (Mobile Swipe-Left) */}
+    {showDeleteConfirm && (
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4"
+        onClick={() => setShowDeleteConfirm(false)}>
+        <div className="bg-[#1c1c1c] border border-red-500/30 rounded-xl p-6 w-full max-w-sm shadow-2xl animate-slide-up sm:animate-none"
+          onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-3 mb-4">
+            <Trash2 className="w-5 h-5 text-red-400" />
+            <h3 className="text-white font-semibold">Task löschen?</h3>
+          </div>
+          <p className="text-sm text-zinc-400 mb-5">
+            „{task.title}" wird unwiderruflich gelöscht.
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowDeleteConfirm(false)}
+              className="flex-1 py-2.5 text-sm text-zinc-300 bg-[#252525] hover:bg-[#303030] rounded-lg transition-colors"
+            >
+              Abbrechen
+            </button>
+            <button
+              onClick={handleConfirmDelete}
+              className="flex-1 py-2.5 text-sm text-white bg-red-600 hover:bg-red-500 rounded-lg transition-colors font-medium"
+            >
+              Löschen
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     <div
       ref={setNodeRef}
-      style={style}
+      style={{
+        ...style,
+        transform: swipeDelta !== 0
+          ? `${CSS.Transform.toString(transform) ?? ""} translateX(${swipeDelta}px)`
+          : CSS.Transform.toString(transform) ?? undefined,
+        transition: swipeDelta !== 0 ? "none" : transition,
+      }}
       {...attributes}
       {...(editingTitle || editingDate || statusDropdownOpen ? {} : listeners)}
       onClick={editingTitle || editingDate || statusDropdownOpen ? undefined : onClick}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       className={cn(
         "relative bg-[#1c1c1c] border rounded-lg p-3 cursor-pointer",
         "hover:border-[#3a3a3a] transition-colors group select-none",
+        swipeClass,
         isBlocked
           ? "border-red-500/40 bg-red-950/10"
           : selected
@@ -254,6 +354,17 @@ export function TaskCard({
         isDragging && "opacity-50 rotate-1 shadow-xl shadow-black/50 z-50"
       )}
     >
+      {/* Swipe-Indikatoren */}
+      {swipeDelta > 40 && (
+        <div className="absolute inset-y-0 left-2 flex items-center pointer-events-none">
+          <CheckCheck className="w-5 h-5 text-emerald-400 opacity-80" />
+        </div>
+      )}
+      {swipeDelta < -40 && (
+        <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+          <Trash2 className="w-5 h-5 text-red-400 opacity-80" />
+        </div>
+      )}
       {/* Hover-Vorschau Tooltip */}
       {descSnippet && !editingTitle && (
         <div className="absolute bottom-full left-0 right-0 mb-1.5 z-50 hidden group-hover:block pointer-events-none">
@@ -576,5 +687,6 @@ export function TaskCard({
         ) : null}
       </div>
     </div>
+    </>
   );
 }

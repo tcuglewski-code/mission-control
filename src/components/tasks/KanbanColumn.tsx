@@ -40,7 +40,7 @@ export function KanbanColumn({
   const isWipWarning = wipLimit != null && tasks.length === wipLimit;
 
   return (
-    <div className="flex flex-col min-w-[280px] max-w-[280px]">
+    <div className="flex flex-col min-w-[280px] w-[80vw] sm:w-auto sm:max-w-[280px]">
       {/* Column header */}
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-2">
@@ -70,11 +70,13 @@ export function KanbanColumn({
             />
           )}
         </div>
+        {/* Touch-optimierter + Button (min 44px) */}
         <button
           onClick={onAddTask}
-          className="text-zinc-600 hover:text-zinc-300 p-1 rounded hover:bg-[#252525] transition-colors"
+          className="text-zinc-500 hover:text-emerald-400 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-[#252525] transition-colors"
+          title="Task hinzufügen"
         >
-          <Plus className="w-3.5 h-3.5" />
+          <Plus className="w-4 h-4" />
         </button>
       </div>
 

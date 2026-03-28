@@ -845,108 +845,176 @@ export default function FinanceDashboardPage() {
           {filteredInvoices.length === 0 ? (
             <div className="p-8 text-center text-zinc-500 text-sm">Keine Rechnungen gefunden.</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-zinc-800">
-                    <th className="px-4 py-3 text-left">
-                      <button onClick={toggleSelectAll} className="text-zinc-500 hover:text-white transition-colors">
-                        {allEligibleSelected ? <CheckSquare className="w-4 h-4 text-emerald-400" /> : <Square className="w-4 h-4" />}
-                      </button>
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">Nummer</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">Projekt</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">Kunde</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500">Betrag</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500">Bezahlt</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-zinc-500">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">Fällig</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-zinc-500">Aktionen</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-800">
-                  {filteredInvoices.map((inv) => {
-                    const isEligible = ["OPEN", "SENT", "OVERDUE", "PARTIAL"].includes(inv.status);
-                    const isSelected = selectedIds.has(inv.id);
-                    const canDunning = inv.status === "OVERDUE" && (inv.dunningLevel ?? 0) < 3;
-                    const totalPaid = inv.paymentAmount ?? 0;
-                    return (
-                      <tr key={inv.id} className={`hover:bg-zinc-900/50 transition-colors ${isSelected ? "bg-emerald-900/10" : ""}`}>
-                        <td className="px-4 py-3">
-                          {isEligible ? (
-                            <button onClick={() => toggleSelect(inv.id)} className="text-zinc-500 hover:text-white transition-colors">
+            <>
+              {/* ── Mobile Card-Ansicht (< sm) ─────────────────────────────── */}
+              <div className="sm:hidden divide-y divide-zinc-800">
+                {filteredInvoices.map((inv) => {
+                  const isEligible = ["OPEN", "SENT", "OVERDUE", "PARTIAL"].includes(inv.status);
+                  const isSelected = selectedIds.has(inv.id);
+                  const canDunning = inv.status === "OVERDUE" && (inv.dunningLevel ?? 0) < 3;
+                  const totalPaid = inv.paymentAmount ?? 0;
+                  return (
+                    <div key={inv.id} className={`p-4 ${isSelected ? "bg-emerald-900/10" : ""}`}>
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {isEligible && (
+                            <button onClick={() => toggleSelect(inv.id)} className="text-zinc-500 shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center -ml-3">
                               {isSelected ? <CheckSquare className="w-4 h-4 text-emerald-400" /> : <Square className="w-4 h-4" />}
                             </button>
-                          ) : <span className="w-4 h-4 block" />}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-mono text-xs text-zinc-300">{inv.number}</span>
-                            {(inv.dunningLevel ?? 0) > 0 && <DunningBadge level={inv.dunningLevel} />}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Link href={`/projects/${inv.project.id}/finance`}
-                            className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-white transition-colors max-w-[140px]">
-                            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: inv.project.color }} />
-                            <span className="truncate">{inv.project.name}</span>
-                          </Link>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-zinc-500 max-w-[120px] truncate">
-                          {inv.clientName ?? <span className="text-zinc-700">—</span>}
-                        </td>
-                        <td className="px-4 py-3 text-right font-mono font-semibold text-zinc-200 whitespace-nowrap">
-                          {formatEur(inv.amount)}
-                        </td>
-                        <td className="px-4 py-3 text-right font-mono text-xs whitespace-nowrap">
-                          {totalPaid > 0 ? (
-                            <span className="text-emerald-400">{formatEur(totalPaid)}</span>
-                          ) : (
-                            <span className="text-zinc-700">—</span>
                           )}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <StatusBadge status={inv.status} />
-                        </td>
-                        <td className="px-4 py-3 text-xs text-zinc-400 whitespace-nowrap">
-                          {new Date(inv.dueDate).toLocaleDateString("de-DE")}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center justify-center gap-1">
-                            <Link href={`/invoices/${inv.id}/pdf`} title="PDF"
-                              className="p-1.5 text-zinc-500 hover:text-blue-400 transition-colors rounded">
-                              <Printer className="w-4 h-4" />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-mono text-sm font-semibold text-zinc-200">{inv.number}</span>
+                              {(inv.dunningLevel ?? 0) > 0 && <DunningBadge level={inv.dunningLevel} />}
+                              <StatusBadge status={inv.status} />
+                            </div>
+                            <Link href={`/projects/${inv.project.id}/finance`}
+                              className="flex items-center gap-1 text-xs text-zinc-400 mt-0.5">
+                              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: inv.project.color }} />
+                              <span className="truncate">{inv.project.name}</span>
                             </Link>
-                            {isEligible && (
-                              <button title="Zahlung erfassen" onClick={() => setPaymentModal(inv)}
-                                className="p-1.5 text-zinc-500 hover:text-emerald-400 transition-colors rounded">
-                                <CreditCard className="w-4 h-4" />
-                              </button>
-                            )}
-                            {canDunning && (
-                              <button title="Mahnung setzen" onClick={() => setDunningModal(inv)}
-                                className="p-1.5 text-zinc-500 hover:text-amber-400 transition-colors rounded">
-                                <AlertTriangle className="w-4 h-4" />
-                              </button>
-                            )}
-                            {(inv.dunningLevel ?? 0) > 0 && (
-                              <Link href={`/invoices/${inv.id}/mahnung`} title="Mahnungs-PDF"
-                                className="p-1.5 text-zinc-500 hover:text-amber-300 transition-colors rounded">
-                                <Clock className="w-4 h-4" />
-                              </Link>
-                            )}
-                            <Link href={`/projects/${inv.project.id}/finance`} title="Im Projekt"
-                              className="p-1.5 text-zinc-500 hover:text-zinc-300 transition-colors rounded">
-                              <ExternalLink className="w-4 h-4" />
-                            </Link>
+                            {inv.clientName && <p className="text-xs text-zinc-500 mt-0.5">{inv.clientName}</p>}
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="font-mono font-bold text-zinc-200">{formatEur(inv.amount)}</div>
+                          {totalPaid > 0 && (
+                            <div className="text-xs font-mono text-emerald-400">{formatEur(totalPaid)} bezahlt</div>
+                          )}
+                          <div className="text-xs text-zinc-500 mt-0.5">{new Date(inv.dueDate).toLocaleDateString("de-DE")}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Link href={`/invoices/${inv.id}/pdf`}
+                          className="flex items-center gap-1 px-3 py-1.5 text-xs text-zinc-400 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition-colors min-h-[36px]">
+                          <Printer className="w-3.5 h-3.5" /> PDF
+                        </Link>
+                        {isEligible && (
+                          <button onClick={() => setPaymentModal(inv)}
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/20 transition-colors min-h-[36px]">
+                            <CreditCard className="w-3.5 h-3.5" /> Zahlung
+                          </button>
+                        )}
+                        {canDunning && (
+                          <button onClick={() => setDunningModal(inv)}
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg hover:bg-amber-500/20 transition-colors min-h-[36px]">
+                            <AlertTriangle className="w-3.5 h-3.5" /> Mahnung
+                          </button>
+                        )}
+                        <Link href={`/projects/${inv.project.id}/finance`}
+                          className="ml-auto p-2 text-zinc-500 hover:text-zinc-300 transition-colors min-h-[36px] flex items-center">
+                          <ExternalLink className="w-4 h-4" />
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ── Desktop Tabelle (≥ sm) ─────────────────────────────────── */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-zinc-800">
+                      <th className="px-4 py-3 text-left">
+                        <button onClick={toggleSelectAll} className="text-zinc-500 hover:text-white transition-colors">
+                          {allEligibleSelected ? <CheckSquare className="w-4 h-4 text-emerald-400" /> : <Square className="w-4 h-4" />}
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">Nummer</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">Projekt</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">Kunde</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500">Betrag</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500">Bezahlt</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-zinc-500">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">Fällig</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-zinc-500">Aktionen</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800">
+                    {filteredInvoices.map((inv) => {
+                      const isEligible = ["OPEN", "SENT", "OVERDUE", "PARTIAL"].includes(inv.status);
+                      const isSelected = selectedIds.has(inv.id);
+                      const canDunning = inv.status === "OVERDUE" && (inv.dunningLevel ?? 0) < 3;
+                      const totalPaid = inv.paymentAmount ?? 0;
+                      return (
+                        <tr key={inv.id} className={`hover:bg-zinc-900/50 transition-colors ${isSelected ? "bg-emerald-900/10" : ""}`}>
+                          <td className="px-4 py-3">
+                            {isEligible ? (
+                              <button onClick={() => toggleSelect(inv.id)} className="text-zinc-500 hover:text-white transition-colors">
+                                {isSelected ? <CheckSquare className="w-4 h-4 text-emerald-400" /> : <Square className="w-4 h-4" />}
+                              </button>
+                            ) : <span className="w-4 h-4 block" />}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono text-xs text-zinc-300">{inv.number}</span>
+                              {(inv.dunningLevel ?? 0) > 0 && <DunningBadge level={inv.dunningLevel} />}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Link href={`/projects/${inv.project.id}/finance`}
+                              className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-white transition-colors max-w-[140px]">
+                              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: inv.project.color }} />
+                              <span className="truncate">{inv.project.name}</span>
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-zinc-500 max-w-[120px] truncate">
+                            {inv.clientName ?? <span className="text-zinc-700">—</span>}
+                          </td>
+                          <td className="px-4 py-3 text-right font-mono font-semibold text-zinc-200 whitespace-nowrap">
+                            {formatEur(inv.amount)}
+                          </td>
+                          <td className="px-4 py-3 text-right font-mono text-xs whitespace-nowrap">
+                            {totalPaid > 0 ? (
+                              <span className="text-emerald-400">{formatEur(totalPaid)}</span>
+                            ) : (
+                              <span className="text-zinc-700">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <StatusBadge status={inv.status} />
+                          </td>
+                          <td className="px-4 py-3 text-xs text-zinc-400 whitespace-nowrap">
+                            {new Date(inv.dueDate).toLocaleDateString("de-DE")}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center justify-center gap-1">
+                              <Link href={`/invoices/${inv.id}/pdf`} title="PDF"
+                                className="p-1.5 text-zinc-500 hover:text-blue-400 transition-colors rounded">
+                                <Printer className="w-4 h-4" />
+                              </Link>
+                              {isEligible && (
+                                <button title="Zahlung erfassen" onClick={() => setPaymentModal(inv)}
+                                  className="p-1.5 text-zinc-500 hover:text-emerald-400 transition-colors rounded">
+                                  <CreditCard className="w-4 h-4" />
+                                </button>
+                              )}
+                              {canDunning && (
+                                <button title="Mahnung setzen" onClick={() => setDunningModal(inv)}
+                                  className="p-1.5 text-zinc-500 hover:text-amber-400 transition-colors rounded">
+                                  <AlertTriangle className="w-4 h-4" />
+                                </button>
+                              )}
+                              {(inv.dunningLevel ?? 0) > 0 && (
+                                <Link href={`/invoices/${inv.id}/mahnung`} title="Mahnungs-PDF"
+                                  className="p-1.5 text-zinc-500 hover:text-amber-300 transition-colors rounded">
+                                  <Clock className="w-4 h-4" />
+                                </Link>
+                              )}
+                              <Link href={`/projects/${inv.project.id}/finance`} title="Im Projekt"
+                                className="p-1.5 text-zinc-500 hover:text-zinc-300 transition-colors rounded">
+                                <ExternalLink className="w-4 h-4" />
+                              </Link>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
 
           <div className="px-4 py-3 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-500">
