@@ -17,6 +17,7 @@ import { MilestoneList } from "@/components/milestones/MilestoneList";
 import { ProjectStatusBanner } from "@/components/projects/ProjectStatusBanner";
 import { HealthScoreBadge } from "@/components/projects/HealthScoreBadge";
 import { calculateHealthScore } from "@/lib/health-score";
+import { ProjectVisitTracker } from "@/components/projects/ProjectVisitTracker";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -193,6 +194,27 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           <ChevronLeft className="w-3.5 h-3.5" />
           Alle Projekte
         </Link>
+
+        {/* Visit Tracking (Client-seitig, LocalStorage) */}
+        <ProjectVisitTracker id={project.id} name={project.name} />
+
+        {/* Archiv-Banner */}
+        {project.archived && (
+          <div className="flex items-center justify-between gap-4 px-5 py-3 bg-amber-500/5 border border-amber-500/20 rounded-xl">
+            <div className="flex items-center gap-3">
+              <FolderArchive className="w-4 h-4 text-amber-400 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-amber-300">Dieses Projekt ist archiviert</p>
+                <p className="text-xs text-amber-400/60 mt-0.5">
+                  Archivierte Projekte sind schreibgeschützt. Keine neuen Tasks oder Kommentare möglich.
+                  {project.archivedAt && (
+                    <> Archiviert am {format(new Date(project.archivedAt), "d. MMMM yyyy", { locale: de })}.</>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Header */}
         <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl p-6">

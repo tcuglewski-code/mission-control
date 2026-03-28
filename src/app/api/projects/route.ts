@@ -16,9 +16,9 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
+    const includeArchived = searchParams.get("includeArchived") === "true";
 
     // BUG FIX: Non-admins sehen NUR explizit freigegebene Projekte.
-    // Leeres projectAccess-Array = kein Projektzugang (nicht alle Projekte!).
     const accessFilter =
       user.role !== "admin"
         ? { id: { in: user.projectAccess } }
@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
     const projects = await prisma.project.findMany({
       where: {
         ...(status && status !== "all" ? { status } : {}),
+        ...(!includeArchived ? { archived: false } : {}),
         ...accessFilter,
       },
       include: {
@@ -35,11 +36,22 @@ export async function GET(req: NextRequest) {
           include: { user: { select: { id: true, name: true, avatar: true } } },
           take: 5,
         },
+        favorites: {
+          where: { userId: user.id },
+          select: { id: true },
+        },
       },
       orderBy: { updatedAt: "desc" },
     });
 
-    return NextResponse.json(projects);
+    // Flatten isFavorite
+    const result = projects.map((p) => ({
+      ...p,
+      isFavorite: p.favorites.length > 0,
+      favorites: undefined,
+    }));
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error("[GET /api/projects]", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

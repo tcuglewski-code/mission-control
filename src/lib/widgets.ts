@@ -76,6 +76,13 @@ export const AVAILABLE_WIDGETS: WidgetDefinition[] = [
     defaultOrder: 8,
     description: "Status des aktuellen Sprints",
   },
+  {
+    id: "zuletzt-besucht",
+    title: "Zuletzt besucht",
+    defaultVisible: true,
+    defaultOrder: 9,
+    description: "Die 5 zuletzt geöffneten Projekte und Tasks",
+  },
 ];
 
 export const WIDGET_CONFIG_KEY = "mc_dashboard_widget_config";

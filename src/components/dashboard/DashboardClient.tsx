@@ -16,6 +16,7 @@ import { ZeiterfassungHeuteWidget } from "./widgets/ZeiterfassungHeuteWidget";
 import { TeamAuslastungWidget } from "./widgets/TeamAuslastungWidget";
 import { BudgetUebersichtWidget } from "./widgets/BudgetUebersichtWidget";
 import { AktuellerSprintWidget } from "./widgets/AktuellerSprintWidget";
+import { ZuletztBesuchtWidget } from "./widgets/ZuletztBesuchtWidget";
 
 // --- Shared types (serialized from server) ---
 
@@ -143,6 +144,8 @@ export function DashboardClient({
         return <BudgetUebersichtWidget projects={budgetProjects as Project[]} />;
       case "aktueller-sprint":
         return <AktuellerSprintWidget />;
+      case "zuletzt-besucht":
+        return <ZuletztBesuchtWidget />;
       default:
         return null;
     }

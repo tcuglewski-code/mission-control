@@ -1,9 +1,13 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { Globe, Github } from "lucide-react";
+import { Globe, Github, Star } from "lucide-react";
 import { getStatusBg, getStatusLabel, getPriorityColor, getPriorityLabel, getInitials } from "@/lib/utils";
 import { HealthScoreBadge } from "@/components/projects/HealthScoreBadge";
+import { trackVisit } from "@/hooks/useRecentVisits";
 
 interface ProjectCardProps {
   project: {
@@ -17,23 +21,57 @@ interface ProjectCardProps {
     stack?: string | null;
     githubRepo?: string | null;
     liveUrl?: string | null;
+    archived?: boolean;
+    isFavorite?: boolean;
     createdAt: Date;
     updatedAt: Date;
     healthScore?: number;
     _count?: { tasks: number; members: number };
     members?: { user: { id: string; name: string; avatar?: string | null } }[];
   };
+  onFavoriteToggle?: (id: string, isFavorite: boolean) => void;
 }
 
-export function ProjectCard({ project }: ProjectCardProps) {
+export function ProjectCard({ project, onFavoriteToggle }: ProjectCardProps) {
+  const [isFavorite, setIsFavorite] = useState(project.isFavorite ?? false);
+  const [favLoading, setFavLoading] = useState(false);
+
+  const handleFavorite = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (favLoading) return;
+    setFavLoading(true);
+    const newVal = !isFavorite;
+    setIsFavorite(newVal);
+    try {
+      await fetch(`/api/projects/${project.id}/favorite`, {
+        method: newVal ? "POST" : "DELETE",
+      });
+      onFavoriteToggle?.(project.id, newVal);
+    } catch {
+      setIsFavorite(!newVal); // Rollback on error
+    } finally {
+      setFavLoading(false);
+    }
+  };
+
+  const handleClick = () => {
+    trackVisit({
+      id: project.id,
+      type: "project",
+      name: project.name,
+      href: `/projects/${project.id}`,
+    });
+  };
+
   return (
-    <Link href={`/projects/${project.id}`}>
+    <Link href={`/projects/${project.id}`} onClick={handleClick}>
       <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl p-5 hover:border-[#3a3a3a] transition-all hover:shadow-lg hover:shadow-black/20 group cursor-pointer">
         {/* Header */}
         <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
             <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0"
               style={{
                 backgroundColor: `${project.color}20`,
                 color: project.color,
@@ -42,7 +80,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
             >
               {project.name[0]}
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-semibold text-white group-hover:text-emerald-400 transition-colors line-clamp-1">
                   {project.name}
@@ -63,12 +101,31 @@ export function ProjectCard({ project }: ProjectCardProps) {
                     {project.stack}
                   </span>
                 )}
+                {project.archived && (
+                  <span className="text-[10px] text-amber-500/70 border border-amber-500/20 px-1.5 py-0.5 rounded">
+                    Archiviert
+                  </span>
+                )}
               </div>
             </div>
           </div>
-          <span className={`text-[10px] font-medium ${getPriorityColor(project.priority)}`}>
-            {getPriorityLabel(project.priority)}
-          </span>
+          <div className="flex items-center gap-1 shrink-0 ml-2">
+            {/* Favorit-Button */}
+            <button
+              onClick={handleFavorite}
+              className={`p-1 rounded-md transition-colors ${
+                isFavorite
+                  ? "text-yellow-400"
+                  : "text-zinc-600 hover:text-yellow-400"
+              }`}
+              title={isFavorite ? "Aus Favoriten entfernen" : "Als Favorit markieren"}
+            >
+              <Star className="w-3.5 h-3.5" fill={isFavorite ? "currentColor" : "none"} />
+            </button>
+            <span className={`text-[10px] font-medium ${getPriorityColor(project.priority)}`}>
+              {getPriorityLabel(project.priority)}
+            </span>
+          </div>
         </div>
 
         {/* Description */}
