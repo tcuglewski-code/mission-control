@@ -3,8 +3,9 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    /* Light mode (default) */
+  /* ─── Hell (Standard) ─────────────────────────────────────────────────── */
+  :root,
+  :root.theme-light {
     --background: 0 0% 100%;
     --foreground: 0 0% 5%;
     --card: 0 0% 96%;
@@ -27,7 +28,7 @@
     --radius: 0.5rem;
   }
 
-  /* Dark mode */
+  /* ─── Dunkel ──────────────────────────────────────────────────────────── */
   :root.dark {
     --background: 0 0% 6%;
     --foreground: 0 0% 98%;
@@ -50,6 +51,30 @@
     --ring: 142 76% 36%;
     --radius: 0.5rem;
   }
+
+  /* ─── Wald Theme — Dunkelgrün Hintergrund, Gold Akzente ──────────────── */
+  :root.theme-wald {
+    --background: 120 26% 14%;       /* #1a2e1a Dunkelgrün */
+    --foreground: 48 100% 92%;       /* Warmes Weiß/Creme */
+    --card: 120 22% 18%;             /* Etwas heller als BG */
+    --card-foreground: 48 100% 92%;
+    --popover: 120 22% 16%;
+    --popover-foreground: 48 100% 92%;
+    --primary: 43 100% 50%;          /* Gold #FFB300 */
+    --primary-foreground: 120 26% 10%;
+    --secondary: 120 18% 22%;
+    --secondary-foreground: 48 90% 85%;
+    --muted: 120 15% 24%;
+    --muted-foreground: 120 10% 55%;
+    --accent: 120 18% 22%;
+    --accent-foreground: 48 100% 92%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 120 15% 26%;
+    --input: 120 18% 22%;
+    --ring: 43 100% 50%;
+    --radius: 0.5rem;
+  }
 }
 
 @layer base {
@@ -60,43 +85,63 @@
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
-  
+
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
-  
   ::-webkit-scrollbar-track {
     @apply bg-background;
   }
-  
   ::-webkit-scrollbar-thumb {
     @apply bg-muted rounded;
   }
-  
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-muted;
   }
 
-  /* Light mode specifics */
-  body {
-    @apply dark:bg-[#0f0f0f] dark:text-white;
+  /* Dunkel-Modus Scrollbar */
+  .dark ::-webkit-scrollbar-track {
+    background: #0f0f0f;
   }
-
-  ::-webkit-scrollbar-track {
-    @apply dark:bg-[#0f0f0f];
+  .dark ::-webkit-scrollbar-thumb {
+    background: #2a2a2a;
   }
-
-  ::-webkit-scrollbar-thumb {
-    @apply dark:bg-[#2a2a2a];
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    @apply dark:bg-[#3a3a3a];
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: #3a3a3a;
   }
 }
 
+/* ─── Kompaktmodus ──────────────────────────────────────────────────────── */
 @layer utilities {
+  /* Kompakt: alle Standardabstände um ~30% reduzieren */
+  body.compact {
+    font-size: 0.875rem; /* text-sm */
+  }
+
+  body.compact .p-4    { padding: 0.7rem !important; }
+  body.compact .p-5    { padding: 0.875rem !important; }
+  body.compact .p-6    { padding: 1.05rem !important; }
+  body.compact .px-4   { padding-left: 0.7rem !important; padding-right: 0.7rem !important; }
+  body.compact .px-6   { padding-left: 1.05rem !important; padding-right: 1.05rem !important; }
+  body.compact .py-2   { padding-top: 0.35rem !important; padding-bottom: 0.35rem !important; }
+  body.compact .py-3   { padding-top: 0.525rem !important; padding-bottom: 0.525rem !important; }
+  body.compact .gap-4  { gap: 0.7rem !important; }
+  body.compact .gap-6  { gap: 1.05rem !important; }
+  body.compact .space-y-4 > * + * { margin-top: 0.7rem !important; }
+  body.compact .space-y-6 > * + * { margin-top: 1.05rem !important; }
+  body.compact .mb-4   { margin-bottom: 0.7rem !important; }
+  body.compact .mb-6   { margin-bottom: 1.05rem !important; }
+
+  /* Kompakt: kleinere Buttons */
+  body.compact button,
+  body.compact .btn {
+    font-size: 0.8rem;
+  }
+
+  /* Kompakt: kleinere Karten-Rahmen */
+  body.compact .rounded-xl { border-radius: 0.625rem !important; }
+
   .text-balance {
     text-wrap: balance;
   }
@@ -107,8 +152,47 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
-  /* Safe area for iOS notch / home indicator */
   .safe-area-inset-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
+}
+
+/* ─── SVG-Charts in Dark/Wald Mode ─────────────────────────────────────── */
+.dark svg text,
+.theme-wald svg text {
+  fill: hsl(var(--foreground));
+}
+.dark svg .recharts-cartesian-axis-tick text,
+.theme-wald svg .recharts-cartesian-axis-tick text {
+  fill: hsl(var(--muted-foreground));
+}
+.dark svg .recharts-tooltip-wrapper,
+.theme-wald svg .recharts-tooltip-wrapper {
+  background: hsl(var(--popover)) !important;
+  border-color: hsl(var(--border)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+/* ─── Modal Overlay im Dark Mode korrekt ────────────────────────────────── */
+.dark [role="dialog"],
+.theme-wald [role="dialog"] {
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+/* ─── Toast Notifications ────────────────────────────────────────────────── */
+.dark [data-sonner-toast],
+.theme-wald [data-sonner-toast] {
+  background: hsl(var(--card)) !important;
+  border-color: hsl(var(--border)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+/* ─── Tooltips ───────────────────────────────────────────────────────────── */
+.dark [role="tooltip"],
+.theme-wald [role="tooltip"] {
+  background: hsl(var(--popover)) !important;
+  color: hsl(var(--popover-foreground)) !important;
+  border-color: hsl(var(--border)) !important;
 }

@@ -16,8 +16,15 @@ import {
   Loader2,
   ShieldCheck,
   MapIcon,
+  Palette,
+  Sun,
+  Moon,
+  Trees,
+  Monitor,
+  Layout,
 } from "lucide-react";
 import { MC_ROLES } from "@/lib/permissions";
+import { useThemeStore, ThemeOption } from "@/store/useThemeStore";
 
 interface ProfileData {
   id: string;
@@ -40,7 +47,7 @@ interface ApiKeyItem {
   expiresAt: string | null;
 }
 
-type Tab = "profil" | "passwort" | "benachrichtigungen" | "api-keys";
+type Tab = "profil" | "passwort" | "benachrichtigungen" | "api-keys" | "darstellung";
 
 function Avatar({ name, size = "lg" }: { name: string; size?: "sm" | "lg" }) {
   const initials = name.slice(0, 2).toUpperCase();
@@ -82,6 +89,13 @@ export function ProfileClient() {
   // Tour
   const [tourRestarting, setTourRestarting] = useState(false);
   const [tourMsg, setTourMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  // Theme & Darstellung
+  const { theme: storeTheme, compact: storeCompact, setTheme: setStoreTheme, setCompact: setStoreCompact } = useThemeStore();
+  const [selectedTheme, setSelectedTheme] = useState<ThemeOption>(storeTheme);
+  const [selectedCompact, setSelectedCompact] = useState(storeCompact);
+  const [darstellungSaving, setDarstellungSaving] = useState(false);
+  const [darstellungMsg, setDarstellungMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
   // API Keys
   const [apiKeys, setApiKeys] = useState<ApiKeyItem[]>([]);
@@ -245,6 +259,27 @@ export function ProfileClient() {
     setApiKeys((prev) => prev.filter((k) => k.id !== id));
   }
 
+  async function saveDarstellung() {
+    setDarstellungSaving(true);
+    setDarstellungMsg(null);
+    try {
+      const res = await fetch("/api/settings/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theme: selectedTheme, compact: selectedCompact }),
+      });
+      if (res.ok) {
+        setStoreTheme(selectedTheme);
+        setStoreCompact(selectedCompact);
+        setDarstellungMsg({ type: "ok", text: "Darstellungseinstellungen gespeichert" });
+      } else {
+        setDarstellungMsg({ type: "err", text: "Fehler beim Speichern" });
+      }
+    } finally {
+      setDarstellungSaving(false);
+    }
+  }
+
   function copyKey() {
     if (!createdKey) return;
     navigator.clipboard.writeText(createdKey);
@@ -301,6 +336,7 @@ export function ProfileClient() {
           { id: "passwort" as Tab, icon: Lock, label: "Passwort" },
           { id: "benachrichtigungen" as Tab, icon: Bell, label: "Benachrichtigungen" },
           { id: "api-keys" as Tab, icon: Key, label: "API-Keys" },
+          { id: "darstellung" as Tab, icon: Palette, label: "Darstellung" },
         ].map(({ id, icon: Icon, label }) => (
           <button
             key={id}
@@ -752,6 +788,86 @@ export function ProfileClient() {
               </table>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ── DARSTELLUNG TAB ── */}
+      {tab === "darstellung" && (
+        <div className="space-y-6">
+          {/* Theme-Auswahl */}
+          <div className="bg-white dark:bg-[#161616] border border-gray-200 dark:border-[#2a2a2a] rounded-xl p-5 space-y-4">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <Palette className="w-4 h-4 text-emerald-400" />
+              Farbschema
+            </h2>
+            <p className="text-xs text-zinc-500">
+              Wähle ein Theme für Mission Control. &quot;System&quot; übernimmt automatisch die
+              Einstellung deines Betriebssystems.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {([
+                { value: "light" as ThemeOption, label: "Hell", desc: "Weißer Hintergrund", icon: Sun, iconClass: "text-amber-500", preview: <div className="w-full h-16 rounded-lg bg-white border border-gray-200 mb-3 overflow-hidden flex flex-col"><div className="h-3 bg-gray-100 border-b border-gray-200 flex items-center px-2 gap-1"><div className="w-1.5 h-1.5 rounded-full bg-gray-300" /><div className="w-8 h-1 rounded bg-gray-300" /></div><div className="flex-1 p-1.5 flex gap-1"><div className="w-10 bg-gray-100 rounded" /><div className="flex-1 space-y-1"><div className="h-1.5 bg-gray-200 rounded w-3/4" /><div className="h-1.5 bg-emerald-200 rounded w-1/2" /></div></div></div> },
+                { value: "dark" as ThemeOption, label: "Dunkel", desc: "Dunkler Hintergrund", icon: Moon, iconClass: "text-blue-400", preview: <div className="w-full h-16 rounded-lg bg-[#0f0f0f] border border-[#2a2a2a] mb-3 overflow-hidden flex flex-col"><div className="h-3 bg-[#1c1c1c] border-b border-[#2a2a2a] flex items-center px-2 gap-1"><div className="w-1.5 h-1.5 rounded-full bg-[#3a3a3a]" /><div className="w-8 h-1 rounded bg-[#3a3a3a]" /></div><div className="flex-1 p-1.5 flex gap-1"><div className="w-10 bg-[#1c1c1c] rounded" /><div className="flex-1 space-y-1"><div className="h-1.5 bg-[#2a2a2a] rounded w-3/4" /><div className="h-1.5 bg-emerald-900 rounded w-1/2" /></div></div></div> },
+                { value: "wald" as ThemeOption, label: "Wald", desc: "Dunkelgrün + Gold", icon: Trees, iconClass: "text-emerald-500", preview: <div className="w-full h-16 rounded-lg bg-[#1a2e1a] border border-[#2d4a2d] mb-3 overflow-hidden flex flex-col"><div className="h-3 bg-[#1f361f] border-b border-[#2d4a2d] flex items-center px-2 gap-1"><div className="w-1.5 h-1.5 rounded-full bg-[#3a5a3a]" /><div className="w-8 h-1 rounded bg-[#3a5a3a]" /></div><div className="flex-1 p-1.5 flex gap-1"><div className="w-10 bg-[#1f361f] rounded" /><div className="flex-1 space-y-1"><div className="h-1.5 bg-[#2d4a2d] rounded w-3/4" /><div className="h-1.5 rounded w-1/2" style={{backgroundColor:"#FFB300"}} /></div></div></div> },
+                { value: "system" as ThemeOption, label: "System", desc: "Automatisch (OS)", icon: Monitor, iconClass: "text-zinc-400", preview: <div className="w-full h-16 rounded-lg mb-3 overflow-hidden flex border border-gray-200 dark:border-[#2a2a2a]"><div className="w-1/2 bg-white" /><div className="w-1/2 bg-[#0f0f0f]" /></div> },
+              ] as const).map(({ value, label, desc, icon: Icon, iconClass, preview }) => (
+                <button
+                  key={value}
+                  onClick={() => setSelectedTheme(value)}
+                  className={"relative p-4 rounded-xl border-2 transition-all text-left " + (selectedTheme === value ? (value === "wald" ? "border-amber-500 bg-amber-500/5" : "border-emerald-500 bg-emerald-500/5") : "border-gray-200 dark:border-[#2a2a2a] hover:border-emerald-500/40")}
+                >
+                  {preview}
+                  <div className="flex items-center gap-2">
+                    <Icon className={"w-4 h-4 " + iconClass} />
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{label}</span>
+                    {selectedTheme === value && <Check className={`w-3.5 h-3.5 ml-auto ${value === "wald" ? "text-amber-500" : "text-emerald-500"}`} />}
+                  </div>
+                  <p className="text-xs text-zinc-500 mt-0.5">{desc}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Kompaktmodus */}
+          <div className="bg-white dark:bg-[#161616] border border-gray-200 dark:border-[#2a2a2a] rounded-xl p-5 space-y-4">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <Layout className="w-4 h-4 text-emerald-400" />
+              Kompakte Darstellung
+            </h2>
+            <label className="flex items-center justify-between p-4 bg-gray-50 dark:bg-[#1c1c1c] border border-gray-200 dark:border-[#2a2a2a] rounded-lg cursor-pointer hover:border-emerald-500/30 transition-colors">
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">Kompaktmodus aktivieren</p>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  Reduziert Abstände und Schriftgröße um ~30% — ideal für dichte Arbeit mit vielen Tasks
+                </p>
+              </div>
+              <div
+                onClick={() => setSelectedCompact((v) => !v)}
+                className={"relative w-10 h-6 rounded-full transition-colors cursor-pointer flex-shrink-0 " + (selectedCompact ? "bg-emerald-500" : "bg-zinc-600")}
+              >
+                <div className={"absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform " + (selectedCompact ? "translate-x-5" : "translate-x-1")} />
+              </div>
+            </label>
+            <p className="text-xs text-zinc-500">
+              💡 Kompaktmodus verkleinert Padding, Schriften und Buttons systemweit. Nützlich auf kleineren Bildschirmen oder bei vielen gleichzeitigen Tasks.
+            </p>
+          </div>
+
+          {darstellungMsg && (
+            <div className={"p-3 rounded-lg text-sm " + (darstellungMsg.type === "ok" ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400" : "bg-red-500/10 border border-red-500/20 text-red-400")}>
+              {darstellungMsg.type === "ok" ? "✓ " : "⚠️ "}
+              {darstellungMsg.text}
+            </div>
+          )}
+
+          <button
+            onClick={saveDarstellung}
+            disabled={darstellungSaving}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-medium rounded-md transition-colors"
+          >
+            {darstellungSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            Einstellungen speichern
+          </button>
         </div>
       )}
     </div>
