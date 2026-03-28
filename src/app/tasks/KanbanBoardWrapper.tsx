@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { KanbanBoard } from "@/components/tasks/KanbanBoard";
 import { LiveActivityFeed } from "@/components/tasks/LiveActivityFeed";
-import { useAppStore, type Task, type Project, type User, type Label } from "@/store/useAppStore";
+import { TaskFilter, sortTasks, EMPTY_FILTERS, DEFAULT_SORT } from "@/components/tasks/TaskFilter";
+import type { FilterState, SortState } from "@/components/tasks/TaskFilter";
+import { useAppStore, type Task, type Project, type User, type Label, type Milestone } from "@/store/useAppStore";
 import { useTaskStream } from "@/hooks/useTaskStream";
-import { Sparkles, Wifi, WifiOff, X, FileUp, CheckCircle, Tag } from "lucide-react";
+import { Sparkles, Wifi, WifiOff, X, FileUp, CheckCircle, FolderKanban } from "lucide-react";
 
 interface KanbanBoardWrapperProps {
   initialTasks: Task[];
@@ -189,15 +192,7 @@ function SprintView({ tasks }: { tasks: Task[] }) {
   );
 }
 
-const PRIORITY_OPTIONS = [
-  { value: "", label: "Alle Prioritäten" },
-  { value: "critical", label: "🔴 Critical" },
-  { value: "high", label: "🔴 High" },
-  { value: "medium", label: "🟡 Medium" },
-  { value: "low", label: "🟢 Low" },
-];
-
-// ─── KI-Vorschläge Modal ─────────────────────────────────────────────────────
+// ─── KI-Vorschläge Modal ──────────────────────────────────────────────────────
 
 interface KiVorschlag {
   titel: string;
@@ -375,17 +370,68 @@ function CsvImportModal({ onClose, onImportiert }: { onClose: () => void; onImpo
   );
 }
 
+// ─── URL-Params Helpers ───────────────────────────────────────────────────────
+
+function filtersFromParams(params: URLSearchParams): FilterState {
+  return {
+    status: params.get("status") ?? "",
+    priority: params.get("priority") ?? "",
+    assigneeId: params.get("assigneeId") ?? "",
+    labelId: params.get("labelId") ?? "",
+    milestoneId: params.get("milestoneId") ?? "",
+    dueDateFrom: params.get("dueDateFrom") ?? "",
+    dueDateTo: params.get("dueDateTo") ?? "",
+  };
+}
+
+function sortFromParams(params: URLSearchParams): SortState {
+  const field = (params.get("sortField") ?? DEFAULT_SORT.field) as SortState["field"];
+  const direction = (params.get("sortDir") ?? DEFAULT_SORT.direction) as SortState["direction"];
+  return { field, direction };
+}
+
+function buildParams(filters: FilterState, sort: SortState): URLSearchParams {
+  const p = new URLSearchParams();
+  Object.entries(filters).forEach(([k, v]) => { if (v) p.set(k, v); });
+  if (sort.field !== DEFAULT_SORT.field) p.set("sortField", sort.field);
+  if (sort.direction !== DEFAULT_SORT.direction) p.set("sortDir", sort.direction);
+  return p;
+}
+
 // ─── Hauptkomponente ──────────────────────────────────────────────────────────
 
 export function KanbanBoardWrapper({ initialTasks, projects, users }: KanbanBoardWrapperProps) {
   const { tasks, setTasks, setProjects, setUsers } = useAppStore();
   const [view, setView] = useState<"kanban" | "sprint">("kanban");
-  const [filterProject, setFilterProject] = useState<string>("");
-  const [filterPriority, setFilterPriority] = useState<string>("");
-  const [filterLabel, setFilterLabel] = useState<string>("");
   const [availableLabels, setAvailableLabels] = useState<Label[]>([]);
+  const [availableMilestones, setAvailableMilestones] = useState<Milestone[]>([]);
   const [zeigeKiModal, setZeigeKiModal] = useState(false);
   const [zeigeCsvModal, setZeigeCsvModal] = useState(false);
+
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Filter + Sort aus URL
+  const [filters, setFiltersState] = useState<FilterState>(() => filtersFromParams(searchParams));
+  const [sort, setSortState] = useState<SortState>(() => sortFromParams(searchParams));
+
+  // URL-Params synchronisieren
+  const syncUrl = useCallback((f: FilterState, s: SortState) => {
+    const params = buildParams(f, s);
+    const qs = params.toString();
+    router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
+  }, [router, pathname]);
+
+  const handleFiltersChange = useCallback((f: FilterState) => {
+    setFiltersState(f);
+    syncUrl(f, sort);
+  }, [sort, syncUrl]);
+
+  const handleSortChange = useCallback((s: SortState) => {
+    setSortState(s);
+    syncUrl(filters, s);
+  }, [filters, syncUrl]);
 
   // SSE Echtzeit-Updates
   const handleTaskUpdate = useCallback((updatedTasks: any[]) => {
@@ -414,25 +460,44 @@ export function KanbanBoardWrapper({ initialTasks, projects, users }: KanbanBoar
         if (Array.isArray(data)) setAvailableLabels(data);
       })
       .catch(() => {});
+
+    fetch("/api/milestones")
+      .then((r) => r.json())
+      .then((data: Milestone[]) => {
+        if (Array.isArray(data)) setAvailableMilestones(data);
+      })
+      .catch(() => {});
   }, []);
 
   const activeTasks = tasks.length > 0 ? tasks : initialTasks;
 
-  const filteredTasks = useMemo(() => {
-    return activeTasks.filter((t) => {
-      if (filterProject && t.projectId !== filterProject) return false;
-      if (filterPriority && t.priority !== filterPriority) return false;
-      if (filterLabel && !t.taskLabels?.some((tl) => tl.label.id === filterLabel)) return false;
+  // ── Filter-Logik (AND) ──
+  const filteredAndSortedTasks = useMemo(() => {
+    let result = activeTasks.filter((t) => {
+      if (filters.status && t.status !== filters.status) return false;
+      if (filters.priority && t.priority !== filters.priority) return false;
+      if (filters.assigneeId && t.assigneeId !== filters.assigneeId) return false;
+      if (filters.labelId && !t.taskLabels?.some((tl) => tl.label.id === filters.labelId)) return false;
+      if (filters.milestoneId && t.milestoneId !== filters.milestoneId) return false;
+      if (filters.dueDateFrom) {
+        if (!t.dueDate) return false;
+        if (new Date(t.dueDate) < new Date(filters.dueDateFrom)) return false;
+      }
+      if (filters.dueDateTo) {
+        if (!t.dueDate) return false;
+        if (new Date(t.dueDate) > new Date(filters.dueDateTo + "T23:59:59")) return false;
+      }
       return true;
     });
-  }, [activeTasks, filterProject, filterPriority, filterLabel]);
+    return sortTasks(result, sort);
+  }, [activeTasks, filters, sort]);
 
   return (
     <>
     {zeigeKiModal && <KiVorschlaegeModal projects={projects} onClose={() => setZeigeKiModal(false)} />}
     {zeigeCsvModal && <CsvImportModal onClose={() => setZeigeCsvModal(false)} onImportiert={() => { setZeigeCsvModal(false); }} />}
     <div className="flex flex-col h-full gap-4">
-      {/* Toolbar */}
+      {/* ── Toolbar ── */}
       <div className="flex items-center gap-3 flex-wrap">
         {/* View toggle */}
         <div className="flex items-center bg-[#1c1c1c] border border-[#2a2a2a] rounded-lg p-1">
@@ -478,70 +543,37 @@ export function KanbanBoardWrapper({ initialTasks, projects, users }: KanbanBoar
           {sseStatus === "verbunden" ? "Live" : sseStatus === "verbinde" ? "..." : "Offline"}
         </div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-2 ml-auto">
-          <select
-            value={filterProject}
-            onChange={(e) => setFilterProject(e.target.value)}
-            className="bg-[#1c1c1c] border border-[#2a2a2a] text-xs text-zinc-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#3a3a3a] hover:border-[#3a3a3a] transition-colors"
-          >
-            <option value="">Alle Projekte</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={filterPriority}
-            onChange={(e) => setFilterPriority(e.target.value)}
-            className="bg-[#1c1c1c] border border-[#2a2a2a] text-xs text-zinc-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#3a3a3a] hover:border-[#3a3a3a] transition-colors"
-          >
-            {PRIORITY_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={filterLabel}
-            onChange={(e) => setFilterLabel(e.target.value)}
-            className="bg-[#1c1c1c] border border-[#2a2a2a] text-xs text-zinc-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#3a3a3a] hover:border-[#3a3a3a] transition-colors"
-          >
-            <option value="">Alle Labels</option>
-            {availableLabels.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.name}
-              </option>
-            ))}
-          </select>
-
-          {(filterProject || filterPriority || filterLabel) && (
-            <button
-              onClick={() => { setFilterProject(""); setFilterPriority(""); setFilterLabel(""); }}
-              className="text-xs text-zinc-500 hover:text-zinc-300 px-2 py-1.5 rounded-lg hover:bg-[#1c1c1c] border border-transparent hover:border-[#2a2a2a] transition-colors"
-            >
-              ✕ Reset
-            </button>
-          )}
-        </div>
+        {/* Task-Zähler */}
+        <span className="ml-auto text-[10px] text-zinc-600">
+          {filteredAndSortedTasks.length} von {activeTasks.length} Tasks
+        </span>
       </div>
 
-      {/* Content */}
+      {/* ── Erweitertes Filter-Panel ── */}
+      <TaskFilter
+        filters={filters}
+        sort={sort}
+        onFiltersChange={handleFiltersChange}
+        onSortChange={handleSortChange}
+        users={users}
+        labels={availableLabels}
+        milestones={availableMilestones}
+        projects={projects}
+      />
+
+      {/* ── Inhalt ── */}
       <div className="flex gap-4 flex-1 min-h-0">
         {view === "kanban" ? (
           <>
             <div className="flex-1 min-w-0 overflow-x-auto">
-              <KanbanBoard projects={projects} users={users} filteredTasks={filteredTasks} />
+              <KanbanBoard projects={projects} users={users} filteredTasks={filteredAndSortedTasks} />
             </div>
             <LiveActivityFeed />
           </>
         ) : (
           <>
             <div className="flex-1 min-w-0">
-              <SprintView tasks={filteredTasks} />
+              <SprintView tasks={filteredAndSortedTasks} />
             </div>
             <LiveActivityFeed />
           </>

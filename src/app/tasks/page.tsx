@@ -4,6 +4,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { KanbanBoardWrapper } from "./KanbanBoardWrapper";
 import { redirect } from "next/navigation";
 import { hasPermission, PERMISSIONS } from "@/lib/permissions";
+import { Suspense } from "react";
 
 export default async function TasksPage() {
   // Auth check — load session and user fresh from DB
@@ -19,7 +20,9 @@ export default async function TasksPage() {
     return (
       <AppShell title="Aufgaben" subtitle="Kanban Board">
         <div className="p-6 h-full">
-          <KanbanBoardWrapper initialTasks={[]} projects={[]} users={users} />
+          <Suspense fallback={null}>
+            <KanbanBoardWrapper initialTasks={[]} projects={[]} users={users} />
+          </Suspense>
         </div>
       </AppShell>
     );
@@ -67,11 +70,13 @@ export default async function TasksPage() {
   return (
     <AppShell title="Aufgaben" subtitle="Kanban Board">
       <div className="p-6 h-full">
-        <KanbanBoardWrapper
-          initialTasks={tasks}
-          projects={projects}
-          users={users}
-        />
+        <Suspense fallback={null}>
+          <KanbanBoardWrapper
+            initialTasks={tasks}
+            projects={projects}
+            users={users}
+          />
+        </Suspense>
       </div>
     </AppShell>
   );
