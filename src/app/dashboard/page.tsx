@@ -3,6 +3,8 @@ import { AppShell } from "@/components/layout/AppShell";
 import { startOfDay, endOfDay } from "date-fns";
 import { requireServerSession, getAllowedProjectIds } from "@/lib/server-auth";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
+import { Suspense } from "react";
+import { DashboardTourWrapper } from "@/components/dashboard/DashboardTourWrapper";
 
 export default async function DashboardPage() {
   const session = await requireServerSession();
@@ -176,6 +178,9 @@ export default async function DashboardPage() {
 
   return (
     <AppShell title="Dashboard" subtitle="System Übersicht">
+      <Suspense fallback={null}>
+        <DashboardTourWrapper />
+      </Suspense>
       <DashboardClient
         activeProjectsCount={activeProjectIds.length}
         openTasksCount={openTasksCount}

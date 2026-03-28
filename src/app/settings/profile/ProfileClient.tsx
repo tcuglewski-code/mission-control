@@ -15,6 +15,7 @@ import {
   Plus,
   Loader2,
   ShieldCheck,
+  MapIcon,
 } from "lucide-react";
 import { MC_ROLES } from "@/lib/permissions";
 
@@ -77,6 +78,10 @@ export function ProfileClient() {
   const [notifPush, setNotifPush] = useState(false);
   const [notifSaving, setNotifSaving] = useState(false);
   const [notifMsg, setNotifMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  // Tour
+  const [tourRestarting, setTourRestarting] = useState(false);
+  const [tourMsg, setTourMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
   // API Keys
   const [apiKeys, setApiKeys] = useState<ApiKeyItem[]>([]);
@@ -191,6 +196,25 @@ export function ProfileClient() {
       }
     } finally {
       setNotifSaving(false);
+    }
+  }
+
+  async function restartTour() {
+    setTourRestarting(true);
+    setTourMsg(null);
+    try {
+      const res = await fetch("/api/onboarding", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tourComplete: false }),
+      });
+      if (res.ok) {
+        setTourMsg({ type: "ok", text: "Tour zurückgesetzt — beim nächsten Dashboard-Besuch startet sie automatisch." });
+      } else {
+        setTourMsg({ type: "err", text: "Fehler beim Zurücksetzen" });
+      }
+    } finally {
+      setTourRestarting(false);
     }
   }
 
@@ -367,6 +391,42 @@ export function ProfileClient() {
             Änderungen speichern
           </button>
         </form>
+
+        {/* Dashboard-Tour neu starten */}
+        <div className="bg-white dark:bg-[#161616] border border-gray-200 dark:border-[#2a2a2a] rounded-xl p-5 space-y-3">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <MapIcon className="w-4 h-4 text-emerald-400" />
+            Dashboard-Tour
+          </h2>
+          <p className="text-xs text-zinc-500">
+            Die geführte Tour zeigt dir die wichtigsten Funktionen von Mission Control.
+            Du kannst sie jederzeit neu starten.
+          </p>
+          {tourMsg && (
+            <div
+              className={`p-3 rounded-lg text-xs ${
+                tourMsg.type === "ok"
+                  ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
+                  : "bg-red-500/10 border border-red-500/20 text-red-400"
+              }`}
+            >
+              {tourMsg.type === "ok" ? "✓ " : "⚠️ "}
+              {tourMsg.text}
+            </div>
+          )}
+          <button
+            onClick={restartTour}
+            disabled={tourRestarting}
+            className="flex items-center gap-2 px-4 py-2 border border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/5 text-emerald-400 text-sm font-medium rounded-md transition-colors disabled:opacity-50"
+          >
+            {tourRestarting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <MapIcon className="w-4 h-4" />
+            )}
+            Tour neu starten
+          </button>
+        </div>
       )}
 
       {/* ── PASSWORT TAB ── */}

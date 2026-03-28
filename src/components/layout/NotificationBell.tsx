@@ -139,6 +139,7 @@ export function NotificationBell() {
         onClick={() => setOpen((o) => !o)}
         className="relative w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-[#1c1c1c] rounded-md transition-colors"
         aria-label="Benachrichtigungen"
+        data-tour="notifications"
       >
         <Bell className="w-4 h-4" />
         {unreadCount > 0 && (

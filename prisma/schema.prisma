@@ -341,10 +341,12 @@ model AuthUser {
   lastLoginAt   DateTime?
   projectAccess String[] // Array von Project-IDs (leer = kein Zugang für user)
   permissions   String[] // Granulare Rechte z.B. ["projects.view", "tasks.view"]
-  notifEmailDigest Boolean @default(true)
-  notifPush     Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  notifEmailDigest   Boolean @default(true)
+  notifPush          Boolean @default(false)
+  onboardingComplete Boolean @default(false)
+  tourComplete       Boolean @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
   notifications Notification[]
 }
 
