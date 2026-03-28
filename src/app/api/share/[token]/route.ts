@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { subDays, isWithinInterval } from "date-fns";
+import { createHash } from "crypto";
 
 // GET /api/share/[token] — Öffentliche API, kein Login nötig
 export async function GET(
@@ -17,6 +18,18 @@ export async function GET(
 
     if (share.expiresAt && share.expiresAt < new Date()) {
       return NextResponse.json({ error: "Dieser Link ist abgelaufen" }, { status: 410 });
+    }
+
+    // Passwortschutz prüfen
+    if (share.passwordHash) {
+      const pw = _req.headers.get("x-share-password");
+      if (!pw) {
+        return NextResponse.json({ error: "Passwort erforderlich", requiresPassword: true }, { status: 401 });
+      }
+      const hash = createHash("sha256").update(pw).digest("hex");
+      if (hash !== share.passwordHash) {
+        return NextResponse.json({ error: "Falsches Passwort" }, { status: 401 });
+      }
     }
 
     const now = new Date();
@@ -117,6 +130,9 @@ export async function GET(
       })),
       shareToken: token,
       expiresAt: share.expiresAt,
+      showTimeTracking: share.showTimeTracking,
+      showCosts: share.showCosts,
+      hasPassword: !!share.passwordHash,
     });
   } catch (error) {
     console.error("[GET /api/share/[token]]", error);

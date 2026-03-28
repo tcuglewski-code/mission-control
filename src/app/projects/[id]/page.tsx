@@ -4,7 +4,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import Link from "next/link";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { ChevronLeft, CheckSquare, Users, FileText, FolderArchive, Globe, Github, ExternalLink, Smartphone, Download, Flag, Target, BarChart2, Clock, Settings } from "lucide-react";
+import { ChevronLeft, CheckSquare, Users, FileText, FolderArchive, Globe, Github, ExternalLink, Smartphone, Download, Flag, Target, BarChart2, Clock, Settings, Share2 } from "lucide-react";
 import { SaveAsTemplateButton } from "@/components/projects/SaveAsTemplateButton";
 import { ProjectActivityWidget } from "@/components/projects/ProjectActivityWidget";
 import { AiProjectSummary } from "@/components/projects/AiProjectSummary";
@@ -314,6 +314,14 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                 projectId={project.id}
                 projectName={project.name}
               />
+              {/* Freigaben */}
+              <Link
+                href={`/projects/${project.id}/sharing`}
+                className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 px-2 py-1 rounded hover:bg-emerald-950/30 border border-emerald-900/30 transition-colors"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                Freigaben
+              </Link>
               {/* Projekt-Einstellungen (Team) */}
               <Link
                 href={`/projects/${project.id}/settings`}

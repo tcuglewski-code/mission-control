@@ -625,11 +625,28 @@ model Milestone {
 
 // ─── Projekt-Sharing ──────────────────────────────────────────────────────────
 model ProjectShare {
-  id        String    @id @default(cuid())
-  projectId String
-  token     String    @unique @default(cuid())
-  expiresAt DateTime?
-  createdAt DateTime  @default(now())
+  id                String    @id @default(cuid())
+  projectId         String
+  token             String    @unique @default(cuid())
+  label             String?   // Optionale Bezeichnung z.B. "Kunde Müller"
+  expiresAt         DateTime?
+  passwordHash      String?   // SHA256-Hash für optionalen Passwortschutz
+  showTimeTracking  Boolean   @default(false)
+  showCosts         Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  guestComments     GuestComment[]
+}
+
+// ─── Gast-Kommentare (Kunden-Portal) ─────────────────────────────────────────
+model GuestComment {
+  id          String   @id @default(cuid())
+  shareId     String
+  projectId   String
+  guestName   String?
+  guestEmail  String?
+  message     String
+  createdAt   DateTime @default(now())
+  share       ProjectShare @relation(fields: [shareId], references: [id], onDelete: Cascade)
 }
 
 // ─── Projekt-Favoriten ────────────────────────────────────────────────────────
