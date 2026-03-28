@@ -281,13 +281,13 @@ export function AdminUsersClient() {
 
       {/* ── USERS TAB ── */}
       {tab === "users" && (
-        <div className="bg-[#161616] border border-[#2a2a2a] rounded-xl overflow-hidden">
+        <div className="bg-[#161616] border border-[#2a2a2a] rounded-xl overflow-x-auto">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-5 h-5 text-emerald-400 animate-spin" />
             </div>
           ) : (
-            <table className="w-full">
+            <table className="w-full min-w-max">
               <thead>
                 <tr className="border-b border-[#2a2a2a]">
                   <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500">
@@ -399,13 +399,13 @@ export function AdminUsersClient() {
             </p>
           </div>
 
-          <div className="bg-[#161616] border border-[#2a2a2a] rounded-xl overflow-hidden">
+          <div className="bg-[#161616] border border-[#2a2a2a] rounded-xl overflow-x-auto">
             {keysLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-5 h-5 text-emerald-400 animate-spin" />
               </div>
             ) : (
-              <table className="w-full">
+              <table className="w-full min-w-max">
                 <thead>
                   <tr className="border-b border-[#2a2a2a]">
                     <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500">Name</th>

@@ -342,8 +342,8 @@ function CsvImportModal({ onClose, onImportiert }: { onClose: () => void; onImpo
               </div>
               {fehler && <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{fehler}</p>}
               {vorschau.length > 0 && (
-                <div className="border border-[#2a2a2a] rounded-lg overflow-hidden max-h-40 overflow-y-auto">
-                  <table className="w-full text-[10px]">
+                <div className="border border-[#2a2a2a] rounded-lg overflow-hidden max-h-40 overflow-y-auto overflow-x-auto">
+                  <table className="w-full min-w-max text-[10px]">
                     <thead><tr className="bg-[#252525]">
                       <th className="text-left px-3 py-1.5 text-zinc-600">Name</th>
                       <th className="text-left px-3 py-1.5 text-zinc-600">Status</th>

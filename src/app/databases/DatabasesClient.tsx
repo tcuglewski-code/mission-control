@@ -272,9 +272,9 @@ export function DatabasesClient({ initialDatabases, projects }: DatabasesClientP
           </button>
         </div>
       ) : (
-        <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+        <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl overflow-x-auto">
+          <div>
+            <table className="w-full min-w-max text-xs">
               <thead>
                 <tr className="border-b border-[#2a2a2a]">
                   <th className="text-left text-zinc-500 font-medium px-4 py-3">Name</th>

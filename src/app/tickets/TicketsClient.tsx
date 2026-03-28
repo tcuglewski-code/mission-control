@@ -488,14 +488,14 @@ export function TicketsClient({ initialTickets, projects, users }: TicketsClient
         </div>
 
         {/* Table */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-x-auto">
           {filtered.length === 0 ? (
             <div className="text-center py-16 text-zinc-500">
               <TicketIcon className="w-8 h-8 mx-auto mb-2 opacity-30" />
               <p>Keine Tickets gefunden</p>
             </div>
           ) : (
-            <table className="w-full text-sm">
+            <table className="w-full min-w-max text-sm">
               <thead>
                 <tr className="border-b border-zinc-800 text-left">
                   <th className="px-4 py-3 text-xs font-medium text-zinc-400">Titel</th>

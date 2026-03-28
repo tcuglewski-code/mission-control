@@ -224,8 +224,8 @@ export function WebhooksClient({ initialWebhooks, projects }: WebhooksClientProp
             </button>
           </div>
         ) : (
-          <div className="rounded-lg border border-[#2a2a2a] overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="rounded-lg border border-[#2a2a2a] overflow-x-auto">
+            <table className="w-full min-w-max text-sm">
               <thead>
                 <tr className="border-b border-[#2a2a2a] bg-[#161616]">
                   <th className="text-left px-4 py-3 text-zinc-400 font-medium">Name</th>

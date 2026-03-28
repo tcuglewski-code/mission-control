@@ -191,9 +191,10 @@ export default function AuditTrailPage() {
       )}
 
       {/* Table */}
-      <div className="rounded-xl border border-[#2a2a2a] overflow-hidden bg-[#161616]">
-        {/* Table header */}
-        <div className="grid grid-cols-[160px_1fr_110px_120px_120px_80px] gap-3 px-4 py-2.5 border-b border-[#2a2a2a] text-xs font-medium text-zinc-500 uppercase tracking-wide">
+      <div className="rounded-xl border border-[#2a2a2a] bg-[#161616] overflow-x-auto">
+        <div className="inline-block min-w-full">
+          {/* Table header */}
+          <div className="grid grid-cols-[160px_1fr_110px_120px_120px_80px] gap-3 px-4 py-2.5 border-b border-[#2a2a2a] text-xs font-medium text-zinc-500 uppercase tracking-wide">
           <span>Zeitpunkt</span>
           <span>Ressource</span>
           <span>Aktion</span>
@@ -294,6 +295,7 @@ export default function AuditTrailPage() {
             ))}
           </div>
         )}
+        </div>
       </div>
 
       {/* Pagination */}
