@@ -18,6 +18,7 @@ import { ProjectStatusBanner } from "@/components/projects/ProjectStatusBanner";
 import { HealthScoreBadge } from "@/components/projects/HealthScoreBadge";
 import { calculateHealthScore } from "@/lib/health-score";
 import { ProjectVisitTracker } from "@/components/projects/ProjectVisitTracker";
+import { ProjectDashboard } from "@/components/projects/ProjectDashboard";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -95,6 +96,13 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         include: { 
           assignee: { select: { id: true, name: true, avatar: true } },
           milestone: { select: { id: true, title: true, color: true } },
+          comments: {
+            select: { authorId: true, authorName: true, createdAt: true },
+            orderBy: { createdAt: "asc" },
+          },
+          timeEntries: {
+            select: { userId: true, createdAt: true },
+          },
         },
         orderBy: { createdAt: "asc" },
       },
@@ -363,6 +371,33 @@ export default async function ProjectDetailPage({ params }: PageProps) {
             ))}
           </div>
         </div>
+
+        {/* Dashboard: KPI-Karten + Heatmap + Contributor-Ranking */}
+        <ProjectDashboard
+          tasks={project.tasks.map((t) => ({
+            id: t.id,
+            title: t.title,
+            status: t.status,
+            assigneeId: t.assigneeId ?? null,
+            assignee: t.assignee
+              ? { id: t.assignee.id, name: t.assignee.name, avatar: t.assignee.avatar ?? null }
+              : null,
+            dueDate: t.dueDate ? t.dueDate.toISOString() : null,
+            createdAt: t.createdAt.toISOString(),
+            updatedAt: t.updatedAt.toISOString(),
+            comments: (t.comments ?? []).map((c) => ({
+              authorId: c.authorId ?? null,
+              authorName: c.authorName,
+              createdAt: c.createdAt.toISOString(),
+            })),
+            timeEntries: (t.timeEntries ?? []).map((te) => ({
+              userId: te.userId ?? null,
+              createdAt: te.createdAt.toISOString(),
+            })),
+          }))}
+          lastActivityAt={lastLog?.createdAt?.toISOString() ?? null}
+          githubRepo={project.githubRepo ?? null}
+        />
 
         {/* Living Description */}
         <LivingDescription
