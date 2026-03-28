@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
       include: {
         project: { select: { id: true, name: true, color: true } },
         items: { orderBy: { position: "asc" } },
+        payments: { orderBy: { date: "desc" } },
       },
       orderBy: { dueDate: "asc" },
     });
@@ -61,6 +62,7 @@ export async function POST(req: NextRequest) {
       bankDetails,
       notes,
       items,
+      templateId,
     } = body;
 
     if (!projectId) return NextResponse.json({ error: "Projekt ist erforderlich" }, { status: 400 });
@@ -91,6 +93,7 @@ export async function POST(req: NextRequest) {
         paymentTerms: paymentTerms || "Zahlbar innerhalb von 14 Tagen ohne Abzug.",
         bankDetails: bankDetails || "Koch Aufforstung GmbH · IBAN: DE00 0000 0000 0000 0000 00 · BIC: XXXXXXXX",
         notes: notes || null,
+        templateId: templateId ?? null,
         items: items && Array.isArray(items) && items.length > 0
           ? {
               create: items.map((item: { description: string; quantity: number; unitPrice: number; vatRate: number }, idx: number) => ({
@@ -106,6 +109,7 @@ export async function POST(req: NextRequest) {
       include: {
         project: { select: { id: true, name: true, color: true } },
         items: { orderBy: { position: "asc" } },
+        payments: { orderBy: { date: "desc" } },
       },
     });
 

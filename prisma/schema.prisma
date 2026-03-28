@@ -524,14 +524,20 @@ model Invoice {
   number         String        // Rechnungsnummer z.B. RE-2024-001
   description    String?
   amount         Float         // Brutto-Betrag in €
-  status         String        @default("OPEN") // OPEN | PAID | OVERDUE | CANCELLED | DRAFT
+  status         String        @default("OPEN") // OPEN | SENT | PARTIAL | PAID | OVERDUE | CANCELLED | DRAFT
   invoiceDate    DateTime      @default(now())
   dueDate        DateTime
   paidAt         DateTime?
-  // Zahlungseingang
+  // Zahlungseingang (Legacy + neu via Payment-Tabelle)
   paymentMethod  String?       // "Überweisung" | "Bar" | "EC" | "PayPal"
-  paymentAmount  Float?        // Tatsächlich bezahlter Betrag
-  paymentDate    DateTime?     // Zahlungseingangsdatum
+  paymentAmount  Float?        // Gesamtbetrag aller Zahlungen (wird automatisch aktualisiert)
+  paymentDate    DateTime?     // Datum der letzten Zahlung
+  // Mahnwesen
+  dunningLevel   Int           @default(0)  // 0 = keine Mahnung, 1/2/3
+  dunningDate    DateTime?     // Datum der letzten Mahnung
+  dunningFee     Float         @default(0)  // Mahngebühr gesamt in €
+  // Vorlage-Referenz
+  templateId     String?       // Welche Vorlage wurde verwendet?
   // Kundenadresse
   clientName     String?
   clientAddress  String?       // Mehrzeilig
@@ -542,6 +548,7 @@ model Invoice {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   items          InvoiceItem[]
+  payments       Payment[]
 }
 
 model InvoiceItem {
@@ -554,6 +561,28 @@ model InvoiceItem {
   vatRate     Float    @default(19) // 7 oder 19 (Prozent)
   position    Int      @default(0)  // Reihenfolge
   createdAt   DateTime @default(now())
+}
+
+// ─── Zahlungs-Tracking ────────────────────────────────────────────────────────
+model Payment {
+  id        String   @id @default(cuid())
+  invoiceId String
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount    Float
+  date      DateTime @default(now())
+  method    String   @default("Überweisung") // "Überweisung" | "Bar" | "EC-Karte" | "PayPal" | "Lastschrift"
+  note      String?
+  createdAt DateTime @default(now())
+}
+
+// ─── Rechnungs-Vorlagen ───────────────────────────────────────────────────────
+model InvoiceTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  positions   String   // JSON: Array von { description, quantity, unitPrice, vatRate }
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 // ─── Persönliche Tagesnotizen ─────────────────────────────────────────────────

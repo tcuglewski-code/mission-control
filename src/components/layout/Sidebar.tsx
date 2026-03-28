@@ -64,6 +64,7 @@ const navItems = [
   { href: "/cronjobs", icon: Timer, label: "Cron Jobs" },
   { href: "/projects", icon: FolderKanban, label: "Projekte" },
   { href: "/finance", icon: Banknote, label: "Finanzen" },
+  { href: "/invoice-templates", icon: FileText, label: "Rechnungsvorlagen" },
   { href: "/activity", icon: ActivitySquare, label: "Aktivitäten" },
   { href: "/analytics", icon: BarChart2, label: "Analytics" },
   { href: "/memory", icon: Brain, label: "Memory" },

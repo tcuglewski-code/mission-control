@@ -21,6 +21,7 @@ export async function GET(req: NextRequest, { params }: Params) {
       include: {
         project: { select: { id: true, name: true, color: true } },
         items: { orderBy: { position: "asc" } },
+        payments: { orderBy: { date: "desc" } },
       },
     });
 
@@ -47,6 +48,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       number, description, amount, status, dueDate, paidAt, invoiceDate,
       clientName, clientAddress, paymentTerms, bankDetails, notes,
       paymentMethod, paymentAmount, paymentDate, items,
+      dunningLevel, dunningDate, dunningFee, templateId,
     } = body;
 
     const existing = await prisma.invoice.findUnique({ where: { id } });
@@ -95,10 +97,15 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         ...(paymentMethod !== undefined ? { paymentMethod } : {}),
         ...(paymentAmount !== undefined ? { paymentAmount: Number(paymentAmount) } : {}),
         ...(paymentDate !== undefined ? { paymentDate: paymentDate ? new Date(paymentDate) : null } : {}),
+        ...(dunningLevel !== undefined ? { dunningLevel: Number(dunningLevel) } : {}),
+        ...(dunningDate !== undefined ? { dunningDate: dunningDate ? new Date(dunningDate) : null } : {}),
+        ...(dunningFee !== undefined ? { dunningFee: Number(dunningFee) } : {}),
+        ...(templateId !== undefined ? { templateId } : {}),
       },
       include: {
         project: { select: { id: true, name: true, color: true } },
         items: { orderBy: { position: "asc" } },
+        payments: { orderBy: { date: "desc" } },
       },
     });
 

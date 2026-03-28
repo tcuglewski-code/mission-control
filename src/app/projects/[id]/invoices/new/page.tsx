@@ -5,7 +5,7 @@ import { use } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import Link from "next/link";
-import { ChevronLeft, Plus, Trash2, Calculator } from "lucide-react";
+import { ChevronLeft, Plus, Trash2, Calculator, FileText } from "lucide-react";
 
 // ─── Typen ────────────────────────────────────────────────────────────────────
 interface InvoiceItem {
@@ -20,6 +20,20 @@ interface Project {
   id: string;
   name: string;
   color: string;
+}
+
+interface InvoiceTemplateItem {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  vatRate: number;
+}
+
+interface InvoiceTemplate {
+  id: string;
+  name: string;
+  description: string | null;
+  positions: InvoiceTemplateItem[];
 }
 
 // ─── Hilfsfunktionen ─────────────────────────────────────────────────────────
@@ -62,6 +76,8 @@ export default function NewInvoicePage({ params }: { params: Promise<{ id: strin
   const twoWeeks = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
   const [project, setProject] = useState<Project | null>(null);
+  const [templates, setTemplates] = useState<InvoiceTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,19 +101,37 @@ export default function NewInvoicePage({ params }: { params: Promise<{ id: strin
   // Daten laden
   const loadData = useCallback(async () => {
     try {
-      const [projRes, numRes] = await Promise.all([
+      const [projRes, numRes, templRes] = await Promise.all([
         fetch(`/api/projects/${projectId}`),
         fetch("/api/invoices/next-number"),
+        fetch("/api/invoice-templates"),
       ]);
       if (projRes.ok) setProject(await projRes.json());
       if (numRes.ok) {
         const { number } = await numRes.json();
         setInvoiceNumber(number);
       }
+      if (templRes.ok) setTemplates(await templRes.json());
     } finally {
       setLoading(false);
     }
   }, [projectId]);
+
+  // Vorlage anwenden
+  function applyTemplate(templateId: string) {
+    const tpl = templates.find((t) => t.id === templateId);
+    if (!tpl) return;
+    setSelectedTemplateId(templateId);
+    setItems(
+      tpl.positions.map((pos) => ({
+        id: Math.random().toString(36).slice(2),
+        description: pos.description,
+        quantity: pos.quantity,
+        unitPrice: pos.unitPrice,
+        vatRate: pos.vatRate,
+      }))
+    );
+  }
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -279,13 +313,30 @@ export default function NewInvoicePage({ params }: { params: Promise<{ id: strin
         <div className="bg-[#18181b] border border-zinc-800 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-zinc-200">📊 Rechnungspositionen</h2>
-            <button
-              onClick={addItem}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-zinc-700 text-zinc-300 hover:text-white hover:border-emerald-500 hover:text-emerald-400 transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Position hinzufügen
-            </button>
+            <div className="flex items-center gap-2">
+              {templates.length > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-zinc-500" />
+                  <select
+                    className="bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-emerald-500 transition-colors"
+                    value={selectedTemplateId}
+                    onChange={(e) => applyTemplate(e.target.value)}
+                  >
+                    <option value="">Vorlage wählen…</option>
+                    {templates.map((t) => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <button
+                onClick={addItem}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-zinc-700 text-zinc-300 hover:text-white hover:border-emerald-500 hover:text-emerald-400 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Position hinzufügen
+              </button>
+            </div>
           </div>
 
           {/* Header */}
