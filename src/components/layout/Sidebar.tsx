@@ -36,6 +36,7 @@ import {
   Megaphone,
   UserCog,
   Settings,
+  Banknote,
 } from "lucide-react";
 import { useKeyboardShortcutsModal } from "@/hooks/useKeyboardShortcutsModal";
 import { useQuickAdd } from "@/hooks/useQuickAdd";
@@ -54,6 +55,7 @@ const navItems = [
   { href: "/time", icon: Clock, label: "Zeiterfassung" },
   { href: "/cronjobs", icon: Timer, label: "Cron Jobs" },
   { href: "/projects", icon: FolderKanban, label: "Projekte" },
+  { href: "/finance", icon: Banknote, label: "Finanzen" },
   { href: "/memory", icon: Brain, label: "Memory" },
   { href: "/docs", icon: FileText, label: "Dokumente" },
   { href: "/documents", icon: FolderArchive, label: "Dateiverwaltung" },
