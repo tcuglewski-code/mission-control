@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, email, role, avatar, description, tools, skills } = body;
+    const { name, email, role, avatar, description, tools, skills, weeklyCapacity } = body;
 
     if (!name || !email) {
       return NextResponse.json({ error: "Name and email are required" }, { status: 400 });
@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
         description,
         tools,
         skills,
+        weeklyCapacity: weeklyCapacity ?? 40,
       },
       include: { _count: { select: { tasks: true } } },
     });
@@ -80,7 +81,7 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { id, name, email, role, avatar, description, tools, skills } = body;
+    const { id, name, email, role, avatar, description, tools, skills, weeklyCapacity } = body;
 
     if (!id) {
       return NextResponse.json({ error: "ID is required" }, { status: 400 });
@@ -96,6 +97,7 @@ export async function PUT(req: NextRequest) {
         ...(description !== undefined && { description }),
         ...(tools !== undefined && { tools }),
         ...(skills !== undefined && { skills }),
+        ...(weeklyCapacity !== undefined && { weeklyCapacity }),
       },
       include: { _count: { select: { tasks: true } } },
     });

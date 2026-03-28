@@ -64,6 +64,7 @@ interface SprintData {
   projectId: string | null;
   storyPoints: number | null;
   completedPoints: number | null;
+  memberIds: string | null;   // JSON array of user IDs
   project: Project | null;
   tasks: TaskItem[];
   createdAt: string;
@@ -395,6 +396,14 @@ function VelocityChart({ sprints }: { sprints: SprintData[] }) {
 
 // ─── Sprint Modal ─────────────────────────────────────────────────────────────
 
+interface TeamUserMin {
+  id: string;
+  name: string;
+  avatar: string | null;
+  role: string;
+  weeklyCapacity?: number;
+}
+
 interface SprintModalProps {
   sprint?: SprintData | null;
   projects: Project[];
@@ -406,6 +415,12 @@ function SprintModal({ sprint, projects, onClose, onSave }: SprintModalProps) {
   const today = format(new Date(), "yyyy-MM-dd");
   const twoWeeks = format(addDays(new Date(), 14), "yyyy-MM-dd");
 
+  // Sprint memberIds parsen
+  let initialMemberIds: string[] = [];
+  try {
+    if ((sprint as any)?.memberIds) initialMemberIds = JSON.parse((sprint as any).memberIds);
+  } catch {}
+
   const [form, setForm] = useState({
     name: sprint?.name ?? "",
     goal: sprint?.goal ?? "",
@@ -415,7 +430,48 @@ function SprintModal({ sprint, projects, onClose, onSave }: SprintModalProps) {
     projectId: sprint?.projectId ?? "",
     storyPoints: sprint?.storyPoints != null ? String(sprint.storyPoints) : "",
   });
+  const [memberIds, setMemberIds] = useState<string[]>(initialMemberIds);
+  const [teamUsers, setTeamUsers] = useState<TeamUserMin[]>([]);
   const [loading, setLoading] = useState(false);
+  const [capacityWarning, setCapacityWarning] = useState<string | null>(null);
+
+  // Team laden
+  useEffect(() => {
+    fetch("/api/team")
+      .then((r) => r.ok ? r.json() : [])
+      .then(setTeamUsers)
+      .catch(() => {});
+  }, []);
+
+  // Kapazitäts-Check bei Sprint-Tasks
+  const checkCapacity = useCallback((selectedIds: string[]) => {
+    const spTotal = parseInt(form.storyPoints, 10) || 0;
+    if (spTotal === 0 || selectedIds.length === 0) {
+      setCapacityWarning(null);
+      return;
+    }
+    const spPerMember = spTotal / selectedIds.length;
+    const hoursPerMember = spPerMember * 2; // 1 SP = 2h
+    const warnings = selectedIds
+      .map((id) => teamUsers.find((u) => u.id === id))
+      .filter(Boolean)
+      .filter((u) => {
+        const cap = u!.weeklyCapacity ?? 40;
+        return (hoursPerMember / cap) > 0.8;
+      })
+      .map((u) => u!.name);
+    setCapacityWarning(warnings.length > 0
+      ? `⚠ Überlastung: ${warnings.join(", ")} (>80% Kapazität)`
+      : null);
+  }, [form.storyPoints, teamUsers]);
+
+  const toggleMember = (userId: string) => {
+    const updated = memberIds.includes(userId)
+      ? memberIds.filter((id) => id !== userId)
+      : [...memberIds, userId];
+    setMemberIds(updated);
+    checkCapacity(updated);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -431,6 +487,7 @@ function SprintModal({ sprint, projects, onClose, onSave }: SprintModalProps) {
         endDate: form.endDate || null,
         projectId: form.projectId || null,
         storyPoints: isNaN(sp) ? null : sp,
+        memberIds: memberIds.length > 0 ? memberIds : null,
       } as Partial<SprintData>);
       onClose();
     } finally {
@@ -531,6 +588,41 @@ function SprintModal({ sprint, projects, onClose, onSave }: SprintModalProps) {
                 className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50"
               />
             </div>
+          </div>
+
+          {/* Team-Mitglieder */}
+          <div>
+            <label className="text-xs text-zinc-400 mb-2 block">Team-Mitglieder</label>
+            {teamUsers.length === 0 ? (
+              <p className="text-xs text-zinc-600">Lade Teammitglieder...</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {teamUsers.map((u) => {
+                  const isSelected = memberIds.includes(u.id);
+                  const emoji = u.avatar ?? (u.role === "agent" ? "🤖" : "👤");
+                  return (
+                    <button
+                      key={u.id}
+                      type="button"
+                      onClick={() => toggleMember(u.id)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border transition-colors ${
+                        isSelected
+                          ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300"
+                          : "bg-[#252525] border-[#3a3a3a] text-zinc-400 hover:border-[#4a4a4a]"
+                      }`}>
+                      <span>{emoji}</span>
+                      <span>{u.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {capacityWarning && (
+              <p className="text-xs text-orange-400 mt-2">{capacityWarning}</p>
+            )}
+            {memberIds.length > 0 && (
+              <p className="text-[10px] text-zinc-600 mt-1">{memberIds.length} Mitglied(er) zugewiesen</p>
+            )}
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-2">
@@ -934,6 +1026,24 @@ export function SprintsClient() {
                         </p>
                       </div>
                     )}
+                    {(() => {
+                      let mIds: string[] = [];
+                      try { if (activeSprint.memberIds) mIds = JSON.parse(activeSprint.memberIds); } catch {}
+                      if (mIds.length === 0) return null;
+                      return (
+                        <div className="text-center">
+                          <p className="text-[10px] text-zinc-500 mb-1">Team</p>
+                          <div className="flex items-center gap-1 justify-center">
+                            {mIds.slice(0, 5).map((id) => (
+                              <span key={id} className="w-6 h-6 rounded-full bg-zinc-700 border border-[#2a2a2a] text-xs flex items-center justify-center" title={id}>
+                                👤
+                              </span>
+                            ))}
+                            {mIds.length > 5 && <span className="text-[10px] text-zinc-500">+{mIds.length - 5}</span>}
+                          </div>
+                        </div>
+                      );
+                    })()}
                     <div className="flex items-center gap-2 ml-auto">
                       <button
                         onClick={() => setModalSprint(activeSprint)}
