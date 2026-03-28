@@ -149,7 +149,7 @@ export function Sidebar() {
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors relative group",
+                  "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
                   isActive
                     ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
                     : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
@@ -173,7 +173,7 @@ export function Sidebar() {
               href="/settings/profile"
               onClick={() => setSidebarOpen(false)}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors relative group",
+                "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
                 pathname === "/settings/profile"
                   ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
                   : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
@@ -191,7 +191,7 @@ export function Sidebar() {
                 href="/settings/users"
                 onClick={() => setSidebarOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors relative group",
+                  "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
                   pathname === "/settings/users"
                     ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
                     : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
@@ -216,7 +216,7 @@ export function Sidebar() {
                 href="/admin/users"
                 onClick={() => setSidebarOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors relative group",
+                  "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
                   pathname === "/admin/users"
                     ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
                     : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
@@ -232,7 +232,7 @@ export function Sidebar() {
                 href="/admin/audit"
                 onClick={() => setSidebarOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors relative group",
+                  "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
                   pathname === "/admin/audit"
                     ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
                     : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
@@ -253,7 +253,7 @@ export function Sidebar() {
           <button
             onClick={() => { openQuickAdd(true); setSidebarOpen(false); }}
             data-tour="quick-add"
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e] transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e] transition-colors"
           >
             <Zap className="w-4 h-4 shrink-0 text-emerald-500" />
             <span>Neuer Task</span>
@@ -263,7 +263,7 @@ export function Sidebar() {
           </button>
           <button
             onClick={() => openShortcuts(true)}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e] transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e] transition-colors"
           >
             <Keyboard className="w-4 h-4 shrink-0" />
             <span>Tastenkürzel</span>

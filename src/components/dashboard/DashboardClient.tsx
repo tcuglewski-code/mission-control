@@ -149,10 +149,10 @@ export function DashboardClient({
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Stats row + customize button */}
-      <div className="flex items-start gap-4">
-        <div className="flex-1">
+      <div className="space-y-3 sm:space-y-0 sm:flex sm:items-start sm:gap-4">
+        <div className="flex-1 min-w-0">
           <StatsRow
             activeProjects={activeProjectsCount}
             openTasks={openTasksCount}
@@ -162,11 +162,11 @@ export function DashboardClient({
         </div>
         <button
           onClick={() => setConfigOpen(true)}
-          className="shrink-0 flex items-center gap-2 px-3 py-2 rounded-lg border border-[#2a2a2a] bg-[#1c1c1c] hover:border-[#3a3a3a] hover:bg-[#222] text-sm text-zinc-400 hover:text-white transition-all mt-0.5"
+          className="shrink-0 flex items-center gap-2 px-3 py-2 min-h-[44px] rounded-lg border border-[#2a2a2a] bg-[#1c1c1c] hover:border-[#3a3a3a] hover:bg-[#222] text-sm text-zinc-400 hover:text-white transition-all"
           title="Dashboard anpassen"
         >
           <Settings2 className="w-4 h-4" />
-          <span className="hidden sm:inline">Dashboard anpassen</span>
+          <span>Dashboard anpassen</span>
         </button>
       </div>
 

@@ -20,7 +20,8 @@ export function Header({ title, subtitle }: HeaderProps) {
       <div className="flex items-center gap-4">
         <button
           onClick={() => setSidebarOpen(true)}
-          className="lg:hidden text-zinc-400 hover:text-white p-1"
+          className="lg:hidden text-zinc-400 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-[#252525] transition-colors"
+          aria-label="Menü öffnen"
         >
           <Menu className="w-5 h-5" />
         </button>

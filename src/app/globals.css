@@ -107,4 +107,8 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+  /* Safe area for iOS notch / home indicator */
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 }

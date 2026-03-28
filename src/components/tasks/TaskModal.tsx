@@ -365,17 +365,18 @@ export function TaskModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center sm:justify-center sm:p-4">
+      <div className="bg-[#1c1c1c] border border-[#2a2a2a] sm:rounded-xl w-full sm:max-w-lg shadow-2xl h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-2xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#2a2a2a] sticky top-0 bg-[#1c1c1c] z-10">
           <h2 className="text-sm font-semibold text-white">
             {task ? "Task bearbeiten" : "Neuer Task"}
           </h2>
           <button
             onClick={onClose}
-            className="text-zinc-500 hover:text-white p-1 rounded hover:bg-[#252525]"
+            className="text-zinc-500 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-[#252525] transition-colors"
+            aria-label="Schließen"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -388,7 +389,7 @@ export function TaskModal({
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               placeholder="Task-Titel..."
-              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50"
+              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50"
               required
             />
           </div>
@@ -401,7 +402,7 @@ export function TaskModal({
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="Details..."
               rows={3}
-              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 resize-none"
+              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 resize-none"
             />
           </div>
 
@@ -412,7 +413,7 @@ export function TaskModal({
               <select
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value })}
-                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white focus:outline-none focus:border-emerald-500/50"
               >
                 <option value="backlog">Backlog</option>
                 <option value="todo">Todo</option>
@@ -426,7 +427,7 @@ export function TaskModal({
               <select
                 value={form.priority}
                 onChange={(e) => setForm({ ...form, priority: e.target.value })}
-                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white focus:outline-none focus:border-emerald-500/50"
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -443,7 +444,7 @@ export function TaskModal({
               <select
                 value={form.projectId}
                 onChange={(e) => setForm({ ...form, projectId: e.target.value })}
-                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white focus:outline-none focus:border-emerald-500/50"
               >
                 <option value="">Kein Projekt</option>
                 {projects.map((p) => (
@@ -456,7 +457,7 @@ export function TaskModal({
               <select
                 value={form.sprintId}
                 onChange={(e) => setForm({ ...form, sprintId: e.target.value })}
-                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white focus:outline-none focus:border-emerald-500/50"
               >
                 <option value="">Kein Sprint</option>
                 {sprints.map((s) => (
@@ -472,7 +473,7 @@ export function TaskModal({
             <select
               value={form.milestoneId}
               onChange={(e) => setForm({ ...form, milestoneId: e.target.value })}
-              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white focus:outline-none focus:border-emerald-500/50"
             >
               <option value="">Kein Meilenstein</option>
               {milestones
@@ -489,7 +490,7 @@ export function TaskModal({
             <select
               value={form.assigneeId}
               onChange={(e) => setForm({ ...form, assigneeId: e.target.value })}
-              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white focus:outline-none focus:border-emerald-500/50"
             >
               <option value="">Niemand</option>
               {users.map((u) => (
@@ -507,7 +508,7 @@ export function TaskModal({
               <button
                 type="button"
                 onClick={() => setLabelDropdownOpen((v) => !v)}
-                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-left focus:outline-none focus:border-emerald-500/50 flex items-center gap-2 flex-wrap min-h-[38px]"
+                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-left focus:outline-none focus:border-emerald-500/50 flex items-center gap-2 flex-wrap min-h-[44px]"
               >
                 {selectedLabelIds.size === 0 ? (
                   <span className="text-zinc-600">Labels auswählen...</span>
@@ -578,7 +579,7 @@ export function TaskModal({
               type="date"
               value={form.dueDate}
               onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white focus:outline-none focus:border-emerald-500/50"
             />
           </div>
 
@@ -589,7 +590,7 @@ export function TaskModal({
               type="date"
               value={form.startDate}
               onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white focus:outline-none focus:border-emerald-500/50"
             />
           </div>
 
@@ -631,7 +632,7 @@ export function TaskModal({
                         recurringDay: "",
                       })
                     }
-                    className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+                    className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white focus:outline-none focus:border-emerald-500/50"
                   >
                     <option value="DAILY">Täglich</option>
                     <option value="WEEKLY">Wöchentlich</option>
@@ -647,7 +648,7 @@ export function TaskModal({
                     <select
                       value={form.recurringDay}
                       onChange={(e) => setForm({ ...form, recurringDay: e.target.value })}
-                      className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+                      className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white focus:outline-none focus:border-emerald-500/50"
                     >
                       <option value="">Gleicher Wochentag</option>
                       <option value="1">Montag</option>
@@ -668,7 +669,7 @@ export function TaskModal({
                     <select
                       value={form.recurringDay}
                       onChange={(e) => setForm({ ...form, recurringDay: e.target.value })}
-                      className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+                      className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white focus:outline-none focus:border-emerald-500/50"
                     >
                       <option value="">Gleicher Tag</option>
                       {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
@@ -689,7 +690,7 @@ export function TaskModal({
                     type="date"
                     value={form.recurringEndDate}
                     onChange={(e) => setForm({ ...form, recurringEndDate: e.target.value })}
-                    className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+                    className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white focus:outline-none focus:border-emerald-500/50"
                   />
                   <p className="text-[10px] text-zinc-600 mt-1">
                     Wenn leer, wiederholt sich der Task unbegrenzt.
@@ -853,7 +854,7 @@ export function TaskModal({
               onChange={(e) => setForm({ ...form, agentPrompt: e.target.value })}
               placeholder="Anweisungen für den Agenten..."
               rows={3}
-              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 resize-none font-mono"
+              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 resize-none font-mono"
             />
           </div>
 

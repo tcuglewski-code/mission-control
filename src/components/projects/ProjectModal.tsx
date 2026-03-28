@@ -74,14 +74,18 @@ export function ProjectModal({ project, onClose, onSave, onDelete }: ProjectModa
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl w-full max-w-lg shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#2a2a2a]">
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center sm:justify-center sm:p-4">
+      <div className="bg-[#1c1c1c] border border-[#2a2a2a] sm:rounded-xl w-full sm:max-w-lg shadow-2xl max-h-[92vh] overflow-y-auto rounded-t-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#2a2a2a] sticky top-0 bg-[#1c1c1c] z-10">
           <h2 className="text-sm font-semibold text-white">
             {project ? "Projekt bearbeiten" : "Neues Projekt"}
           </h2>
-          <button onClick={onClose} className="text-zinc-500 hover:text-white p-1 rounded hover:bg-[#252525]">
-            <X className="w-4 h-4" />
+          <button
+            onClick={onClose}
+            className="text-zinc-500 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-[#252525] transition-colors"
+            aria-label="Schließen"
+          >
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -94,7 +98,7 @@ export function ProjectModal({ project, onClose, onSave, onDelete }: ProjectModa
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="Projektname..."
-              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50"
+              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50"
               required
             />
           </div>
@@ -107,7 +111,7 @@ export function ProjectModal({ project, onClose, onSave, onDelete }: ProjectModa
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="Kurze Beschreibung..."
               rows={2}
-              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 resize-none"
+              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 resize-none"
             />
           </div>
 
@@ -118,7 +122,7 @@ export function ProjectModal({ project, onClose, onSave, onDelete }: ProjectModa
               <select
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value })}
-                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white focus:outline-none focus:border-emerald-500/50"
               >
                 <option value="planning">Planning</option>
                 <option value="active">Active</option>
@@ -131,7 +135,7 @@ export function ProjectModal({ project, onClose, onSave, onDelete }: ProjectModa
               <select
                 value={form.priority}
                 onChange={(e) => setForm({ ...form, priority: e.target.value })}
-                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white focus:outline-none focus:border-emerald-500/50"
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
