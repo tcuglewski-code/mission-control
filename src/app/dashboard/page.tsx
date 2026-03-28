@@ -4,6 +4,7 @@ import { StatsRow } from "@/components/dashboard/StatsRow";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { ActiveProjects } from "@/components/dashboard/ActiveProjects";
 import { AnnouncementsWidget } from "@/components/dashboard/AnnouncementsWidget";
+import { BudgetOverview } from "@/components/dashboard/BudgetOverview";
 import { startOfDay, endOfDay } from "date-fns";
 import { requireServerSession, getAllowedProjectIds } from "@/lib/server-auth";
 
@@ -27,6 +28,7 @@ export default async function DashboardPage() {
     recentLogs,
     projects,
     recentAnnouncements,
+    budgetProjects,
   ] = await Promise.all([
     // Tasks nur aus erlaubten Projekten
     prisma.task.count({
@@ -66,6 +68,11 @@ export default async function DashboardPage() {
       orderBy: { updatedAt: "desc" },
       take: 5,
     }),
+    // Budget-Daten aller Projekte
+    prisma.project.findMany({
+      where: allowedIds ? { id: { in: allowedIds } } : {},
+      select: { id: true, name: true, budget: true, budgetUsed: true, color: true },
+    }),
     prisma.announcement.findMany({
       orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
       take: 3,
@@ -91,6 +98,7 @@ export default async function DashboardPage() {
           </div>
           <div className="lg:col-span-2 space-y-6">
             <AnnouncementsWidget announcements={recentAnnouncements} />
+            <BudgetOverview projects={budgetProjects} />
             <ActiveProjects projects={projects} />
           </div>
         </div>

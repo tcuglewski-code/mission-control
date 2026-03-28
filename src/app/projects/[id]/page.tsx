@@ -9,6 +9,7 @@ import { ChevronLeft, CheckSquare, Users, FileText, Activity, Globe, Github, Ext
 import { getStatusBg, getStatusLabel, formatRelativeTime, getActionLabel, getEntityTypeLabel, getInitials } from "@/lib/utils";
 import { requireServerSession, getAllowedProjectIds } from "@/lib/server-auth";
 import { LivingDescription } from "@/components/projects/LivingDescription";
+import { BudgetCard } from "@/components/projects/BudgetCard";
 
 // PDF-Button: nur client-side, kein SSR (wegen @react-pdf/renderer)
 const ProjectPDFButton = dynamic(
@@ -340,6 +341,13 @@ export default async function ProjectDetailPage({ params }: PageProps) {
 
           {/* Sidebar */}
           <div className="space-y-4">
+            {/* Budget */}
+            <BudgetCard
+              projectId={project.id}
+              budget={project.budget ?? null}
+              budgetUsed={project.budgetUsed ?? 0}
+            />
+
             {/* Members */}
             <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl p-5">
               <div className="flex items-center gap-2 mb-4">
