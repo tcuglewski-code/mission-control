@@ -4,9 +4,10 @@ import { AppShell } from "@/components/layout/AppShell";
 import Link from "next/link";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { ChevronLeft, CheckSquare, Users, FileText, FolderArchive, Activity, Globe, Github, ExternalLink, Smartphone, Download, Flag, Target, BarChart2, Clock } from "lucide-react";
+import { ChevronLeft, CheckSquare, Users, FileText, FolderArchive, Globe, Github, ExternalLink, Smartphone, Download, Flag, Target, BarChart2, Clock } from "lucide-react";
 import { SaveAsTemplateButton } from "@/components/projects/SaveAsTemplateButton";
-import { getStatusBg, getStatusLabel, formatRelativeTime, getActionLabel, getEntityTypeLabel, getInitials } from "@/lib/utils";
+import { ProjectActivityWidget } from "@/components/projects/ProjectActivityWidget";
+import { getStatusBg, getStatusLabel, getInitials } from "@/lib/utils";
 import { requireServerSession, getAllowedProjectIds } from "@/lib/server-auth";
 import { LivingDescription } from "@/components/projects/LivingDescription";
 import { BudgetCard } from "@/components/projects/BudgetCard";
@@ -491,23 +492,18 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               </div>
             </div>
 
-            {/* Activity */}
-            <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <Activity className="w-4 h-4 text-zinc-400" />
-                <h2 className="text-sm font-semibold text-white">Activity</h2>
-              </div>
-              <div className="space-y-3">
-                {project.logs.map((log) => (
-                  <div key={log.id} className="text-xs text-zinc-400">
-                    <span className="text-zinc-300">{log.user?.name ?? "System"}</span>
-                    {" "}{getActionLabel(log.action)}{" "}
-                    <span className="text-zinc-500">{log.entityName}</span>
-                    <div className="text-zinc-600 mt-0.5">{formatRelativeTime(log.createdAt)}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* Activity Widget */}
+            <ProjectActivityWidget
+              projectId={project.id}
+              initialLogs={project.logs.slice(0, 5).map((log) => ({
+                id: log.id,
+                action: log.action,
+                entityType: log.entityType,
+                entityName: log.entityName,
+                createdAt: log.createdAt.toISOString(),
+                user: log.user ?? null,
+              }))}
+            />
           </div>
         </div>
       </div>

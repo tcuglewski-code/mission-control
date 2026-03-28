@@ -10,21 +10,24 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const limit = parseInt(searchParams.get("limit") ?? "20");
-    const projectId = searchParams.get("projectId");
+    const limit = Math.min(parseInt(searchParams.get("limit") ?? "20"), 100);
+    const cursor = searchParams.get("cursor") ?? undefined;
+    const projectId = searchParams.get("projectId") ?? undefined;
+    const userId = searchParams.get("userId") ?? undefined;
+    const type = searchParams.get("type") ?? undefined; // "created" | "commented" | "status_changed" | "reaction" | ...
 
-    // Non-admins sehen nur Logs aus ihren erlaubten Projekten
-    // Kein Fallback auf null-Projekte für eingeschränkte User
+    // Zugriffskontrolle: Non-admins sehen nur ihre freigegebenen Projekte
     const accessFilter =
       user.role !== "admin"
         ? user.projectAccess.length > 0
           ? { projectId: { in: user.projectAccess } }
-          : { id: "__none__" } // no access at all → empty result
+          : { id: "__none__" }
         : undefined;
 
-    // Build AND clauses to avoid OR-overwrite issues
     const andClauses: object[] = [];
+
     if (accessFilter) andClauses.push(accessFilter);
+
     if (projectId) {
       if (user.role !== "admin" && !user.projectAccess.includes(projectId)) {
         andClauses.push({ id: "__none__" });
@@ -33,17 +36,47 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    if (userId) {
+      andClauses.push({ userId });
+    }
+
+    if (type) {
+      // Typ-Filter: mappt auf action-Werte
+      const actionMap: Record<string, string[]> = {
+        created: ["created"],
+        commented: ["commented"],
+        status_changed: ["status_changed", "completed", "done"],
+        reaction: ["reaction"],
+        updated: ["updated"],
+        deleted: ["deleted"],
+      };
+      const actions = actionMap[type] ?? [type];
+      andClauses.push({ action: { in: actions } });
+    }
+
+    const whereClause = andClauses.length > 0 ? { AND: andClauses } : {};
+
     const logs = await prisma.activityLog.findMany({
-      where: andClauses.length > 0 ? { AND: andClauses } : {},
+      where: whereClause,
       include: {
         user: { select: { name: true, avatar: true } },
         project: { select: { name: true, color: true } },
       },
       orderBy: { createdAt: "desc" },
-      take: limit,
+      take: limit + 1, // +1 um nextCursor zu ermitteln
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     });
 
-    return NextResponse.json(logs);
+    let nextCursor: string | undefined;
+    if (logs.length > limit) {
+      const last = logs.pop();
+      nextCursor = last?.id;
+    }
+
+    return NextResponse.json({
+      logs,
+      nextCursor: nextCursor ?? null,
+    });
   } catch (error) {
     console.error("[GET /api/activity]", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

@@ -185,7 +185,19 @@ model TaskComment {
   authorEmail String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task      Task               @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  reactions CommentReaction[]
+}
+
+// ─── Kommentar-Reaktionen ─────────────────────────────────────────────────────
+model CommentReaction {
+  id        String      @id @default(cuid())
+  commentId String
+  userId    String      // AuthUser ID
+  emoji     String      // z.B. "👍", "❤️", "😄", "🎉", "👀", "🚀"
+  createdAt DateTime    @default(now())
+  comment   TaskComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  @@unique([commentId, userId, emoji])
 }
 
 model Document {

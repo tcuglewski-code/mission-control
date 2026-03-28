@@ -7,13 +7,23 @@ import { de } from "date-fns/locale";
 import type { Task, Project, User, Sprint, Label, Milestone } from "@/store/useAppStore";
 import { TaskTimer } from "./TaskTimer";
 
+interface CommentReaction {
+  id: string;
+  emoji: string;
+  userId: string;
+  createdAt: string;
+}
+
 interface TaskComment {
   id: string;
   content: string;
   authorName: string;
   authorEmail?: string | null;
   createdAt: string;
+  reactions?: CommentReaction[];
 }
+
+const REACTION_EMOJIS = ["👍", "❤️", "😄", "🎉", "👀", "🚀"];
 
 interface TaskModalProps {
   task?: Task | null;
@@ -226,6 +236,42 @@ export function TaskModal({
       });
       if (res.ok) {
         setComments((prev) => prev.filter((c) => c.id !== commentId));
+      }
+    } catch {
+      // silently ignore
+    }
+  };
+
+  const handleToggleReaction = async (commentId: string, emoji: string) => {
+    try {
+      const res = await fetch(`/api/comments/${commentId}/reactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emoji }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setComments((prev) =>
+          prev.map((c) => {
+            if (c.id !== commentId) return c;
+            const reactions = c.reactions ?? [];
+            if (data.removed) {
+              // Reaktion wurde entfernt
+              return {
+                ...c,
+                reactions: reactions.filter(
+                  (r) => !(r.emoji === emoji)
+                ),
+              };
+            } else {
+              // Reaktion wurde hinzugefügt
+              return {
+                ...c,
+                reactions: [...reactions, data],
+              };
+            }
+          })
+        );
       }
     } catch {
       // silently ignore
@@ -885,39 +931,90 @@ export function TaskModal({
                 ) : comments.length === 0 ? (
                   <p className="text-xs text-zinc-600 italic">Noch keine Kommentare. Sei der Erste!</p>
                 ) : (
-                  comments.map((comment) => (
-                    <div
-                      key={comment.id}
-                      className="group bg-[#171717] border border-[#2a2a2a] rounded-lg px-3 py-2.5"
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-2">
-                          <span className="w-5 h-5 rounded-full bg-emerald-600 flex items-center justify-center text-[10px] font-bold text-white">
-                            {comment.authorName.charAt(0).toUpperCase()}
-                          </span>
-                          <span className="text-xs font-medium text-zinc-300">
-                            {comment.authorName}
-                          </span>
+                  comments.map((comment) => {
+                    // Reaktionen gruppieren: emoji → [userId, ...]
+                    const reactionGroups: Record<string, string[]> = {};
+                    for (const r of comment.reactions ?? []) {
+                      if (!reactionGroups[r.emoji]) reactionGroups[r.emoji] = [];
+                      reactionGroups[r.emoji].push(r.userId);
+                    }
+
+                    return (
+                      <div
+                        key={comment.id}
+                        className="group bg-[#171717] border border-[#2a2a2a] rounded-lg px-3 py-2.5"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-full bg-emerald-600 flex items-center justify-center text-[10px] font-bold text-white">
+                              {comment.authorName.charAt(0).toUpperCase()}
+                            </span>
+                            <span className="text-xs font-medium text-zinc-300">
+                              {comment.authorName}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-zinc-600">
+                              {timeAgo(comment.createdAt)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteComment(comment.id)}
+                              className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-400 transition-all"
+                              title="Kommentar löschen"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-zinc-600">
-                            {timeAgo(comment.createdAt)}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteComment(comment.id)}
-                            className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-400 transition-all"
-                            title="Kommentar löschen"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
+                        <p className="text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                          {comment.content}
+                        </p>
+
+                        {/* ─── Reaktionen ─────────────────────────────────────── */}
+                        <div className="flex flex-wrap items-center gap-1 mt-2">
+                          {/* Bestehende Reaktionen */}
+                          {Object.entries(reactionGroups).map(([emoji, userIds]) => (
+                            <button
+                              key={emoji}
+                              type="button"
+                              onClick={() => handleToggleReaction(comment.id, emoji)}
+                              title={`${userIds.length} Reaktion${userIds.length !== 1 ? "en" : ""}`}
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[#252525] border border-[#3a3a3a] hover:border-emerald-500/40 text-[11px] transition-colors"
+                            >
+                              <span>{emoji}</span>
+                              <span className="text-zinc-400 font-medium">{userIds.length}</span>
+                            </button>
+                          ))}
+
+                          {/* Emoji-Picker (6 feste Emojis) */}
+                          <div className="relative group/picker">
+                            <button
+                              type="button"
+                              className="opacity-0 group-hover:opacity-100 inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#252525] border border-[#3a3a3a] hover:border-emerald-500/40 text-zinc-500 hover:text-white transition-all text-[11px]"
+                              title="Reaktion hinzufügen"
+                            >
+                              +
+                            </button>
+                            {/* Hover-Dropdown */}
+                            <div className="absolute bottom-full left-0 mb-1 hidden group-hover/picker:flex items-center gap-0.5 bg-[#1c1c1c] border border-[#3a3a3a] rounded-lg px-1.5 py-1 shadow-xl z-30">
+                              {REACTION_EMOJIS.map((emoji) => (
+                                <button
+                                  key={emoji}
+                                  type="button"
+                                  onClick={() => handleToggleReaction(comment.id, emoji)}
+                                  className="text-base hover:scale-125 transition-transform px-0.5"
+                                  title={emoji}
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <p className="text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap">
-                        {comment.content}
-                      </p>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
                 <div ref={commentsEndRef} />
               </div>
