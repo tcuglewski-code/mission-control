@@ -12,6 +12,7 @@ import { getStatusBg, getStatusLabel, getInitials } from "@/lib/utils";
 import { requireServerSession, getAllowedProjectIds } from "@/lib/server-auth";
 import { LivingDescription } from "@/components/projects/LivingDescription";
 import { BudgetCard } from "@/components/projects/BudgetCard";
+import { StoryPointEstimator } from "@/components/projects/StoryPointEstimator";
 import { ProjectPDFButton } from "@/components/projects/ProjectPDFButtonWrapper";
 import { MilestoneList } from "@/components/milestones/MilestoneList";
 import { ProjectStatusBanner } from "@/components/projects/ProjectStatusBanner";
@@ -591,6 +592,13 @@ export default async function ProjectDetailPage({ params }: PageProps) {
             <AiProjectSummary
               projectId={project.id}
               projectName={project.name}
+            />
+
+            {/* Story Point Schätzung */}
+            <StoryPointEstimator
+              projectId={project.id}
+              defaultDescription={project.description ?? ""}
+              compact
             />
           </div>
         </div>
