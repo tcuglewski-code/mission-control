@@ -51,6 +51,7 @@ model Project {
   milestones Milestone[]
   members    ProjectMember[]
   docs       Document[]
+  fileDocs   FileDoc[]
   logs       ActivityLog[]
   databases  Database[]
   tickets    Ticket[]
@@ -414,6 +415,22 @@ model Announcement {
   pinned    Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ─── Datei-Dokumente (Link-Upload) ────────────────────────────────────────────
+model FileDoc {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  url           String                       // Externe URL oder interner Download-Link
+  fileType      String   @default("link")    // "pdf" | "word" | "excel" | "image" | "link" | "other"
+  size          Int?                         // Dateigröße in Bytes (null bei Links)
+  uploader      String   @default("System")
+  uploaderEmail String?
+  projectId     String?
+  project       Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 // ─── Meilensteine ─────────────────────────────────────────────────────────────

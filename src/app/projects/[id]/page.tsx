@@ -4,7 +4,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import Link from "next/link";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { ChevronLeft, CheckSquare, Users, FileText, Activity, Globe, Github, ExternalLink, Smartphone, Download, Flag, Target, BarChart2 } from "lucide-react";
+import { ChevronLeft, CheckSquare, Users, FileText, FolderArchive, Activity, Globe, Github, ExternalLink, Smartphone, Download, Flag, Target, BarChart2 } from "lucide-react";
 import { getStatusBg, getStatusLabel, formatRelativeTime, getActionLabel, getEntityTypeLabel, getInitials } from "@/lib/utils";
 import { requireServerSession, getAllowedProjectIds } from "@/lib/server-auth";
 import { LivingDescription } from "@/components/projects/LivingDescription";
@@ -241,6 +241,14 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               >
                 <Flag className="w-3.5 h-3.5" />
                 Sprints
+              </Link>
+              {/* Dokumente */}
+              <Link
+                href={`/projects/${project.id}/documents`}
+                className="flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 px-2 py-1 rounded hover:bg-amber-500/10 border border-amber-500/20 transition-colors"
+              >
+                <FolderArchive className="w-3.5 h-3.5" />
+                Dokumente
               </Link>
               {/* Status-Report */}
               <Link
