@@ -37,7 +37,7 @@ export async function logActivity({
         userId: userId ?? null,
         userEmail: userEmail ?? null,
         projectId: projectId ?? null,
-        details: details ?? null,
+        details: details ?? undefined,
         ipAddress: ipAddress ?? null,
       },
     });

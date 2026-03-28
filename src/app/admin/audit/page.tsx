@@ -18,6 +18,7 @@ interface AuditLog {
   entityName: string;
   userEmail: string | null;
   ipAddress: string | null;
+  metadata: string | null;
   details: Record<string, unknown> | null;
   createdAt: string;
   user: { name: string; email: string; avatar: string | null; role: string } | null;

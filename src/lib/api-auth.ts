@@ -9,6 +9,7 @@ export function sha256(data: string): string {
 export interface ApiSession {
   id: string;
   username: string;
+  email?: string;
   role: string;
   projectAccess: string[];
   permissions: string[];
@@ -58,6 +59,7 @@ export async function getSessionOrApiKey(
     return {
       id: user.id,
       username: user.username,
+      email: user.email ?? undefined,
       role: user.role,
       projectAccess: user.projectAccess,
       permissions: user.permissions ?? [],
@@ -79,6 +81,7 @@ export async function getSessionOrApiKey(
   return {
     id: user.id,
     username: user.username,
+    email: user.email ?? undefined,
     role: user.role,
     projectAccess: user.projectAccess,
     permissions: user.permissions ?? [],
