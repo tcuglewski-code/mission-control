@@ -27,8 +27,8 @@ export default async function DashboardPage() {
     activityToday,
     recentLogs,
     projects,
-    recentAnnouncements,
     budgetProjects,
+    recentAnnouncements,
   ] = await Promise.all([
     // Tasks nur aus erlaubten Projekten
     prisma.task.count({
