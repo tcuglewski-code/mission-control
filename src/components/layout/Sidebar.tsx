@@ -38,6 +38,7 @@ import {
   Settings,
   Banknote,
   Mail,
+  BarChart2,
 } from "lucide-react";
 import { useKeyboardShortcutsModal } from "@/hooks/useKeyboardShortcutsModal";
 import { useQuickAdd } from "@/hooks/useQuickAdd";
@@ -58,6 +59,7 @@ const navItems = [
   { href: "/cronjobs", icon: Timer, label: "Cron Jobs" },
   { href: "/projects", icon: FolderKanban, label: "Projekte" },
   { href: "/finance", icon: Banknote, label: "Finanzen" },
+  { href: "/analytics", icon: BarChart2, label: "Analytics" },
   { href: "/memory", icon: Brain, label: "Memory" },
   { href: "/docs", icon: FileText, label: "Dokumente" },
   { href: "/documents", icon: FolderArchive, label: "Dateiverwaltung" },
