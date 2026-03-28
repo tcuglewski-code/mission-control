@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
 import { CommandPalette } from "@/components/layout/CommandPalette";
+import { QuickAddTaskModal } from "@/components/QuickAddTaskModal";
+import { KeyboardShortcutsModal } from "@/components/layout/KeyboardShortcutsModal";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,6 +24,8 @@ export default function RootLayout({
         <SessionProvider>
           {children}
           <CommandPalette />
+          <QuickAddTaskModal />
+          <KeyboardShortcutsModal />
         </SessionProvider>
       </body>
     </html>

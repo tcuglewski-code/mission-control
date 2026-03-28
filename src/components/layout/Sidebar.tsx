@@ -27,7 +27,10 @@ import {
   Newspaper,
   BotIcon,
   ClipboardList,
+  Keyboard,
 } from "lucide-react";
+import { useKeyboardShortcutsModal } from "@/hooks/useKeyboardShortcutsModal";
+import { useQuickAdd } from "@/hooks/useQuickAdd";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/useAppStore";
 
@@ -54,6 +57,8 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const { sidebarOpen, setSidebarOpen } = useAppStore();
+  const { setOpen: openShortcuts } = useKeyboardShortcutsModal();
+  const { setOpen: openQuickAdd } = useQuickAdd();
   const { data: session } = useSession();
   const [meData, setMeData] = useState<{ username: string; role: string } | null>(null);
 
@@ -165,6 +170,30 @@ export function Sidebar() {
             </>
           )}
         </nav>
+
+        {/* Quick-Add + Shortcuts */}
+        <div className="px-3 pb-2 space-y-1">
+          <button
+            onClick={() => { openQuickAdd(true); setSidebarOpen(false); }}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-zinc-400 hover:text-white hover:bg-[#1e1e1e] transition-colors"
+          >
+            <Zap className="w-4 h-4 shrink-0 text-emerald-500" />
+            <span>Neuer Task</span>
+            <span className="ml-auto text-[10px] font-mono text-zinc-600 bg-[#222] px-1.5 py-0.5 rounded">
+              ⌘⇧N
+            </span>
+          </button>
+          <button
+            onClick={() => openShortcuts(true)}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-zinc-400 hover:text-white hover:bg-[#1e1e1e] transition-colors"
+          >
+            <Keyboard className="w-4 h-4 shrink-0" />
+            <span>Tastenkürzel</span>
+            <span className="ml-auto text-[10px] font-mono text-zinc-600 bg-[#222] px-1.5 py-0.5 rounded">
+              ⌨️
+            </span>
+          </button>
+        </div>
 
         {/* User info + Logout */}
         <div className="px-4 py-4 border-t border-[#2a2a2a]">
