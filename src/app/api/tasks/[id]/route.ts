@@ -7,6 +7,76 @@ import { logActivity } from "@/lib/audit";
 import { createNotification, getAuthUserIdByUserId } from "@/lib/notifications";
 import { calcNextDueDate, type RecurringIntervalType } from "@/lib/recurring";
 
+/**
+ * Prüft ob ein Task aktive Blocker hat (isBlocker=true, Blocker noch nicht erledigt).
+ * Gibt die Anzahl der aktiven Blocker zurück.
+ */
+async function countActiveBlockers(taskId: string): Promise<number> {
+  const blockerDeps = await prisma.taskDependency.findMany({
+    where: { taskId, isBlocker: true },
+    select: { dependsOnId: true },
+  });
+  if (blockerDeps.length === 0) return 0;
+
+  const blockerTasks = await prisma.task.findMany({
+    where: {
+      id: { in: blockerDeps.map((d) => d.dependsOnId) },
+      status: { not: "done" },
+    },
+    select: { id: true },
+  });
+  return blockerTasks.length;
+}
+
+/**
+ * Wenn ein Task erledigt wird: Alle blockierten Nachfolger benachrichtigen.
+ */
+async function notifyBlockedTasksOnCompletion(completedTaskId: string, completedTaskTitle: string) {
+  try {
+    const blockerDeps = await prisma.taskDependency.findMany({
+      where: { dependsOnId: completedTaskId, isBlocker: true },
+      select: { taskId: true },
+    });
+    if (blockerDeps.length === 0) return;
+
+    const blockedTaskIds = blockerDeps.map((d) => d.taskId);
+    const blockedTasks = await prisma.task.findMany({
+      where: { id: { in: blockedTaskIds } },
+      select: { id: true, title: true, assigneeId: true },
+    });
+
+    for (const blockedTask of blockedTasks) {
+      // Prüfe ob noch weitere aktive Blocker vorhanden
+      const remainingBlockers = await prisma.taskDependency.findMany({
+        where: { taskId: blockedTask.id, isBlocker: true, dependsOnId: { not: completedTaskId } },
+        select: { dependsOnId: true },
+      });
+      const stillBlocked = await prisma.task.findMany({
+        where: {
+          id: { in: remainingBlockers.map((b) => b.dependsOnId) },
+          status: { not: "done" },
+        },
+        select: { id: true },
+      });
+
+      if (stillBlocked.length === 0 && blockedTask.assigneeId) {
+        const authUserId = await getAuthUserIdByUserId(blockedTask.assigneeId);
+        if (authUserId) {
+          void createNotification(
+            authUserId,
+            "blocker_resolved",
+            "Blocker erledigt ✅",
+            `Du kannst jetzt mit „${blockedTask.title}" weitermachen — der Blocker „${completedTaskTitle}" wurde erledigt.`,
+            `/tasks`
+          );
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[notifyBlockedTasksOnCompletion]", err);
+  }
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -70,6 +140,7 @@ async function updateTask(id: string, body: Record<string, unknown>) {
     recurringDay,
     recurringEndDate,
     parentTaskId,
+    startAfterTaskId,
   } = body as {
     title?: string;
     description?: string;
@@ -90,7 +161,30 @@ async function updateTask(id: string, body: Record<string, unknown>) {
     recurringDay?: number | null;
     recurringEndDate?: string | null;
     parentTaskId?: string | null;
+    startAfterTaskId?: string | null;
   };
+
+  // ─── Blocker-Validation: Blockierte Tasks können nicht auf "done" gesetzt werden ───
+  if (status === "done") {
+    const activeBlockerCount = await countActiveBlockers(id);
+    if (activeBlockerCount > 0) {
+      const blockerDeps = await prisma.taskDependency.findMany({
+        where: { taskId: id, isBlocker: true },
+        select: { dependsOnId: true },
+      });
+      const blockerTasks = await prisma.task.findMany({
+        where: {
+          id: { in: blockerDeps.map((d) => d.dependsOnId) },
+          status: { not: "done" },
+        },
+        select: { title: true },
+      });
+      const blockerTitles = blockerTasks.map((t) => `„${t.title}"`).join(", ");
+      throw new Error(
+        `BLOCKER_ACTIVE:Dieser Task ist noch blockiert durch: ${blockerTitles}. Bitte löse zuerst die Blocker.`
+      );
+    }
+  }
 
   const task = await prisma.task.update({
     where: { id },
@@ -114,6 +208,7 @@ async function updateTask(id: string, body: Record<string, unknown>) {
       ...(recurringDay !== undefined && { recurringDay: recurringDay ?? null }),
       ...(recurringEndDate !== undefined && { recurringEndDate: recurringEndDate ? new Date(recurringEndDate) : null }),
       ...(parentTaskId !== undefined && { parentTaskId: parentTaskId ?? null }),
+      ...(startAfterTaskId !== undefined && { startAfterTaskId: startAfterTaskId ?? null }),
     },
     include: {
       project: { select: { id: true, name: true, color: true } },
@@ -202,6 +297,11 @@ async function updateTask(id: string, body: Record<string, unknown>) {
       details:      { field: "status", to: status },
     });
 
+    // ─── Blocker-Benachrichtigungen: Wenn Task erledigt, blockierte Tasks freigeben ───
+    if (status === "done") {
+      void notifyBlockedTasksOnCompletion(task.id, task.title);
+    }
+
     // Auto-recalculate project progress
     if (task.projectId) {
       const allTasks = await prisma.task.findMany({
@@ -286,6 +386,12 @@ export async function PUT(
     void fireTaskNotifications(task, body);
     return NextResponse.json(task);
   } catch (error) {
+    if (error instanceof Error && error.message.startsWith("BLOCKER_ACTIVE:")) {
+      return NextResponse.json(
+        { error: error.message.replace("BLOCKER_ACTIVE:", ""), blockerActive: true },
+        { status: 422 }
+      );
+    }
     console.error("[PUT /api/tasks/[id]]", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
@@ -312,6 +418,12 @@ export async function PATCH(
     void fireTaskNotifications(task, body);
     return NextResponse.json(task);
   } catch (error) {
+    if (error instanceof Error && error.message.startsWith("BLOCKER_ACTIVE:")) {
+      return NextResponse.json(
+        { error: error.message.replace("BLOCKER_ACTIVE:", ""), blockerActive: true },
+        { status: 422 }
+      );
+    }
     console.error("[PATCH /api/tasks/[id]]", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

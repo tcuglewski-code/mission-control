@@ -63,6 +63,9 @@ export interface Task {
   recurringDay?: number | null;
   recurringEndDate?: Date | null;
   parentTaskId?: string | null;
+  // Abhängigkeiten & Blocker
+  startAfterTaskId?: string | null;
+  isBlocked?: boolean; // Client-seitig berechnet: true wenn aktive Blocker vorhanden
   createdAt: Date;
   updatedAt: Date;
   project?: { id: string; name: string; color: string } | null;

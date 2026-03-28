@@ -98,6 +98,7 @@ model Task {
   recurringDay         Int?               // Wochentag 1-7 (Mo=1) oder Tag des Monats 1-31
   recurringEndDate     DateTime?          // Wann endet die Wiederholung
   parentTaskId         String?            // ID der Ursprungs-Task (bei erzeugten Kopien)
+  startAfterTaskId     String?            // Startet erst nach: ID der Vorgänger-Task
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
   projectId   String?
@@ -455,9 +456,10 @@ model DailyDigest {
 
 // ─── Task Dependencies ────────────────────────────────────────────────────────
 model TaskDependency {
-  id          String @id @default(cuid())
+  id          String  @id @default(cuid())
   taskId      String
   dependsOnId String
+  isBlocker   Boolean @default(false) // true = blockierende Abhängigkeit (Task kann nicht auf "done" bis Blocker erledigt)
   @@unique([taskId, dependsOnId])
 }
 

@@ -4,7 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { Calendar, AlertCircle, Play, Flag, Target, RefreshCw, Hash } from "lucide-react";
+import { Calendar, AlertCircle, Play, Flag, Target, RefreshCw, Hash, ShieldAlert } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 import { useAppStore, type Task, type Label } from "@/store/useAppStore";
 import { getRecurringLabel } from "@/lib/recurring";
@@ -51,6 +51,7 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
     task.dueDate && new Date(task.dueDate) < new Date() && task.status !== "done";
 
   const isInProgress = task.status === "in_progress";
+  const isBlocked = task.isBlocked === true;
 
   // Subtask-Fortschritt
   const subtaskTotal = task.subtasks?.length ?? 0;
@@ -87,8 +88,11 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
       {...listeners}
       onClick={onClick}
       className={cn(
-        "relative bg-[#1c1c1c] border border-[#2a2a2a] rounded-lg p-3 cursor-pointer",
+        "relative bg-[#1c1c1c] border rounded-lg p-3 cursor-pointer",
         "hover:border-[#3a3a3a] transition-colors group select-none",
+        isBlocked
+          ? "border-red-500/40 bg-red-950/10"
+          : "border-[#2a2a2a]",
         isDragging && "opacity-50 rotate-1 shadow-xl shadow-black/50 z-50"
       )}
     >
@@ -98,6 +102,14 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
           <div className="bg-[#111] border border-[#3a3a3a] rounded-lg px-3 py-2 shadow-xl">
             <p className="text-[11px] text-zinc-400 leading-relaxed">{descSnippet}</p>
           </div>
+        </div>
+      )}
+
+      {/* Blocker-Banner */}
+      {isBlocked && (
+        <div className="flex items-center gap-1.5 mb-2 px-2 py-1 bg-red-500/10 border border-red-500/20 rounded-md">
+          <ShieldAlert className="w-3 h-3 text-red-400 shrink-0" />
+          <span className="text-[10px] text-red-400 font-medium">Blockiert</span>
         </div>
       )}
 

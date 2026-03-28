@@ -475,6 +475,11 @@ export function KanbanBoard({ projects, users, filteredTasks, isAdmin }: KanbanB
       if (res.ok) {
         const updated = await res.json();
         setTasks(tasks.map((t) => (t.id === editingTask.id ? updated : t)));
+      } else if (res.status === 422) {
+        const errorData = await res.json();
+        if (errorData.blockerActive) {
+          throw new Error(errorData.error || "Task ist blockiert und kann nicht auf Erledigt gesetzt werden.");
+        }
       }
     } else {
       const res = await fetch("/api/tasks", {
@@ -484,6 +489,17 @@ export function KanbanBoard({ projects, users, filteredTasks, isAdmin }: KanbanB
       });
       if (res.ok) {
         const created = await res.json();
+
+        // "Startet erst nach" → Abhängigkeit automatisch anlegen
+        const startAfterTaskId = (taskData as Record<string, unknown>).startAfterTaskId as string | undefined;
+        if (startAfterTaskId) {
+          await fetch("/api/tasks/dependencies", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ taskId: created.id, dependsOnId: startAfterTaskId, isBlocker: false }),
+          }).catch(() => {});
+        }
+
         if (_labelIds && _labelIds.length > 0) {
           await Promise.all(
             _labelIds.map((labelId) =>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { X, Trash2, MessageSquare, Send, Tag, GitBranch, Link2, AlertTriangle, RefreshCw, Sparkles } from "lucide-react";
+import { X, Trash2, MessageSquare, Send, Tag, GitBranch, Link2, AlertTriangle, RefreshCw, Sparkles, ShieldAlert, ShieldCheck, Network, ChevronRight } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
 import type { Task, Project, User, Sprint, Label, Milestone } from "@/store/useAppStore";
@@ -79,14 +79,21 @@ export function TaskModal({
   const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
 
   // Abhängigkeits-State
-  interface DepTask { id: string; title: string; status: string; project?: { name: string; color: string } | null; }
+  interface DepTask { id: string; title: string; status: string; dueDate?: string | null; isBlocker?: boolean; project?: { name: string; color: string } | null; }
   const [allTasks, setAllTasks] = useState<DepTask[]>([]);
   const [dependsOnIds, setDependsOnIds] = useState<string[]>([]);
+  const [dependsOnBlockerMap, setDependsOnBlockerMap] = useState<Map<string, boolean>>(new Map()); // taskId → isBlocker
   const [blockingTasks, setBlockingTasks] = useState<DepTask[]>([]);
+  const [isBlocked, setIsBlocked] = useState(false);
   const [depDropdownOpen, setDepDropdownOpen] = useState(false);
   const [depSearch, setDepSearch] = useState("");
   const [depError, setDepError] = useState<string | null>(null);
   const [depLoading, setDepLoading] = useState(false);
+  // "Abhängigkeiten" Tab
+  const [activeTab, setActiveTab] = useState<"felder" | "abhaengigkeiten">("felder");
+  const [startAfterTaskId, setStartAfterTaskId] = useState<string>("");
+  const [startAfterTask, setStartAfterTask] = useState<DepTask | null>(null);
+  const [blockerSaveError, setBlockerSaveError] = useState<string | null>(null);
 
   // Kommentar-State
   const [comments, setComments] = useState<TaskComment[]>([]);
@@ -176,7 +183,9 @@ export function TaskModal({
   useEffect(() => {
     if (!task?.id) {
       setDependsOnIds([]);
+      setDependsOnBlockerMap(new Map());
       setBlockingTasks([]);
+      setIsBlocked(false);
       return;
     }
     setDepLoading(true);
@@ -185,14 +194,32 @@ export function TaskModal({
       .then((data) => {
         if (data.dependsOn && Array.isArray(data.dependsOn)) {
           setDependsOnIds(data.dependsOn.map((t: { id: string }) => t.id));
+          const blockerMap = new Map<string, boolean>();
+          data.dependsOn.forEach((t: { id: string; isBlocker?: boolean }) => {
+            blockerMap.set(t.id, t.isBlocker ?? false);
+          });
+          setDependsOnBlockerMap(blockerMap);
         }
         if (data.blocking && Array.isArray(data.blocking)) {
           setBlockingTasks(data.blocking);
         }
+        setIsBlocked(data.isBlocked ?? false);
       })
       .catch(() => {})
       .finally(() => setDepLoading(false));
   }, [task?.id]);
+
+  // startAfterTaskId aus Task laden
+  useEffect(() => {
+    if (task?.startAfterTaskId) {
+      setStartAfterTaskId(task.startAfterTaskId);
+      const found = allTasks.find((t) => t.id === task.startAfterTaskId);
+      if (found) setStartAfterTask(found);
+    } else {
+      setStartAfterTaskId("");
+      setStartAfterTask(null);
+    }
+  }, [task, allTasks]);
 
   // Kommentare laden wenn Task geöffnet wird
   useEffect(() => {
@@ -384,6 +411,18 @@ export function TaskModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title.trim()) return;
+
+    // UI-Validation: Blockierter Task kann nicht auf "Erledigt" gesetzt werden
+    if (form.status === "done" && isBlocked) {
+      const activeBlockers = allTasks.filter(
+        (t) => dependsOnIds.includes(t.id) && dependsOnBlockerMap.get(t.id) && t.status !== "done"
+      );
+      const names = activeBlockers.map((t) => `„${t.title}"`).join(", ");
+      setBlockerSaveError(`Dieser Task ist noch blockiert durch: ${names}. Bitte löse zuerst die Blocker.`);
+      return;
+    }
+    setBlockerSaveError(null);
+
     setLoading(true);
     try {
       await onSave({
@@ -400,6 +439,7 @@ export function TaskModal({
         recurringInterval: form.recurring ? form.recurringInterval : null,
         recurringDay: form.recurring && form.recurringDay ? parseInt(form.recurringDay) : null,
         recurringEndDate: form.recurring && form.recurringEndDate ? new Date(form.recurringEndDate) : null,
+        startAfterTaskId: startAfterTaskId || null,
         // Pass selected label IDs for new tasks (handled by caller)
         _labelIds: Array.from(selectedLabelIds),
       } as Partial<Task> & { _labelIds: string[] });
@@ -423,14 +463,14 @@ export function TaskModal({
 
   // ─── Abhängigkeits-Handler ────────────────────────────────────────────────
 
-  const handleAddDependency = async (dependsOnId: string) => {
+  const handleAddDependency = async (dependsOnId: string, asBlocker = false) => {
     if (!task?.id) return;
     setDepError(null);
     try {
       const res = await fetch("/api/tasks/dependencies", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId: task.id, dependsOnId }),
+        body: JSON.stringify({ taskId: task.id, dependsOnId, isBlocker: asBlocker }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -438,8 +478,33 @@ export function TaskModal({
         return;
       }
       setDependsOnIds((prev) => [...prev, dependsOnId]);
+      setDependsOnBlockerMap((prev) => new Map(prev).set(dependsOnId, asBlocker));
+      if (asBlocker) setIsBlocked(true);
     } catch {
       setDepError("Netzwerkfehler");
+    }
+  };
+
+  const handleToggleBlocker = async (dependsOnId: string) => {
+    if (!task?.id) return;
+    const currentIsBlocker = dependsOnBlockerMap.get(dependsOnId) ?? false;
+    const newIsBlocker = !currentIsBlocker;
+    try {
+      await fetch("/api/tasks/dependencies", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: task.id, dependsOnId, isBlocker: newIsBlocker }),
+      });
+      setDependsOnBlockerMap((prev) => new Map(prev).set(dependsOnId, newIsBlocker));
+      // Recompute isBlocked
+      const updatedMap = new Map(dependsOnBlockerMap).set(dependsOnId, newIsBlocker);
+      const depTasks = allTasks.filter((t) => dependsOnIds.includes(t.id));
+      const hasActiveBlocker = depTasks.some(
+        (t) => updatedMap.get(t.id) && t.status !== "done"
+      );
+      setIsBlocked(hasActiveBlocker);
+    } catch {
+      setDepError("Fehler beim Aktualisieren");
     }
   };
 
@@ -452,7 +517,17 @@ export function TaskModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ taskId: task.id, dependsOnId }),
       });
-      setDependsOnIds((prev) => prev.filter((id) => id !== dependsOnId));
+      const newIds = dependsOnIds.filter((id) => id !== dependsOnId);
+      setDependsOnIds(newIds);
+      const newMap = new Map(dependsOnBlockerMap);
+      newMap.delete(dependsOnId);
+      setDependsOnBlockerMap(newMap);
+      // Recompute isBlocked
+      const depTasks = allTasks.filter((t) => newIds.includes(t.id));
+      const hasActiveBlocker = depTasks.some(
+        (t) => newMap.get(t.id) && t.status !== "done"
+      );
+      setIsBlocked(hasActiveBlocker);
     } catch {
       setDepError("Fehler beim Entfernen");
     }
@@ -462,9 +537,16 @@ export function TaskModal({
     <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center sm:justify-center sm:p-4">
       <div className="bg-[#1c1c1c] border border-[#2a2a2a] sm:rounded-xl w-full sm:max-w-lg shadow-2xl h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto rounded-t-2xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#2a2a2a] sticky top-0 bg-[#1c1c1c] z-10">
-          <h2 className="text-sm font-semibold text-white">
-            {task ? "Task bearbeiten" : "Neuer Task"}
-          </h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-sm font-semibold text-white">
+              {task ? "Task bearbeiten" : "Neuer Task"}
+            </h2>
+            {isBlocked && (
+              <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/25">
+                <ShieldAlert className="w-3 h-3" /> Blockiert
+              </span>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="text-zinc-500 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-[#252525] transition-colors"
@@ -474,7 +556,320 @@ export function TaskModal({
           </button>
         </div>
 
+        {/* Tab-Navigation (nur bei bestehendem Task) */}
+        {task && (
+          <div className="flex border-b border-[#2a2a2a] sticky top-[57px] bg-[#1c1c1c] z-10">
+            <button
+              type="button"
+              onClick={() => setActiveTab("felder")}
+              className={`flex items-center gap-1.5 px-5 py-2.5 text-xs font-medium border-b-2 transition-colors ${
+                activeTab === "felder"
+                  ? "border-emerald-500 text-emerald-400"
+                  : "border-transparent text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              Felder
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("abhaengigkeiten")}
+              className={`flex items-center gap-1.5 px-5 py-2.5 text-xs font-medium border-b-2 transition-colors ${
+                activeTab === "abhaengigkeiten"
+                  ? "border-emerald-500 text-emerald-400"
+                  : "border-transparent text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              <Network className="w-3.5 h-3.5" />
+              Abhängigkeiten
+              {(dependsOnIds.length > 0 || blockingTasks.length > 0) && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-zinc-700 text-zinc-300">
+                  {dependsOnIds.length + blockingTasks.length}
+                </span>
+              )}
+              {isBlocked && <span className="ml-1 w-2 h-2 rounded-full bg-red-500 animate-pulse" />}
+            </button>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+
+          {/* ═══ TAB: ABHÄNGIGKEITEN (nur bei bestehendem Task) ═══════════════ */}
+          {task && activeTab === "abhaengigkeiten" && (
+            <div className="space-y-5">
+              {/* Blocker-Status Banner */}
+              {isBlocked ? (
+                <div className="flex items-start gap-3 p-3 bg-red-500/10 border border-red-500/25 rounded-xl">
+                  <ShieldAlert className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-red-300">Dieser Task ist blockiert</p>
+                    <p className="text-xs text-red-400/80 mt-0.5">
+                      Er kann nicht auf &quot;Erledigt&quot; gesetzt werden bis alle Blocker abgeschlossen sind.
+                    </p>
+                  </div>
+                </div>
+              ) : (dependsOnIds.length > 0 || blockingTasks.length > 0) ? (
+                <div className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <p className="text-xs text-emerald-400">Keine aktiven Blocker</p>
+                </div>
+              ) : null}
+
+              {depError && (
+                <div className="flex items-center gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+                  <AlertTriangle className="w-3 h-3 shrink-0" />
+                  {depError}
+                </div>
+              )}
+
+              {/* ─── Vorgänger (Abhängig von) ─────────────────────────────── */}
+              <div>
+                <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <ChevronRight className="w-3.5 h-3.5 text-blue-400" />
+                  Vorgänger
+                  <span className="text-[10px] text-zinc-600 font-normal normal-case tracking-normal">
+                    (muss abgeschlossen sein bevor dieser Task starten kann)
+                  </span>
+                </h4>
+
+                {dependsOnIds.length === 0 ? (
+                  <p className="text-xs text-zinc-600 italic pl-2">Keine Vorgänger</p>
+                ) : (
+                  <div className="space-y-2">
+                    {dependsOnIds.map((depId) => {
+                      const depTask = allTasks.find((t) => t.id === depId);
+                      const depIsBlocker = dependsOnBlockerMap.get(depId) ?? false;
+                      const isDelayed = depTask?.dueDate && new Date(depTask.dueDate) < new Date() && depTask.status !== "done";
+                      return (
+                        <div
+                          key={depId}
+                          className={`flex items-center gap-2 p-2.5 rounded-lg border ${
+                            depIsBlocker
+                              ? "bg-red-950/20 border-red-500/25"
+                              : "bg-[#252525] border-[#3a3a3a]"
+                          }`}
+                        >
+                          <div className={`w-2 h-2 rounded-full shrink-0 ${
+                            depTask?.status === "done" ? "bg-emerald-500" :
+                            depTask?.status === "in_progress" ? "bg-blue-500" : "bg-zinc-500"
+                          }`} />
+                          {depTask?.project && (
+                            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: depTask.project.color }} />
+                          )}
+                          <span className="text-xs text-zinc-200 flex-1 truncate">
+                            {depTask?.title ?? depId}
+                          </span>
+                          {depTask?.status === "done" && (
+                            <span className="text-[9px] text-emerald-400 bg-emerald-500/10 px-1 py-0.5 rounded">✓ Erledigt</span>
+                          )}
+                          {isDelayed && (
+                            <span className="text-[9px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1 py-0.5 rounded flex items-center gap-0.5">
+                              <AlertTriangle className="w-2.5 h-2.5" /> Verzögert
+                            </span>
+                          )}
+                          {/* Blocker-Toggle */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleBlocker(depId)}
+                            title={depIsBlocker ? "Als Blocker entfernen" : "Als Blocker markieren"}
+                            className={`flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded border transition-colors ${
+                              depIsBlocker
+                                ? "bg-red-500/20 border-red-500/30 text-red-400 hover:bg-red-500/10"
+                                : "bg-[#1c1c1c] border-[#3a3a3a] text-zinc-600 hover:text-red-400 hover:border-red-500/30"
+                            }`}
+                          >
+                            <ShieldAlert className="w-2.5 h-2.5" />
+                            {depIsBlocker ? "Blocker" : "Blocker?"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveDependency(depId)}
+                            className="text-zinc-600 hover:text-red-400 transition-colors"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Verzögerungswarnung */}
+                {dependsOnIds.some((depId) => {
+                  const depTask = allTasks.find((t) => t.id === depId);
+                  return depTask?.dueDate && new Date(depTask.dueDate) < new Date() && depTask.status !== "done";
+                }) && task?.dueDate && (
+                  <div className="mt-2 flex items-start gap-2 p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-300">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    <span>
+                      Ein oder mehrere Vorgänger sind verzögert. Der Starttermin dieses Tasks könnte sich verschieben.
+                    </span>
+                  </div>
+                )}
+
+                {/* Abhängigkeit hinzufügen */}
+                <div className="relative mt-3">
+                  <button
+                    type="button"
+                    onClick={() => setDepDropdownOpen((v) => !v)}
+                    className="w-full text-left text-xs bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-1.5 text-zinc-500 hover:border-emerald-500/40 transition-colors flex items-center gap-1.5"
+                  >
+                    <Link2 className="w-3 h-3" />
+                    Vorgänger hinzufügen...
+                  </button>
+                  {depDropdownOpen && (
+                    <div className="absolute z-30 top-full left-0 mt-1 w-full bg-[#1c1c1c] border border-[#3a3a3a] rounded-lg shadow-xl overflow-hidden">
+                      <div className="p-2 border-b border-[#2a2a2a]">
+                        <input
+                          type="text"
+                          value={depSearch}
+                          onChange={(e) => setDepSearch(e.target.value)}
+                          placeholder="Task suchen..."
+                          className="w-full bg-[#252525] border border-[#3a3a3a] rounded px-2 py-1 text-xs text-white placeholder-zinc-600 focus:outline-none"
+                          autoFocus
+                        />
+                      </div>
+                      <div className="max-h-40 overflow-y-auto">
+                        {allTasks
+                          .filter(
+                            (t) =>
+                              t.id !== task.id &&
+                              !dependsOnIds.includes(t.id) &&
+                              t.title.toLowerCase().includes(depSearch.toLowerCase())
+                          )
+                          .slice(0, 20)
+                          .map((t) => (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => {
+                                handleAddDependency(t.id, false);
+                                setDepDropdownOpen(false);
+                                setDepSearch("");
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-white hover:bg-[#252525] text-left transition-colors"
+                            >
+                              {t.project && (
+                                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: t.project.color }} />
+                              )}
+                              <span className="flex-1 truncate">{t.title}</span>
+                              <span className="text-zinc-600 shrink-0">{t.project?.name}</span>
+                            </button>
+                          ))}
+                        {allTasks.filter(
+                          (t) =>
+                            t.id !== task.id &&
+                            !dependsOnIds.includes(t.id) &&
+                            t.title.toLowerCase().includes(depSearch.toLowerCase())
+                        ).length === 0 && (
+                          <div className="px-3 py-2 text-xs text-zinc-500">Keine Tasks gefunden</div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setDepDropdownOpen(false); setDepSearch(""); }}
+                        className="w-full px-3 py-1.5 text-xs text-zinc-500 hover:bg-[#252525] border-t border-[#2a2a2a] text-right"
+                      >
+                        Schließen
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ─── Nachfolger (blockiert durch diesen Task) ─────────────── */}
+              <div>
+                <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <ChevronRight className="w-3.5 h-3.5 text-amber-400" />
+                  Nachfolger
+                  <span className="text-[10px] text-zinc-600 font-normal normal-case tracking-normal">
+                    (warten auf Abschluss dieses Tasks)
+                  </span>
+                </h4>
+
+                {blockingTasks.length === 0 ? (
+                  <p className="text-xs text-zinc-600 italic pl-2">Keine Nachfolger</p>
+                ) : (
+                  <div className="space-y-2">
+                    {blockingTasks.map((t) => (
+                      <div
+                        key={t.id}
+                        className={`flex items-center gap-2 p-2.5 rounded-lg border ${
+                          t.isBlocker
+                            ? "bg-amber-950/20 border-amber-500/25"
+                            : "bg-[#252525] border-[#3a3a3a]"
+                        }`}
+                      >
+                        <div className={`w-2 h-2 rounded-full shrink-0 ${
+                          t.status === "done" ? "bg-emerald-500" :
+                          t.status === "in_progress" ? "bg-blue-500" : "bg-zinc-500"
+                        }`} />
+                        {t.project && (
+                          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: t.project.color }} />
+                        )}
+                        <span className="text-xs text-zinc-200 flex-1 truncate">{t.title}</span>
+                        <span className="text-[9px] text-zinc-600">{t.project?.name}</span>
+                        {t.isBlocker && (
+                          <span className="text-[9px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1 py-0.5 rounded flex items-center gap-0.5">
+                            <ShieldAlert className="w-2.5 h-2.5" /> Blockiert
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* ─── Kritischer Pfad Hinweis ──────────────────────────────── */}
+              {dependsOnIds.some((depId) => dependsOnBlockerMap.get(depId)) && (
+                <div className="p-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 rounded-full bg-red-500" />
+                    <span className="text-xs font-medium text-zinc-300">Kritischer Pfad</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {dependsOnIds
+                      .filter((depId) => dependsOnBlockerMap.get(depId))
+                      .map((depId) => {
+                        const depTask = allTasks.find((t) => t.id === depId);
+                        return (
+                          <span key={depId} className="text-[10px] text-red-300 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-full">
+                            {depTask?.title ?? depId}
+                          </span>
+                        );
+                      })}
+                    <span className="text-zinc-600 text-[10px]">→</span>
+                    <span className="text-[10px] text-zinc-300 bg-[#252525] border border-[#3a3a3a] px-2 py-0.5 rounded-full">
+                      {task.title}
+                    </span>
+                    {blockingTasks.filter((t) => t.isBlocker).map((t) => (
+                      <>
+                        <span key={`arrow-${t.id}`} className="text-zinc-600 text-[10px]">→</span>
+                        <span key={t.id} className="text-[10px] text-zinc-300 bg-[#252525] border border-[#3a3a3a] px-2 py-0.5 rounded-full">
+                          {t.title}
+                        </span>
+                      </>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Speichern-Button für Tab */}
+              <div className="flex justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 text-xs text-zinc-400 hover:text-white hover:bg-[#252525] rounded-lg transition-colors"
+                >
+                  Schließen
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ═══ TAB: FELDER (Standard-Formular) ════════════════════════════ */}
+          {(!task || activeTab === "felder") && (
+            <div className="space-y-4">
+
           {/* Title */}
           <div>
             <label className="text-xs text-zinc-400 mb-1 block">Titel *</label>
@@ -848,149 +1243,66 @@ export function TaskModal({
             )}
           </div>
 
-          {/* ─── Abhängigkeiten (nur bei bestehendem Task) ─── */}
-          {task && (
-            <div className="border-t border-[#2a2a2a] pt-4">
-              <div className="flex items-center gap-2 mb-3">
-                <GitBranch className="w-3.5 h-3.5 text-zinc-400" />
-                <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">
-                  Abhängigkeiten
-                </h4>
-                {depLoading && <span className="text-[10px] text-zinc-600">Lädt...</span>}
-              </div>
-
-              {depError && (
-                <div className="flex items-center gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 mb-3">
-                  <AlertTriangle className="w-3 h-3 shrink-0" />
-                  {depError}
-                </div>
+          {/* ─── "Startet erst nach" (für neue Tasks) ─── */}
+          {!task && (
+            <div>
+              <label className="text-xs text-zinc-400 mb-1 block flex items-center gap-1.5">
+                <GitBranch className="w-3 h-3" /> Startet erst nach
+              </label>
+              <select
+                value={startAfterTaskId}
+                onChange={(e) => setStartAfterTaskId(e.target.value)}
+                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white focus:outline-none focus:border-emerald-500/50"
+              >
+                <option value="">— Sofort starten —</option>
+                {allTasks.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.project ? `[${t.project.name}] ` : ""}{t.title}
+                  </option>
+                ))}
+              </select>
+              {startAfterTaskId && (
+                <p className="text-[10px] text-zinc-600 mt-1">
+                  Dieser Task wird erst nach Abschluss des Vorgängers gestartet.
+                </p>
               )}
+            </div>
+          )}
 
-              {/* Abhängig von: */}
-              <div className="mb-3">
-                <label className="text-xs text-zinc-500 mb-1.5 block">Abhängig von:</label>
-
-                {/* Ausgewählte Abhängigkeiten */}
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {dependsOnIds.length === 0 ? (
-                    <span className="text-xs text-zinc-600 italic">Keine Abhängigkeiten</span>
-                  ) : (
-                    dependsOnIds.map((depId) => {
-                      const depTask = allTasks.find((t) => t.id === depId);
-                      return (
-                        <span
-                          key={depId}
-                          className="inline-flex items-center gap-1 text-xs bg-[#252525] border border-[#3a3a3a] rounded-full px-2 py-0.5"
-                        >
-                          {depTask?.project && (
-                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: depTask.project.color }} />
-                          )}
-                          <span className="text-zinc-300">{depTask?.title ?? depId}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveDependency(depId)}
-                            className="text-zinc-600 hover:text-red-400 transition-colors ml-0.5"
-                          >
-                            <X className="w-2.5 h-2.5" />
-                          </button>
-                        </span>
-                      );
-                    })
-                  )}
-                </div>
-
-                {/* Dropdown zum Hinzufügen */}
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setDepDropdownOpen((v) => !v)}
-                    className="w-full text-left text-xs bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-1.5 text-zinc-500 hover:border-emerald-500/40 transition-colors flex items-center gap-1.5"
-                  >
-                    <Link2 className="w-3 h-3" />
-                    Abhängigkeit hinzufügen...
-                  </button>
-                  {depDropdownOpen && (
-                    <div className="absolute z-30 top-full left-0 mt-1 w-full bg-[#1c1c1c] border border-[#3a3a3a] rounded-lg shadow-xl overflow-hidden">
-                      <div className="p-2 border-b border-[#2a2a2a]">
-                        <input
-                          type="text"
-                          value={depSearch}
-                          onChange={(e) => setDepSearch(e.target.value)}
-                          placeholder="Task suchen..."
-                          className="w-full bg-[#252525] border border-[#3a3a3a] rounded px-2 py-1 text-xs text-white placeholder-zinc-600 focus:outline-none"
-                          autoFocus
-                        />
-                      </div>
-                      <div className="max-h-40 overflow-y-auto">
-                        {allTasks
-                          .filter(
-                            (t) =>
-                              t.id !== task.id &&
-                              !dependsOnIds.includes(t.id) &&
-                              t.title.toLowerCase().includes(depSearch.toLowerCase())
-                          )
-                          .slice(0, 20)
-                          .map((t) => (
-                            <button
-                              key={t.id}
-                              type="button"
-                              onClick={() => {
-                                handleAddDependency(t.id);
-                                setDepDropdownOpen(false);
-                                setDepSearch("");
-                              }}
-                              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-white hover:bg-[#252525] text-left transition-colors"
-                            >
-                              {t.project && (
-                                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: t.project.color }} />
-                              )}
-                              <span className="flex-1 truncate">{t.title}</span>
-                              <span className="text-zinc-600 shrink-0">{t.project?.name}</span>
-                            </button>
-                          ))}
-                        {allTasks.filter(
-                          (t) =>
-                            t.id !== task.id &&
-                            !dependsOnIds.includes(t.id) &&
-                            t.title.toLowerCase().includes(depSearch.toLowerCase())
-                        ).length === 0 && (
-                          <div className="px-3 py-2 text-xs text-zinc-500">Keine Tasks gefunden</div>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => { setDepDropdownOpen(false); setDepSearch(""); }}
-                        className="w-full px-3 py-1.5 text-xs text-zinc-500 hover:bg-[#252525] border-t border-[#2a2a2a] text-right"
-                      >
-                        Schließen
-                      </button>
-                    </div>
-                  )}
-                </div>
+          {/* ─── Abhängigkeits-Kurzübersicht (im Felder-Tab, wenn Tab aktiv) ─── */}
+          {task && activeTab === "felder" && (dependsOnIds.length > 0 || blockingTasks.length > 0) && (
+            <div className="border border-[#2a2a2a] rounded-xl p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-zinc-500 flex items-center gap-1.5">
+                  <GitBranch className="w-3 h-3" /> Abhängigkeiten
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("abhaengigkeiten")}
+                  className="text-[10px] text-emerald-400 hover:text-emerald-300 transition-colors"
+                >
+                  Details →
+                </button>
               </div>
-
-              {/* Blockiert: */}
-              {blockingTasks.length > 0 && (
-                <div>
-                  <label className="text-xs text-zinc-500 mb-1.5 block">Blockiert folgende Tasks:</label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {blockingTasks.map((t) => (
-                      <span
-                        key={t.id}
-                        className="inline-flex items-center gap-1 text-xs bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full px-2 py-0.5"
-                      >
-                        {t.project && (
-                          <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: t.project.color }} />
-                        )}
-                        {t.title}
-                      </span>
-                    ))}
-                  </div>
-                  <p className="text-[10px] text-zinc-600 mt-1">
-                    Diese Tasks warten auf den Abschluss dieses Tasks.
-                  </p>
-                </div>
-              )}
+              <div className="flex flex-wrap gap-1.5">
+                {dependsOnIds.map((depId) => {
+                  const depTask = allTasks.find((t) => t.id === depId);
+                  const depIsBlocker = dependsOnBlockerMap.get(depId) ?? false;
+                  return (
+                    <span
+                      key={depId}
+                      className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border ${
+                        depIsBlocker
+                          ? "bg-red-500/10 border-red-500/20 text-red-400"
+                          : "bg-[#252525] border-[#3a3a3a] text-zinc-400"
+                      }`}
+                    >
+                      {depIsBlocker && <ShieldAlert className="w-2.5 h-2.5" />}
+                      {depTask?.title ?? depId}
+                    </span>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -1212,6 +1524,21 @@ export function TaskModal({
               </div>
             </div>
           )}
+
+          {/* Blocker-Fehler */}
+          {blockerSaveError && (
+            <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/25 rounded-xl">
+              <ShieldAlert className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-medium text-red-300">Task ist blockiert</p>
+                <p className="text-xs text-red-400/80 mt-0.5">{blockerSaveError}</p>
+              </div>
+            </div>
+          )}
+
+            </div>
+          )}
+          {/* END felder tab */}
 
           {/* Actions */}
           <div className="flex items-center justify-between pt-2">

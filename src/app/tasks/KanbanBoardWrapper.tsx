@@ -8,7 +8,7 @@ import { TaskFilter, sortTasks, EMPTY_FILTERS, DEFAULT_SORT } from "@/components
 import type { FilterState, SortState } from "@/components/tasks/TaskFilter";
 import { useAppStore, type Task, type Project, type User, type Label, type Milestone } from "@/store/useAppStore";
 import { useTaskStream } from "@/hooks/useTaskStream";
-import { Sparkles, Wifi, WifiOff, X, FileUp, CheckCircle, FolderKanban } from "lucide-react";
+import { Sparkles, Wifi, WifiOff, X, FileUp, CheckCircle, FolderKanban, ShieldAlert } from "lucide-react";
 import { TaskSearchBar, type SearchResult } from "@/components/tasks/TaskSearchBar";
 
 interface KanbanBoardWrapperProps {
@@ -410,6 +410,9 @@ export function KanbanBoardWrapper({ initialTasks, projects, users, isAdmin }: K
   const [availableMilestones, setAvailableMilestones] = useState<Milestone[]>([]);
   const [zeigeKiModal, setZeigeKiModal] = useState(false);
   const [zeigeCsvModal, setZeigeCsvModal] = useState(false);
+  // Blocker-System: Set der blockierten Task-IDs
+  const [blockedTaskIds, setBlockedTaskIds] = useState<Set<string>>(new Set());
+  const [showBlockedOnly, setShowBlockedOnly] = useState(false);
 
   const router = useRouter();
   const pathname = usePathname();
@@ -456,6 +459,42 @@ export function KanbanBoardWrapper({ initialTasks, projects, users, isAdmin }: K
     setUsers(users);
   }, []);
 
+  // Blocker-Abhängigkeiten laden + isBlocked für jeden Task berechnen
+  const loadBlockerStatus = useCallback(async () => {
+    try {
+      const res = await fetch("/api/tasks/dependencies?blockers=true");
+      if (!res.ok) return;
+      const blockerDeps: { taskId: string; dependsOnId: string }[] = await res.json();
+      if (!Array.isArray(blockerDeps) || blockerDeps.length === 0) {
+        setBlockedTaskIds(new Set());
+        return;
+      }
+      // Status der Blocker-Tasks ermitteln
+      const currentTasks = useAppStore.getState().tasks;
+      const taskStatusMap = new Map(currentTasks.map((t) => [t.id, t.status]));
+      const newBlockedIds = new Set<string>();
+      for (const dep of blockerDeps) {
+        const blockerStatus = taskStatusMap.get(dep.dependsOnId);
+        if (blockerStatus && blockerStatus !== "done") {
+          newBlockedIds.add(dep.taskId);
+        }
+      }
+      setBlockedTaskIds(newBlockedIds);
+    } catch { /* silently ignore */ }
+  }, []);
+
+  useEffect(() => {
+    loadBlockerStatus();
+  }, [loadBlockerStatus]);
+
+  // URL: filter=blocked aus URL lesen
+  useEffect(() => {
+    const filterParam = searchParams.get("filter");
+    if (filterParam === "blocked") {
+      setShowBlockedOnly(true);
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     fetch("/api/labels")
       .then((r) => r.json())
@@ -472,11 +511,20 @@ export function KanbanBoardWrapper({ initialTasks, projects, users, isAdmin }: K
       .catch(() => {});
   }, []);
 
-  const activeTasks = tasks.length > 0 ? tasks : initialTasks;
+  const activeTasks = useMemo(() => {
+    const source = tasks.length > 0 ? tasks : initialTasks;
+    // isBlocked-Flag für jeden Task setzen
+    return source.map((t) => ({
+      ...t,
+      isBlocked: blockedTaskIds.has(t.id),
+    }));
+  }, [tasks, initialTasks, blockedTaskIds]);
 
   // ── Filter-Logik (AND) ──
   const filteredAndSortedTasks = useMemo(() => {
     let result = activeTasks.filter((t) => {
+      // Blockiert-Filter
+      if (showBlockedOnly && !t.isBlocked) return false;
       if (filters.status && t.status !== filters.status) return false;
       if (filters.priority && t.priority !== filters.priority) return false;
       if (filters.assigneeId && t.assigneeId !== filters.assigneeId) return false;
@@ -535,6 +583,33 @@ export function KanbanBoardWrapper({ initialTasks, projects, users, isAdmin }: K
         <button onClick={() => setZeigeCsvModal(true)}
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-lg transition-colors">
           <FileUp className="w-3.5 h-3.5" /> CSV Import
+        </button>
+
+        {/* Blockiert-Filter */}
+        <button
+          onClick={() => {
+            const next = !showBlockedOnly;
+            setShowBlockedOnly(next);
+            const params = new URLSearchParams(searchParams.toString());
+            if (next) params.set("filter", "blocked");
+            else params.delete("filter");
+            router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+          }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition-colors ${
+            showBlockedOnly
+              ? "text-red-300 bg-red-500/20 border-red-500/30"
+              : "text-zinc-400 bg-zinc-500/10 hover:bg-red-500/10 hover:text-red-300 border-zinc-600/30 hover:border-red-500/30"
+          }`}
+        >
+          <ShieldAlert className="w-3.5 h-3.5" />
+          Blockiert
+          {blockedTaskIds.size > 0 && (
+            <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold ${
+              showBlockedOnly ? "bg-red-500/30 text-red-200" : "bg-zinc-600/40 text-zinc-400"
+            }`}>
+              {blockedTaskIds.size}
+            </span>
+          )}
         </button>
 
         {/* SSE Live-Badge */}

@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
     const projectId = searchParams.get("projectId");
     const recurringOnly = searchParams.get("recurring") === "true";
+    const filterBlocked = searchParams.get("filter") === "blocked";
 
     // BUG FIX: Non-admins sehen NUR Tasks aus explizit freigegebenen Projekten.
     const accessFilter =
@@ -42,8 +43,28 @@ export async function GET(req: NextRequest) {
 
     const noProject = searchParams.get("noProject") === "true";
 
+    // ─── filter=blocked: Nur Tasks mit aktiven Blockern zurückgeben ──────────
+    let blockedTaskIds: string[] | null = null;
+    if (filterBlocked) {
+      const blockerDeps = await prisma.taskDependency.findMany({
+        where: { isBlocker: true },
+        select: { taskId: true, dependsOnId: true },
+      });
+      const blockerTaskIds = [...new Set(blockerDeps.map((d) => d.dependsOnId))];
+      const blockerStatuses = await prisma.task.findMany({
+        where: { id: { in: blockerTaskIds } },
+        select: { id: true, status: true },
+      });
+      const blockerStatusMap = new Map(blockerStatuses.map((t) => [t.id, t.status]));
+      const activeDeps = blockerDeps.filter(
+        (d) => blockerStatusMap.get(d.dependsOnId) !== "done"
+      );
+      blockedTaskIds = [...new Set(activeDeps.map((d) => d.taskId))];
+    }
+
     const tasks = await prisma.task.findMany({
       where: {
+        ...(filterBlocked && blockedTaskIds ? { id: { in: blockedTaskIds } } : {}),
         ...(status ? { status } : {}),
         ...(noProject ? { projectId: null } : projectId ? { projectId } : {}),
         ...accessFilter,
@@ -99,6 +120,7 @@ export async function POST(req: NextRequest) {
       recurringDay,
       recurringEndDate,
       parentTaskId,
+      startAfterTaskId,
     } = body;
 
     if (!title) {
@@ -125,6 +147,7 @@ export async function POST(req: NextRequest) {
         recurringDay: recurringDay ?? null,
         recurringEndDate: recurringEndDate ? new Date(recurringEndDate) : null,
         parentTaskId: parentTaskId || null,
+        startAfterTaskId: startAfterTaskId || null,
       },
       include: {
         project: { select: { id: true, name: true, color: true } },
