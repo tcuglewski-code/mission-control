@@ -1,18 +1,20 @@
 import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/layout/AppShell";
-import { StatsRow } from "@/components/dashboard/StatsRow";
-import { RecentActivity } from "@/components/dashboard/RecentActivity";
-import { ActiveProjects } from "@/components/dashboard/ActiveProjects";
-import { AnnouncementsWidget } from "@/components/dashboard/AnnouncementsWidget";
-import { BudgetOverview } from "@/components/dashboard/BudgetOverview";
 import { startOfDay, endOfDay } from "date-fns";
 import { requireServerSession, getAllowedProjectIds } from "@/lib/server-auth";
+import { DashboardClient } from "@/components/dashboard/DashboardClient";
 
 export default async function DashboardPage() {
   const session = await requireServerSession();
   const allowedIds = getAllowedProjectIds(session);
 
-  // Projekte gefiltert nach Zugriffsrechten
+  // Resolve AuthUser → User by email for task assignments
+  const authUser = await prisma.authUser.findUnique({ where: { id: session.id } });
+  const appUser = authUser?.email
+    ? await prisma.user.findUnique({ where: { email: authUser.email } })
+    : null;
+  const appUserId = appUser?.id ?? null;
+
   const allProjects = await prisma.project.findMany({
     where: allowedIds ? { id: { in: allowedIds } } : {},
   });
@@ -21,38 +23,50 @@ export default async function DashboardPage() {
     .filter((p) => p.status === "active")
     .map((p) => p.id);
 
+  const todayStart = startOfDay(new Date());
+  const todayEnd = endOfDay(new Date());
+
   const [
     openTasksCount,
     teamCount,
     activityToday,
-    recentLogs,
+    activityLogs,
     projects,
     budgetProjects,
-    recentAnnouncements,
+    openTasks,
+    myTasks,
+    milestones,
+    timeEntriesToday,
+    teamMembers,
   ] = await Promise.all([
-    // Tasks nur aus erlaubten Projekten
+    // Total open tasks count
     prisma.task.count({
       where: {
         status: { not: "done" },
         ...(allowedIds ? { projectId: { in: allowedIds } } : {}),
       },
     }),
+
+    // Team member count
     prisma.user.count(),
+
+    // Activity today
     prisma.activityLog.count({
       where: {
-        createdAt: {
-          gte: startOfDay(new Date()),
-          lte: endOfDay(new Date()),
-        },
+        createdAt: { gte: todayStart, lte: todayEnd },
         ...(allowedIds ? { projectId: { in: allowedIds } } : {}),
       },
     }),
+
+    // Recent activity logs
     prisma.activityLog.findMany({
       where: allowedIds ? { projectId: { in: allowedIds } } : {},
       include: { user: { select: { name: true, avatar: true } } },
       orderBy: { createdAt: "desc" },
       take: 10,
     }),
+
+    // Active projects for widget
     prisma.project.findMany({
       where: {
         status: { in: ["active", "planning"] },
@@ -60,49 +74,123 @@ export default async function DashboardPage() {
       },
       include: {
         _count: { select: { tasks: true } },
-        members: {
-          include: { user: { select: { id: true, name: true, avatar: true } } },
-          take: 3,
-        },
       },
       orderBy: { updatedAt: "desc" },
-      take: 5,
+      take: 6,
     }),
-    // Budget-Daten aller Projekte
+
+    // Budget projects
     prisma.project.findMany({
       where: allowedIds ? { id: { in: allowedIds } } : {},
       select: { id: true, name: true, budget: true, budgetUsed: true, color: true },
     }),
-    prisma.announcement.findMany({
-      orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
-      take: 3,
+
+    // Open tasks (list)
+    prisma.task.findMany({
+      where: {
+        status: { not: "done" },
+        ...(allowedIds ? { projectId: { in: allowedIds } } : {}),
+      },
+      include: {
+        project: { select: { name: true, color: true } },
+      },
+      orderBy: [{ priority: "desc" }, { dueDate: "asc" }],
+      take: 10,
+    }),
+
+    // My tasks (assigned to current user)
+    appUserId
+      ? prisma.task.findMany({
+          where: {
+            status: { not: "done" },
+            assigneeId: appUserId,
+            ...(allowedIds ? { projectId: { in: allowedIds } } : {}),
+          },
+          include: {
+            project: { select: { name: true, color: true } },
+          },
+          orderBy: [{ dueDate: "asc" }],
+          take: 10,
+        })
+      : Promise.resolve([]),
+
+    // Upcoming milestones
+    prisma.milestone.findMany({
+      where: {
+        status: { not: "completed" },
+        ...(allowedIds ? { projectId: { in: allowedIds } } : {}),
+      },
+      include: {
+        project: { select: { name: true } },
+      },
+      orderBy: { dueDate: "asc" },
+      take: 6,
+    }),
+
+    // Time entries today
+    prisma.timeEntry.findMany({
+      where: {
+        startTime: { gte: todayStart, lte: todayEnd },
+        ...(appUserId ? { userId: appUserId } : {}),
+      },
+      include: {
+        task: {
+          include: {
+            project: { select: { name: true, color: true } },
+          },
+        },
+      },
+      orderBy: { startTime: "desc" },
+      take: 10,
+    }),
+
+    // Team members with open task count
+    prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        avatar: true,
+        _count: {
+          select: {
+            tasks: {
+              where: { status: { not: "done" } },
+            },
+          },
+        },
+      },
+      take: 10,
     }),
   ]);
 
-  return (
-    <AppShell
-      title="Dashboard"
-      subtitle="System Übersicht"
-    >
-      <div className="p-6 space-y-6">
-        <StatsRow
-          activeProjects={activeProjectIds.length}
-          openTasks={openTasksCount}
-          teamMembers={teamCount}
-          activityToday={activityToday}
-        />
+  const totalMinutesToday = timeEntriesToday.reduce(
+    (sum, e) => sum + (e.duration ?? 0),
+    0
+  );
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          <div className="lg:col-span-3">
-            <RecentActivity logs={recentLogs} />
-          </div>
-          <div className="lg:col-span-2 space-y-6">
-            <AnnouncementsWidget announcements={recentAnnouncements} />
-            <BudgetOverview projects={budgetProjects} />
-            <ActiveProjects projects={projects} />
-          </div>
-        </div>
-      </div>
+  const teamMembersWithCount = teamMembers.map((m) => ({
+    id: m.id,
+    name: m.name,
+    avatar: m.avatar,
+    openTaskCount: m._count.tasks,
+  }));
+
+  return (
+    <AppShell title="Dashboard" subtitle="System Übersicht">
+      <DashboardClient
+        activeProjectsCount={activeProjectIds.length}
+        openTasksCount={openTasksCount}
+        teamCount={teamCount}
+        activityToday={activityToday}
+        openTasks={openTasks as any}
+        myTasks={myTasks as any}
+        projects={projects as any}
+        activityLogs={activityLogs as any}
+        milestones={milestones as any}
+        timeEntriesToday={timeEntriesToday as any}
+        totalMinutesToday={totalMinutesToday}
+        teamMembers={teamMembersWithCount}
+        budgetProjects={budgetProjects as any}
+      />
     </AppShell>
   );
 }
