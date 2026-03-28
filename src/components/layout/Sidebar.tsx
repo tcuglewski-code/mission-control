@@ -57,6 +57,7 @@ const navItems = [
   { href: "/digest", icon: Newspaper, label: "KI-Digest" },
   { href: "/calendar", icon: CalendarDays, label: "Kalender" },
   { href: "/time", icon: Clock, label: "Zeiterfassung" },
+  { href: "/pomodoro", icon: Timer, label: "Pomodoro" },
   { href: "/cronjobs", icon: Timer, label: "Cron Jobs" },
   { href: "/projects", icon: FolderKanban, label: "Projekte" },
   { href: "/finance", icon: Banknote, label: "Finanzen" },

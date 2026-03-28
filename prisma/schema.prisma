@@ -515,3 +515,63 @@ model Milestone {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
+
+// ─── Projekt-Sharing ──────────────────────────────────────────────────────────
+model ProjectShare {
+  id        String    @id @default(cuid())
+  projectId String
+  token     String    @unique @default(cuid())
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+}
+
+// ─── Projekt-Favoriten ────────────────────────────────────────────────────────
+model ProjectFavorite {
+  id        String   @id @default(cuid())
+  userId    String
+  projectId String
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  @@unique([userId, projectId])
+}
+
+// ─── Sprint-Retrospektive ─────────────────────────────────────────────────────
+model Retrospective {
+  id        String     @id @default(cuid())
+  sprintId  String     @unique
+  createdAt DateTime   @default(now())
+  items     RetroItem[]
+}
+
+model RetroItem {
+  id        String       @id @default(cuid())
+  retroId   String
+  type      String       // "gut" | "schlecht" | "verbesserung"
+  text      String
+  votes     Int          @default(0)
+  retro     Retrospective @relation(fields: [retroId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+}
+
+// ─── Pomodoro-Sessions ────────────────────────────────────────────────────────
+model PomodoroSession {
+  id          String   @id @default(cuid())
+  userId      String
+  taskId      String?
+  duration    Int      // Dauer in Minuten (z.B. 25)
+  type        String   @default("work") // "work" | "short_break" | "long_break"
+  completedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+}
+
+// ─── Report-Scheduler ─────────────────────────────────────────────────────────
+model ProjectReportSchedule {
+  id        String    @id @default(cuid())
+  projectId String
+  emails    String[]
+  interval  String    @default("weekly") // "weekly" | "monthly"
+  lastSent  DateTime?
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
