@@ -6,6 +6,8 @@ export interface ServerSession {
   id: string
   username: string
   role: string
+  mcRole: string
+  active: boolean
   projectAccess: string[]
   permissions: string[]
 }
@@ -25,6 +27,8 @@ export async function requireServerSession(): Promise<ServerSession> {
     id: user.id,
     username: user.username,
     role: user.role,
+    mcRole: (user as any).mcRole ?? 'entwickler',
+    active: (user as any).active ?? true,
     projectAccess: user.projectAccess,
     permissions: user.permissions ?? [],
   }

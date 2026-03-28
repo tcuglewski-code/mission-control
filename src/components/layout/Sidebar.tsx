@@ -33,6 +33,8 @@ import {
   Sun,
   LayoutTemplate,
   Megaphone,
+  UserCog,
+  Settings,
 } from "lucide-react";
 import { useKeyboardShortcutsModal } from "@/hooks/useKeyboardShortcutsModal";
 import { useQuickAdd } from "@/hooks/useQuickAdd";
@@ -154,9 +156,54 @@ export function Sidebar() {
             );
           })}
 
+          {/* Settings links */}
+          <div className="pt-2 mt-1 border-t border-gray-200 dark:border-[#2a2a2a]">
+            <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+              Einstellungen
+            </p>
+            <Link
+              href="/settings/profile"
+              onClick={() => setSidebarOpen(false)}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors relative group",
+                pathname === "/settings/profile"
+                  ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
+                  : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+              )}
+            >
+              {pathname === "/settings/profile" && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-blue-500 rounded-r-full" />
+              )}
+              <Settings className={cn("w-4 h-4 shrink-0", pathname === "/settings/profile" ? "text-blue-400" : "")} />
+              <span>Mein Profil</span>
+            </Link>
+
+            {role === "admin" && (
+              <Link
+                href="/settings/users"
+                onClick={() => setSidebarOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors relative group",
+                  pathname === "/settings/users"
+                    ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
+                    : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+                )}
+              >
+                {pathname === "/settings/users" && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-blue-500 rounded-r-full" />
+                )}
+                <UserCog className={cn("w-4 h-4 shrink-0", pathname === "/settings/users" ? "text-blue-400" : "")} />
+                <span>Benutzerverwaltung</span>
+              </Link>
+            )}
+          </div>
+
           {/* Admin links */}
           {role === "admin" && (
-            <>
+            <div className="pt-1">
+              <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+                Administration
+              </p>
               <Link
                 href="/admin/users"
                 onClick={() => setSidebarOpen(false)}
@@ -171,7 +218,7 @@ export function Sidebar() {
                   <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-amber-500 rounded-r-full" />
                 )}
                 <ShieldCheck className={cn("w-4 h-4 shrink-0", pathname === "/admin/users" ? "text-amber-400" : "")} />
-                <span>Benutzer</span>
+                <span>Benutzer (Legacy)</span>
               </Link>
               <Link
                 href="/admin/audit"
@@ -189,7 +236,7 @@ export function Sidebar() {
                 <ClipboardList className={cn("w-4 h-4 shrink-0", pathname === "/admin/audit" ? "text-amber-400" : "")} />
                 <span>Audit Trail</span>
               </Link>
-            </>
+            </div>
           )}
         </nav>
 
