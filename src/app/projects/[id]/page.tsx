@@ -4,18 +4,12 @@ import { AppShell } from "@/components/layout/AppShell";
 import Link from "next/link";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import dynamic from "next/dynamic";
 import { ChevronLeft, CheckSquare, Users, FileText, Activity, Globe, Github, ExternalLink, Smartphone, Download } from "lucide-react";
 import { getStatusBg, getStatusLabel, formatRelativeTime, getActionLabel, getEntityTypeLabel, getInitials } from "@/lib/utils";
 import { requireServerSession, getAllowedProjectIds } from "@/lib/server-auth";
 import { LivingDescription } from "@/components/projects/LivingDescription";
 import { BudgetCard } from "@/components/projects/BudgetCard";
-
-// PDF-Button: nur client-side, kein SSR (wegen @react-pdf/renderer)
-const ProjectPDFButton = dynamic(
-  () => import("@/components/projects/ProjectReportPDF").then((m) => m.ProjectPDFButton),
-  { ssr: false, loading: () => null }
-);
+import { ProjectPDFButton } from "@/components/projects/ProjectPDFButtonWrapper";
 
 interface PageProps {
   params: Promise<{ id: string }>;
