@@ -83,6 +83,13 @@ export const AVAILABLE_WIDGETS: WidgetDefinition[] = [
     defaultOrder: 9,
     description: "Die 5 zuletzt geöffneten Projekte und Tasks",
   },
+  {
+    id: "live-feed",
+    title: "Live Feed",
+    defaultVisible: true,
+    defaultOrder: 10,
+    description: "Letzte 5 Team-Aktionen in Echtzeit (30s Auto-Update)",
+  },
 ];
 
 export const WIDGET_CONFIG_KEY = "mc_dashboard_widget_config";

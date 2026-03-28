@@ -52,6 +52,7 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [hasNewSinceOpen, setHasNewSinceOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
@@ -140,6 +141,7 @@ export function NotificationBell() {
 
             setNotifications((prev) => [...unbekannt, ...prev]);
             setUnreadCount(data.unreadCount ?? 0);
+            setHasNewSinceOpen(true); // Badge pulsieren lassen
           }
         } catch {}
       });
@@ -165,9 +167,12 @@ export function NotificationBell() {
     };
   }, [fetchNotifications, showToast]);
 
-  // Beim Öffnen des Panels neu laden
+  // Beim Öffnen des Panels neu laden + Puls zurücksetzen
   useEffect(() => {
-    if (open) fetchNotifications();
+    if (open) {
+      fetchNotifications();
+      setHasNewSinceOpen(false);
+    }
   }, [open, fetchNotifications]);
 
   // Außerhalb klicken → schließen
@@ -262,11 +267,20 @@ export function NotificationBell() {
           aria-label="Benachrichtigungen"
           data-tour="notifications"
         >
-          <Bell className="w-4 h-4" />
+          <Bell className={cn("w-4 h-4", hasNewSinceOpen && unreadCount > 0 ? "text-white" : "")} />
           {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 flex items-center justify-center bg-red-500 text-[10px] font-bold text-white rounded-full leading-none">
+            <span
+              className={cn(
+                "absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 flex items-center justify-center bg-red-500 text-[10px] font-bold text-white rounded-full leading-none",
+                hasNewSinceOpen ? "animate-bounce" : ""
+              )}
+            >
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>
+          )}
+          {/* Puls-Ring bei neuen Notifications */}
+          {hasNewSinceOpen && unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full border-2 border-red-500 animate-ping opacity-60" />
           )}
         </button>
 

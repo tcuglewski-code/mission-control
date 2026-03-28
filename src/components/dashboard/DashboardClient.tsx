@@ -17,6 +17,7 @@ import { TeamAuslastungWidget } from "./widgets/TeamAuslastungWidget";
 import { BudgetUebersichtWidget } from "./widgets/BudgetUebersichtWidget";
 import { AktuellerSprintWidget } from "./widgets/AktuellerSprintWidget";
 import { ZuletztBesuchtWidget } from "./widgets/ZuletztBesuchtWidget";
+import { LiveFeedWidget } from "./widgets/LiveFeedWidget";
 
 // --- Shared types (serialized from server) ---
 
@@ -146,6 +147,8 @@ export function DashboardClient({
         return <AktuellerSprintWidget />;
       case "zuletzt-besucht":
         return <ZuletztBesuchtWidget />;
+      case "live-feed":
+        return <LiveFeedWidget />;
       default:
         return null;
     }

@@ -1,9 +1,9 @@
 "use client";
 
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   CheckSquare,
@@ -44,6 +44,7 @@ import {
   Search,
   Bookmark,
   Trash2,
+  Radio,
 } from "lucide-react";
 import { useKeyboardShortcutsModal } from "@/hooks/useKeyboardShortcutsModal";
 import { useQuickAdd } from "@/hooks/useQuickAdd";
@@ -53,6 +54,7 @@ import { useThemeStore } from "@/store/useThemeStore";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/live", icon: Radio, label: "Live Dashboard" },
   { href: "/search", icon: Search, label: "Erweiterte Suche" },
   { href: "/my-day", icon: Sun, label: "Mein Tag" },
   { href: "/my-week", icon: CalendarDays, label: "Meine Woche" },
@@ -97,6 +99,120 @@ function ThemeToggleButton() {
     >
       {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
     </button>
+  );
+}
+
+interface TeamActivity {
+  userName: string;
+  action: string;
+  entityName: string;
+  createdAt: string;
+}
+
+function TeamNavItemWithTooltip({
+  href,
+  icon: Icon,
+  label,
+  isActive,
+  onClose,
+}: {
+  href: string;
+  icon: React.ElementType;
+  label: string;
+  isActive: boolean;
+  onClose: () => void;
+}) {
+  const [tooltip, setTooltip] = useState<TeamActivity | null>(null);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const loadActivity = async () => {
+    if (tooltip) return; // bereits geladen
+    try {
+      const res = await fetch("/api/activity?limit=1");
+      if (res.ok) {
+        const data = await res.json();
+        const logs = data.logs ?? [];
+        if (logs.length > 0) {
+          const log = logs[0];
+          setTooltip({
+            userName: log.user?.name ?? "Unbekannt",
+            action: log.action,
+            entityName: log.entityName,
+            createdAt: log.createdAt,
+          });
+        }
+      }
+    } catch {}
+  };
+
+  const handleMouseEnter = () => {
+    loadActivity();
+    timeoutRef.current = setTimeout(() => setShowTooltip(true), 300);
+  };
+
+  const handleMouseLeave = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setShowTooltip(false);
+  };
+
+  const actionLabels: Record<string, string> = {
+    created: "erstellt",
+    updated: "aktualisiert",
+    deleted: "gelöscht",
+    completed: "abgeschlossen",
+    status_changed: "Status geändert",
+    assigned: "zugewiesen",
+    commented: "kommentiert",
+  };
+
+  return (
+    <div className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+      <Link
+        href={href}
+        onClick={onClose}
+        className={cn(
+          "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
+          isActive
+            ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
+            : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+        )}
+      >
+        {isActive && (
+          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-emerald-500 rounded-r-full" />
+        )}
+        <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-emerald-400" : "")} />
+        <span>{label}</span>
+      </Link>
+
+      {/* Tooltip */}
+      {showTooltip && tooltip && (
+        <div className="absolute left-full top-0 ml-2 z-50 w-56 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-xl p-3 pointer-events-none">
+          <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-1.5">
+            Letzte Aktivität
+          </p>
+          <p className="text-xs text-white leading-snug">
+            <span className="font-medium text-emerald-400">{tooltip.userName}</span>{" "}
+            hat{" "}
+            <span className="text-zinc-300">
+              {tooltip.entityName.length > 20
+                ? tooltip.entityName.slice(0, 20) + "…"
+                : tooltip.entityName}
+            </span>{" "}
+            {actionLabels[tooltip.action] ?? tooltip.action}
+          </p>
+          <p className="text-[10px] text-zinc-600 mt-1">
+            {new Date(tooltip.createdAt).toLocaleTimeString("de-DE", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}{" "}
+            Uhr
+          </p>
+          {/* Arrow */}
+          <span className="absolute top-3 -left-1.5 w-2.5 h-2.5 bg-[#1a1a1a] border-l border-b border-[#2a2a2a] rotate-45" />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -172,6 +288,19 @@ export function Sidebar() {
         <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            // Spezial-Rendering für Team-Link: Tooltip mit letzter Aktivität
+            if (item.href === "/team") {
+              return (
+                <TeamNavItemWithTooltip
+                  key={item.href}
+                  href={item.href}
+                  icon={item.icon}
+                  label={item.label}
+                  isActive={isActive}
+                  onClose={() => setSidebarOpen(false)}
+                />
+              );
+            }
             return (
               <Link
                 key={item.href}
