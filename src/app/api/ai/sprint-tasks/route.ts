@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logAiUsageFireAndForget } from "@/lib/ai-usage";
 
 interface GeneratedTask {
   title: string;
@@ -138,6 +139,17 @@ Das JSON muss diesem Format entsprechen:
     if (typeof parsed.totalStoryPoints !== "number") {
       parsed.totalStoryPoints = parsed.tasks.reduce((sum, t) => sum + (t.storyPoints || 0), 0);
     }
+
+    // Token-Usage loggen (fire-and-forget)
+    logAiUsageFireAndForget({
+      source: "api",
+      feature: "sprint-tasks",
+      model: "claude-3-5-haiku-20241022",
+      inputTokens: message.usage?.input_tokens ?? 0,
+      outputTokens: message.usage?.output_tokens ?? 0,
+      sprintId: body.sprintId,
+      projectId: body.projectId,
+    });
 
     return NextResponse.json({
       tasks: parsed.tasks,

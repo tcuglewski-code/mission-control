@@ -786,3 +786,20 @@ model LoopLog {
   level     String   @default("info") // info | success | error | warning
   createdAt DateTime @default(now())
 }
+
+// ─── KI Token-Tracking ────────────────────────────────────────────────────────
+model AiUsage {
+  id           String   @id @default(cuid())
+  source       String   // "api" | "max"
+  feature      String   // "sprint-tasks" | "project-estimate" | "task-description" | "project-summary" | "foerderberater" | "amadeus-sprint" | "other"
+  model        String   // "claude-3-5-haiku-20241022" | "claude-sonnet-4-6" | "claude-opus-4-5"
+  inputTokens  Int      @default(0)
+  outputTokens Int      @default(0)
+  totalTokens  Int      @default(0)
+  costUsd      Float    @default(0)  // exakt bei api, geschätzt bei max
+  projectId    String?  // optional: welches Projekt
+  taskId       String?  // optional: welcher Task
+  sprintId     String?  // optional: welcher Sprint
+  metadata     String?  // JSON string für zusätzliche Infos
+  createdAt    DateTime @default(now())
+}

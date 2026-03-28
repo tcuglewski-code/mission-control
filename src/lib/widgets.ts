@@ -104,6 +104,13 @@ export const AVAILABLE_WIDGETS: WidgetDefinition[] = [
     defaultOrder: 12,
     description: "Offene Angebote, Annahmerate und durchschnittliche Angebotssumme",
   },
+  {
+    id: "ai-cost",
+    title: "KI-Kosten",
+    defaultVisible: true,
+    defaultOrder: 13,
+    description: "Token-Verbrauch und Kosten der KI-Features (API + Max/Amadeus)",
+  },
 ];
 
 export const WIDGET_CONFIG_KEY = "mc_dashboard_widget_config";

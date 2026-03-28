@@ -20,6 +20,7 @@ import { ZuletztBesuchtWidget } from "./widgets/ZuletztBesuchtWidget";
 import { LiveFeedWidget } from "./widgets/LiveFeedWidget";
 import { ProjektBudgetsWidget } from "./widgets/ProjektBudgetsWidget";
 import { AngeboteWidget } from "./widgets/AngeboteWidget";
+import { AiCostWidget } from "./widgets/AiCostWidget";
 
 // --- Shared types (serialized from server) ---
 
@@ -155,6 +156,8 @@ export function DashboardClient({
         return <ProjektBudgetsWidget />;
       case "angebote":
         return <AngeboteWidget />;
+      case "ai-cost":
+        return <AiCostWidget />;
       default:
         return null;
     }

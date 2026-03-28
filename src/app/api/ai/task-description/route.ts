@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
       projectName,
       projectDescription,
       existingTasks,
+      projectId,
     });
 
     return NextResponse.json({ description, aiAvailable: true });

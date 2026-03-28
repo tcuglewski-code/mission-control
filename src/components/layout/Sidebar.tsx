@@ -87,6 +87,7 @@ const navItems = [
   { href: "/team/activity", icon: ActivitySquare, label: "Team-Aktivität" },
   { href: "/tools", icon: Wrench, label: "Tools" },
   { href: "/estimator", icon: Zap, label: "📊 SP-Schätzer" },
+  { href: "/ai-usage", icon: Brain, label: "💰 KI-Kosten" },
   { href: "/databases", icon: Database, label: "Datenbanken" },
   { href: "/tickets", icon: Ticket, label: "Tickets" },
   { href: "/webhooks", icon: Webhook, label: "Webhooks" },

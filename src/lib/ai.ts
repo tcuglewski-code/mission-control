@@ -4,6 +4,8 @@
  * Wenn nicht gesetzt → alle KI-Funktionen geben Feature-disabled zurück.
  */
 
+import { logAiUsageFireAndForget } from "@/lib/ai-usage";
+
 const MODEL = "claude-3-5-haiku-20241022";
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
@@ -11,7 +13,15 @@ export function isAiAvailable(): boolean {
   return !!(process.env.ANTHROPIC_API_KEY);
 }
 
-async function callClaude(prompt: string, systemPrompt?: string): Promise<string> {
+interface ClaudeResponse {
+  text: string;
+  usage: {
+    input_tokens: number;
+    output_tokens: number;
+  };
+}
+
+async function callClaudeWithUsage(prompt: string, systemPrompt?: string): Promise<ClaudeResponse> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     throw new Error("ANTHROPIC_API_KEY nicht gesetzt — KI-Features nicht verfügbar.");
@@ -47,7 +57,19 @@ async function callClaude(prompt: string, systemPrompt?: string): Promise<string
   }
 
   const data = await res.json();
-  return data.content?.[0]?.text ?? "";
+  return {
+    text: data.content?.[0]?.text ?? "",
+    usage: {
+      input_tokens: data.usage?.input_tokens ?? 0,
+      output_tokens: data.usage?.output_tokens ?? 0,
+    },
+  };
+}
+
+// Legacy wrapper for backward compatibility
+async function callClaude(prompt: string, systemPrompt?: string): Promise<string> {
+  const response = await callClaudeWithUsage(prompt, systemPrompt);
+  return response.text;
 }
 
 // ─── generateProjectSummary ─────────────────────────────────────────────────
@@ -63,6 +85,7 @@ export interface ProjectSummaryInput {
     priority: string;
     description?: string | null;
   }>;
+  projectId?: string;
 }
 
 export async function generateProjectSummary(input: ProjectSummaryInput): Promise<string> {
@@ -98,7 +121,19 @@ Erstelle eine prägnante Projektzusammenfassung (max. 3 Absätze) auf Deutsch:
 
 Sei direkt und informativ. Keine Einleitung wie "Hier ist die Zusammenfassung".`;
 
-  return callClaude(prompt, "Du bist ein effizienter Projektmanager. Antworte prägnant auf Deutsch.");
+  const response = await callClaudeWithUsage(prompt, "Du bist ein effizienter Projektmanager. Antworte prägnant auf Deutsch.");
+  
+  // Token-Usage loggen (fire-and-forget)
+  logAiUsageFireAndForget({
+    source: "api",
+    feature: "project-summary",
+    model: MODEL,
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+    projectId: input.projectId,
+  });
+
+  return response.text;
 }
 
 // ─── generateTaskDescription ────────────────────────────────────────────────
@@ -108,6 +143,8 @@ export interface TaskDescriptionInput {
   projectName?: string;
   projectDescription?: string | null;
   existingTasks?: Array<{ title: string; status: string }>;
+  projectId?: string;
+  taskId?: string;
 }
 
 export async function generateTaskDescription(input: TaskDescriptionInput): Promise<string> {
@@ -133,5 +170,18 @@ Schlage eine präzise Aufgabenbeschreibung (2-4 Sätze) für diesen Task vor.
 Nur die Beschreibung ausgeben, kein "Hier ist die Beschreibung:" o.ä.
 Sprache: Deutsch`;
 
-  return callClaude(prompt);
+  const response = await callClaudeWithUsage(prompt);
+  
+  // Token-Usage loggen (fire-and-forget)
+  logAiUsageFireAndForget({
+    source: "api",
+    feature: "task-description",
+    model: MODEL,
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+    projectId: input.projectId,
+    taskId: input.taskId,
+  });
+
+  return response.text;
 }

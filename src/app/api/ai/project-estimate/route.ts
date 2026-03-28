@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAiAvailable } from "@/lib/ai";
+import { logAiUsageFireAndForget } from "@/lib/ai-usage";
 
 const MODEL = "claude-3-5-haiku-20241022";
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
@@ -177,6 +178,15 @@ Antworte mit genau diesem JSON-Format:
         { status: 500 }
       );
     }
+
+    // Token-Usage loggen (fire-and-forget)
+    logAiUsageFireAndForget({
+      source: "api",
+      feature: "project-estimate",
+      model: MODEL,
+      inputTokens: data.usage?.input_tokens ?? 0,
+      outputTokens: data.usage?.output_tokens ?? 0,
+    });
 
     return NextResponse.json({
       ...parsedResult,
