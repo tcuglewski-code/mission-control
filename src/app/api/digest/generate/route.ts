@@ -228,16 +228,218 @@ _Digest generiert am ${format(jetzt, "d. MMMM yyyy, HH:mm", { locale: de })} Uhr
 /**
  * Versendet Email-Digests an alle Benutzer mit ungelesenen Notifications.
  */
+/**
+ * Baut das HTML für den E-Mail-Digest.
+ * Wird auch für die Digest-Vorschau unter /settings/notifications/digest-preview verwendet.
+ */
+export function buildDigestEmailHtml(params: {
+  baseUrl: string;
+  username: string;
+  email: string;
+  userId: string;
+  notifications: Array<{ id: string; type: string; title: string; message: string; link?: string | null; createdAt: Date | string }>;
+  neueAufgaben: number;
+  faelligeAufgaben: number;
+  neueKommentare: number;
+  digestDatum?: string;
+}): string {
+  const {
+    baseUrl, username, email, userId, notifications,
+    neueAufgaben, faelligeAufgaben, neueKommentare, digestDatum,
+  } = params;
+
+  const unsubscribeUrl = `${baseUrl}/api/notifications/unsubscribe?email=${encodeURIComponent(email)}&token=${Buffer.from(userId).toString("base64")}`;
+  const notificationsUrl = `${baseUrl}/notifications`;
+  const today = digestDatum ?? new Date().toLocaleDateString("de-DE", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+
+  const typeLabels: Record<string, string> = {
+    task_assigned: "📋 Task-Zuweisungen",
+    task_status_changed: "🔄 Status-Änderungen",
+    comment_added: "💬 Neue Kommentare",
+    milestone_due: "🏁 Fällige Meilensteine",
+    sprint_completed: "✅ Abgeschlossene Sprints",
+    mention: "@ Erwähnungen",
+    new_email: "📧 E-Mails",
+    task_update: "🔄 Task-Updates",
+    deadline: "⏰ Deadlines",
+  };
+
+  // Nach Typ gruppieren
+  const grouped: Record<string, typeof notifications> = {};
+  for (const n of notifications) {
+    if (!grouped[n.type]) grouped[n.type] = [];
+    grouped[n.type].push(n);
+  }
+
+  const notifSektionen = Object.entries(grouped).map(([type, notifs]) => {
+    const label = typeLabels[type] ?? type;
+    const items = notifs.map((n) => {
+      const linkHtml = n.link
+        ? `<a href="${baseUrl}${n.link}" style="color:#10b981;text-decoration:none;font-size:12px;margin-left:8px;">Ansehen →</a>`
+        : "";
+      return `
+        <tr>
+          <td style="padding:10px 0;border-bottom:1px solid #2a2a2a;">
+            <div style="font-size:13px;font-weight:600;color:#e5e5e5;">${n.title}${linkHtml}</div>
+            <div style="font-size:12px;color:#888;margin-top:3px;">${n.message}</div>
+          </td>
+        </tr>`;
+    }).join("");
+
+    return `
+      <tr>
+        <td style="padding:20px 0 8px;">
+          <div style="font-size:13px;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:0.05em;">${label}</div>
+        </td>
+      </tr>
+      ${items}`;
+  }).join("");
+
+  return `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mission Control Tagesdigest</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#0f1f0f 0%,#0a1a0a 100%);border:1px solid #1a3a1a;border-radius:16px 16px 0 0;padding:32px 40px;text-align:center;">
+              <div style="display:inline-flex;align-items:center;gap:12px;margin-bottom:16px;">
+                <div style="width:40px;height:40px;background:#10b981;border-radius:10px;display:inline-block;line-height:40px;text-align:center;font-size:20px;">🌲</div>
+                <div style="text-align:left;">
+                  <div style="font-size:18px;font-weight:700;color:#ffffff;">Mission Control</div>
+                  <div style="font-size:11px;color:#6b7280;letter-spacing:0.1em;text-transform:uppercase;">Koch Aufforstung GmbH</div>
+                </div>
+              </div>
+              <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#ffffff;">Guten Morgen, ${username}! 👋</h1>
+              <p style="margin:0;font-size:13px;color:#6b7280;">${today}</p>
+            </td>
+          </tr>
+
+          <!-- Zusammenfassung -->
+          <tr>
+            <td style="background:#111111;border-left:1px solid #1e1e1e;border-right:1px solid #1e1e1e;padding:24px 40px;">
+              <p style="margin:0 0 16px;font-size:13px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.08em;">Zusammenfassung</p>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td width="33%" style="text-align:center;">
+                    <div style="background:#0f2010;border:1px solid #1a4a1a;border-radius:12px;padding:16px 8px;">
+                      <div style="font-size:28px;font-weight:700;color:#10b981;">${neueAufgaben}</div>
+                      <div style="font-size:11px;color:#6b7280;margin-top:4px;">neue Aufgaben</div>
+                    </div>
+                  </td>
+                  <td width="4%"></td>
+                  <td width="33%" style="text-align:center;">
+                    <div style="background:#1f0e0e;border:1px solid #4a1a1a;border-radius:12px;padding:16px 8px;">
+                      <div style="font-size:28px;font-weight:700;color:#ef4444;">${faelligeAufgaben}</div>
+                      <div style="font-size:11px;color:#6b7280;margin-top:4px;">fällige Aufgaben</div>
+                    </div>
+                  </td>
+                  <td width="4%"></td>
+                  <td width="33%" style="text-align:center;">
+                    <div style="background:#0e0e1f;border:1px solid #1a1a4a;border-radius:12px;padding:16px 8px;">
+                      <div style="font-size:28px;font-weight:700;color:#6366f1;">${neueKommentare}</div>
+                      <div style="font-size:11px;color:#6b7280;margin-top:4px;">Kommentare</div>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Benachrichtigungen -->
+          <tr>
+            <td style="background:#0f0f0f;border-left:1px solid #1e1e1e;border-right:1px solid #1e1e1e;border-top:1px solid #1e1e1e;padding:24px 40px;">
+              <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.08em;">
+                Ungelesene Benachrichtigungen
+              </p>
+              <p style="margin:0 0 16px;font-size:12px;color:#4b5563;">${notifications.length} Benachrichtigungen warten auf dich</p>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                ${notifications.length > 0 ? notifSektionen : `
+                <tr>
+                  <td style="padding:20px 0;text-align:center;color:#4b5563;font-size:13px;">
+                    Keine ungelesenen Benachrichtigungen 🎉
+                  </td>
+                </tr>`}
+              </table>
+              <div style="text-align:center;margin-top:24px;">
+                <a href="${notificationsUrl}" style="display:inline-block;background:#10b981;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:13px;font-weight:600;">
+                  Alle Benachrichtigungen ansehen →
+                </a>
+              </div>
+            </td>
+          </tr>
+
+          <!-- CTA Bereich -->
+          <tr>
+            <td style="background:#0a0a0a;border:1px solid #1e1e1e;border-top:none;padding:20px 40px;text-align:center;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="text-align:center;">
+                    <a href="${baseUrl}/tasks" style="display:inline-block;background:#1a1a1a;color:#d1d5db;text-decoration:none;padding:10px 20px;border-radius:6px;font-size:12px;border:1px solid #2a2a2a;margin:0 4px;">
+                      📋 Aufgaben
+                    </a>
+                    <a href="${baseUrl}/projects" style="display:inline-block;background:#1a1a1a;color:#d1d5db;text-decoration:none;padding:10px 20px;border-radius:6px;font-size:12px;border:1px solid #2a2a2a;margin:0 4px;">
+                      📁 Projekte
+                    </a>
+                    <a href="${baseUrl}/calendar" style="display:inline-block;background:#1a1a1a;color:#d1d5db;text-decoration:none;padding:10px 20px;border-radius:6px;font-size:12px;border:1px solid #2a2a2a;margin:0 4px;">
+                      📅 Kalender
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#060606;border:1px solid #161616;border-top:none;border-radius:0 0 16px 16px;padding:24px 40px;text-align:center;">
+              <p style="margin:0 0 8px;font-size:11px;color:#374151;">
+                Du erhältst diese E-Mail, weil du den täglichen Digest aktiviert hast.
+              </p>
+              <p style="margin:0;font-size:11px;color:#374151;">
+                <a href="${unsubscribeUrl}" style="color:#4b5563;text-decoration:underline;">
+                  E-Mail-Digest abbestellen
+                </a>
+                &nbsp;·&nbsp;
+                <a href="${baseUrl}/settings/notifications/digest-preview" style="color:#4b5563;text-decoration:underline;">
+                  Digest-Vorschau
+                </a>
+                &nbsp;·&nbsp;
+                <a href="${baseUrl}" style="color:#4b5563;text-decoration:underline;">
+                  Mission Control öffnen
+                </a>
+              </p>
+              <p style="margin:12px 0 0;font-size:10px;color:#1f2937;">
+                © Koch Aufforstung GmbH · Mission Control
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
 async function sendEmailDigests(
   digestMarkdown: string,
   notifByType: Record<string, number>,
   totalUnread: number
 ) {
   const resendKey = process.env.RESEND_API_KEY;
-  if (!resendKey) return; // Kein Email-Dienst konfiguriert
+  if (!resendKey) return;
 
   try {
-    // Benutzer mit aktiviertem Email-Digest und ungelesenen Notifications
     const usersWithUnread = await prisma.authUser.findMany({
       where: {
         notifEmailDigest: true,
@@ -256,67 +458,24 @@ async function sendEmailDigests(
 
     const baseUrl = process.env.NEXTAUTH_URL ?? "https://mission-control-tawny-omega.vercel.app";
 
+    // Aufgaben-Statistiken aus notifByType ableiten
+    const neueAufgaben = (notifByType["task_assigned"] ?? 0) + (notifByType["task_status_changed"] ?? 0) + (notifByType["task_update"] ?? 0);
+    const faelligeAufgaben = (notifByType["deadline"] ?? 0) + (notifByType["milestone_due"] ?? 0);
+    const neueKommentare = notifByType["comment_added"] ?? 0;
+
     for (const authUser of usersWithUnread) {
       if (!authUser.email) continue;
 
-      // Notifications nach Typ gruppieren
-      const grouped: Record<string, typeof authUser.notifications> = {};
-      for (const n of authUser.notifications) {
-        if (!grouped[n.type]) grouped[n.type] = [];
-        grouped[n.type].push(n);
-      }
-
-      const typeLabels: Record<string, string> = {
-        task_assigned: "📋 Task-Zuweisungen",
-        task_status_changed: "🔄 Status-Änderungen",
-        comment_added: "💬 Neue Kommentare",
-        milestone_due: "🏁 Fällige Meilensteine",
-        sprint_completed: "✅ Abgeschlossene Sprints",
-        mention: "@ Erwähnungen",
-      };
-
-      const notifHtml = Object.entries(grouped)
-        .map(([type, notifs]) => {
-          const label = typeLabels[type] ?? type;
-          const items = notifs
-            .map(
-              (n) =>
-                `<li style="margin-bottom:4px;"><strong>${n.title}</strong> — ${n.message}</li>`
-            )
-            .join("");
-          return `<h3 style="margin:16px 0 8px;font-size:14px;">${label}</h3><ul style="margin:0;padding-left:20px;">${items}</ul>`;
-        })
-        .join("");
-
-      const html = `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><title>Mission Control Digest</title></head>
-<body style="font-family:sans-serif;background:#111;color:#eee;padding:32px;max-width:600px;margin:0 auto;">
-  <h1 style="color:#10b981;margin-bottom:4px;">Mission Control</h1>
-  <p style="color:#888;margin-bottom:24px;">Tagesdigest — Koch Aufforstung GmbH</p>
-
-  <div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:20px;margin-bottom:24px;">
-    <h2 style="margin-top:0;font-size:16px;">🔔 Deine ungelesenen Benachrichtigungen (${authUser.notifications.length})</h2>
-    ${notifHtml}
-    <p style="margin-top:16px;">
-      <a href="${baseUrl}" style="background:#10b981;color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:13px;">
-        Alle anzeigen
-      </a>
-    </p>
-  </div>
-
-  <div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:20px;margin-bottom:24px;">
-    <h2 style="margin-top:0;font-size:16px;">📊 Tagesdigest</h2>
-    <pre style="white-space:pre-wrap;font-family:sans-serif;font-size:13px;color:#ccc;">${digestMarkdown.replace(/[<>]/g, (c) => (c === "<" ? "&lt;" : "&gt;"))}</pre>
-  </div>
-
-  <p style="color:#555;font-size:12px;text-align:center;">
-    <a href="${baseUrl}/api/notifications/unsubscribe?email=${encodeURIComponent(authUser.email)}&token=${Buffer.from(authUser.id).toString("base64")}" style="color:#555;">
-      Email-Digest abbestellen
-    </a>
-  </p>
-</body>
-</html>`;
+      const html = buildDigestEmailHtml({
+        baseUrl,
+        username: authUser.username,
+        email: authUser.email,
+        userId: authUser.id,
+        notifications: authUser.notifications,
+        neueAufgaben,
+        faelligeAufgaben,
+        neueKommentare,
+      });
 
       try {
         await fetch("https://api.resend.com/emails", {
@@ -328,7 +487,7 @@ async function sendEmailDigests(
           body: JSON.stringify({
             from: "Mission Control <noreply@koch-aufforstung.de>",
             to: [authUser.email],
-            subject: `Mission Control Digest — ${authUser.notifications.length} ungelesene Benachrichtigungen`,
+            subject: `🌲 Mission Control Digest — ${authUser.notifications.length} ungelesene Benachrichtigungen`,
             html,
           }),
         });

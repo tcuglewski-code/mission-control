@@ -40,6 +40,7 @@ import {
   Mail,
   BarChart2,
   ActivitySquare,
+  Bell,
 } from "lucide-react";
 import { useKeyboardShortcutsModal } from "@/hooks/useKeyboardShortcutsModal";
 import { useQuickAdd } from "@/hooks/useQuickAdd";
@@ -53,6 +54,7 @@ const navItems = [
   { href: "/my-week", icon: CalendarDays, label: "Meine Woche" },
   { href: "/announcements", icon: Megaphone, label: "Ankündigungen" },
   { href: "/tasks", icon: CheckSquare, label: "Aufgaben" },
+  { href: "/notifications", icon: Bell, label: "Benachrichtigungen" },
   { href: "/inbox", icon: Mail, label: "Posteingang" },
   { href: "/sprints", icon: Flag, label: "Sprints" },
   { href: "/timeline", icon: GanttChartSquare, label: "Timeline" },
