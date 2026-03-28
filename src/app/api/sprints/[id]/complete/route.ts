@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createNotification, getProjectMemberIds } from "@/lib/notifications";
 
 export async function POST(
   _req: NextRequest,
@@ -64,6 +65,22 @@ export async function POST(
         metadata: JSON.stringify({ completedPoints, totalPoints, remainingMoved: remainingTaskIds.length }),
       },
     });
+
+    // Benachrichtigung: Sprint abgeschlossen → alle Projektmitglieder
+    if (sprint.projectId) {
+      void (async () => {
+        const memberIds = await getProjectMemberIds(sprint.projectId!);
+        for (const memberId of memberIds) {
+          await createNotification(
+            memberId,
+            "sprint_completed",
+            "Sprint abgeschlossen",
+            `Der Sprint „${sprint.name}" wurde abgeschlossen. ${completedPoints} von ${totalPoints} Story Points erledigt.`,
+            `/projects/${sprint.projectId}/sprints`
+          );
+        }
+      })();
+    }
 
     return NextResponse.json(sprint);
   } catch (error) {

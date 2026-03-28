@@ -4,6 +4,7 @@ import { triggerWebhooks } from "@/lib/webhooks";
 import { getSessionOrApiKey } from "@/lib/api-auth";
 import { hasPermission, PERMISSIONS } from "@/lib/permissions";
 import { logActivity } from "@/lib/audit";
+import { createNotification, getAuthUserIdByUserId } from "@/lib/notifications";
 
 export async function GET(
   req: NextRequest,
@@ -147,6 +148,50 @@ async function updateTask(id: string, body: Record<string, unknown>) {
   return task;
 }
 
+async function fireTaskNotifications(
+  task: Awaited<ReturnType<typeof updateTask>>,
+  body: Record<string, unknown>
+) {
+  const { status, assigneeId } = body as { status?: string; assigneeId?: string };
+
+  // Benachrichtigung: Task-Status geändert → Assignee informieren
+  if (status !== undefined && task.assigneeId) {
+    const authUserId = await getAuthUserIdByUserId(task.assigneeId);
+    if (authUserId) {
+      const statusLabel: Record<string, string> = {
+        todo: "Offen",
+        backlog: "Backlog",
+        in_progress: "In Bearbeitung",
+        done: "Erledigt",
+        blocked: "Blockiert",
+        review: "Review",
+      };
+      void createNotification(
+        authUserId,
+        "task_status_changed",
+        "Task-Status geändert",
+        `Status von „${task.title}" wurde auf „${statusLabel[status] ?? status}" geändert.`,
+        `/tasks`
+      );
+    }
+  }
+
+  // Benachrichtigung: Task neu zugewiesen
+  if (assigneeId !== undefined && assigneeId && assigneeId !== task.assigneeId) {
+    // assigneeId in body → neu zugewiesen an diese Person
+    const authUserId = await getAuthUserIdByUserId(assigneeId);
+    if (authUserId) {
+      void createNotification(
+        authUserId,
+        "task_assigned",
+        "Task zugewiesen",
+        `Dir wurde der Task „${task.title}" zugewiesen.`,
+        `/tasks`
+      );
+    }
+  }
+}
+
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -165,6 +210,7 @@ export async function PUT(
     const body = await req.json();
     const task = await updateTask(id, body);
     triggerWebhooks("task.updated", { task }, task.projectId ?? undefined);
+    void fireTaskNotifications(task, body);
     return NextResponse.json(task);
   } catch (error) {
     console.error("[PUT /api/tasks/[id]]", error);
@@ -190,6 +236,7 @@ export async function PATCH(
     const body = await req.json();
     const task = await updateTask(id, body);
     triggerWebhooks("task.updated", { task }, task.projectId ?? undefined);
+    void fireTaskNotifications(task, body);
     return NextResponse.json(task);
   } catch (error) {
     console.error("[PATCH /api/tasks/[id]]", error);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { X, Trash2, MessageSquare, Send, Tag } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
@@ -62,6 +62,11 @@ export function TaskModal({
   const [commentAuthor, setCommentAuthor] = useState("Amadeus");
   const [submittingComment, setSubmittingComment] = useState(false);
   const commentsEndRef = useRef<HTMLDivElement>(null);
+  const commentTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // @Mention State
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionDropdownOpen, setMentionDropdownOpen] = useState(false);
 
   useEffect(() => {
     // Load active sprints for dropdown
@@ -126,6 +131,47 @@ export function TaskModal({
       setSubmittingComment(false);
     }
   };
+
+  // @Mention: Kommentar-Eingabe überwachen
+  const handleCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setNewComment(val);
+
+    // Prüfe ob gerade ein @mention getippt wird
+    const cursor = e.target.selectionStart ?? val.length;
+    const textBeforeCursor = val.slice(0, cursor);
+    const mentionMatch = textBeforeCursor.match(/@([\w\-äöüÄÖÜß]*)$/);
+    if (mentionMatch) {
+      setMentionQuery(mentionMatch[1]);
+      setMentionDropdownOpen(true);
+    } else {
+      setMentionQuery(null);
+      setMentionDropdownOpen(false);
+    }
+  };
+
+  // @Mention: User auswählen → in Text einfügen
+  const insertMention = useCallback((username: string) => {
+    const textarea = commentTextareaRef.current;
+    if (!textarea) return;
+
+    const cursor = textarea.selectionStart ?? newComment.length;
+    const textBeforeCursor = newComment.slice(0, cursor);
+    const textAfterCursor = newComment.slice(cursor);
+
+    // Letztes @... im Text vor Cursor ersetzen
+    const replaced = textBeforeCursor.replace(/@([\w\-äöüÄÖÜß]*)$/, `@${username} `);
+    setNewComment(replaced + textAfterCursor);
+    setMentionDropdownOpen(false);
+    setMentionQuery(null);
+
+    // Fokus & Cursor ans Ende setzen
+    setTimeout(() => {
+      textarea.focus();
+      const pos = replaced.length;
+      textarea.setSelectionRange(pos, pos);
+    }, 0);
+  }, [newComment]);
 
   const handleDeleteComment = async (commentId: string) => {
     if (!task?.id) return;
@@ -543,17 +589,63 @@ export function TaskModal({
                   placeholder="Dein Name"
                   className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-1.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50"
                 />
-                <div className="flex gap-2">
+                <div className="flex gap-2 relative">
+                  {/* @Mention Dropdown */}
+                  {mentionDropdownOpen && (
+                    <div className="absolute bottom-full left-0 mb-1 w-48 bg-[#252525] border border-[#3a3a3a] rounded-lg shadow-xl z-50 overflow-hidden">
+                      <div className="px-3 py-1.5 text-[10px] text-zinc-500 border-b border-[#3a3a3a]">
+                        Benutzer erwähnen
+                      </div>
+                      {users
+                        .filter((u) =>
+                          !mentionQuery ||
+                          u.name.toLowerCase().includes(mentionQuery.toLowerCase())
+                        )
+                        .slice(0, 6)
+                        .map((u) => (
+                          <button
+                            key={u.id}
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              insertMention(u.name.replace(/\s+/g, ""));
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-white hover:bg-[#333] transition-colors text-left"
+                          >
+                            {u.avatar ? (
+                              <img src={u.avatar} className="w-5 h-5 rounded-full" alt="" />
+                            ) : (
+                              <span className="w-5 h-5 rounded-full bg-emerald-600 flex items-center justify-center text-[10px] font-bold">
+                                {u.name.charAt(0)}
+                              </span>
+                            )}
+                            <span>{u.name}</span>
+                          </button>
+                        ))}
+                      {users.filter((u) =>
+                        !mentionQuery ||
+                        u.name.toLowerCase().includes(mentionQuery.toLowerCase())
+                      ).length === 0 && (
+                        <div className="px-3 py-2 text-xs text-zinc-500">
+                          Kein Benutzer gefunden
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <textarea
+                    ref={commentTextareaRef}
                     value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
+                    onChange={handleCommentChange}
                     onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        setMentionDropdownOpen(false);
+                      }
                       if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
                         e.preventDefault();
                         handleAddComment();
                       }
                     }}
-                    placeholder="Kommentar hinzufügen... (Strg+Enter zum Senden)"
+                    placeholder="Kommentar hinzufügen... @Name für Erwähnung"
                     rows={2}
                     className="flex-1 bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 resize-none"
                   />

@@ -3,6 +3,10 @@
     {
       "path": "/api/digest/cron",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/notifications/milestone-check",
+      "schedule": "0 8 * * *"
     }
   ]
 }

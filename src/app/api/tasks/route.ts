@@ -4,6 +4,7 @@ import { triggerWebhooks } from "@/lib/webhooks";
 import { getSessionOrApiKey } from "@/lib/api-auth";
 import { hasPermission, PERMISSIONS } from "@/lib/permissions";
 import { logActivity } from "@/lib/audit";
+import { createNotification, getAuthUserIdByUserId } from "@/lib/notifications";
 
 export async function GET(req: NextRequest) {
   try {
@@ -129,6 +130,20 @@ export async function POST(req: NextRequest) {
     });
 
     triggerWebhooks("task.created", { task }, task.projectId ?? undefined);
+
+    // Benachrichtigung: Task zugewiesen
+    if (task.assigneeId) {
+      const authUserId = await getAuthUserIdByUserId(task.assigneeId);
+      if (authUserId) {
+        void createNotification(
+          authUserId,
+          "task_assigned",
+          "Task zugewiesen",
+          `Dir wurde der Task „${task.title}" zugewiesen.`,
+          `/tasks`
+        );
+      }
+    }
 
     return NextResponse.json(task, { status: 201 });
   } catch (error) {
