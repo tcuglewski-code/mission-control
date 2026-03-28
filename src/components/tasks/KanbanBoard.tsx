@@ -15,6 +15,8 @@ import {
 import { KanbanColumn } from "./KanbanColumn";
 import { TaskCard } from "./TaskCard";
 import { TaskModal } from "./TaskModal";
+import { TaskQuickEditPanel } from "./TaskQuickEditPanel";
+import { BulkEditBar } from "./BulkEditBar";
 import { useAppStore, type Task, type Project, type User, type Sprint } from "@/store/useAppStore";
 import {
   Flag,
@@ -297,6 +299,73 @@ export function KanbanBoard({ projects, users, filteredTasks, isAdmin }: KanbanB
   const [editingTask, setEditingTask] = useState<Task | null | undefined>(undefined);
   const [newTaskStatus, setNewTaskStatus] = useState<string>("todo");
   const [sprints, setSprints] = useState<Sprint[]>([]);
+
+  // Quick-Edit Panel
+  const [quickEditTask, setQuickEditTask] = useState<Task | null>(null);
+
+  // Batch-Selection
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+
+  const handleSelectTask = (id: string, selected: boolean) => {
+    setSelectedTaskIds((prev) => {
+      const next = new Set(prev);
+      if (selected) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const handleClearSelection = () => setSelectedTaskIds(new Set());
+
+  // Inline-Save Handler
+  const handleInlineSave = async (id: string, data: Partial<Task>) => {
+    const res = await fetch(`/api/tasks/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setTasks(tasks.map((t) => t.id === id ? { ...t, ...updated } : t));
+    }
+  };
+
+  // Quick-Edit Panel Update Handler
+  const handleQuickEditUpdate = async (id: string, data: Partial<Task>) => {
+    const res = await fetch(`/api/tasks/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setTasks(tasks.map((t) => t.id === id ? { ...t, ...updated } : t));
+    }
+  };
+
+  // Bulk-Update Handler
+  const handleBulkUpdate = async (ids: string[], data: Partial<Task>) => {
+    await Promise.all(
+      ids.map((id) =>
+        fetch(`/api/tasks/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        }).then(async (res) => {
+          if (res.ok) {
+            const updated = await res.json();
+            return updated;
+          }
+          return null;
+        })
+      )
+    );
+    // Refresh tasks from store
+    const updatedTasks = tasks.map((t) =>
+      ids.includes(t.id) ? { ...t, ...data } : t
+    );
+    setTasks(updatedTasks);
+  };
   const [selectedSprintId, setSelectedSprintId] = useState<string>("");
 
   // Swimlanes
@@ -694,6 +763,10 @@ export function KanbanBoard({ projects, users, filteredTasks, isAdmin }: KanbanB
                   setEditingTask(null);
                 }}
                 onTaskClick={(task) => setEditingTask(task)}
+                onQuickEdit={(task) => setQuickEditTask(task)}
+                selectedTaskIds={selectedTaskIds}
+                onSelectTask={handleSelectTask}
+                onInlineSave={handleInlineSave}
               />
             ))}
           </div>
@@ -727,6 +800,10 @@ export function KanbanBoard({ projects, users, filteredTasks, isAdmin }: KanbanB
                             setEditingTask(null);
                           }}
                           onTaskClick={(task) => setEditingTask(task)}
+                          onQuickEdit={(task) => setQuickEditTask(task)}
+                          selectedTaskIds={selectedTaskIds}
+                          onSelectTask={handleSelectTask}
+                          onInlineSave={handleInlineSave}
                         />
                       );
                     })}
@@ -756,6 +833,27 @@ export function KanbanBoard({ projects, users, filteredTasks, isAdmin }: KanbanB
           onClose={() => setEditingTask(undefined)}
           onSave={handleSaveTask}
           onDelete={handleDeleteTask}
+        />
+      )}
+
+      {/* Quick-Edit Side Panel */}
+      {quickEditTask && (
+        <TaskQuickEditPanel
+          task={quickEditTask}
+          users={users}
+          onClose={() => setQuickEditTask(null)}
+          onUpdate={handleQuickEditUpdate}
+        />
+      )}
+
+      {/* Bulk-Edit Bar */}
+      {selectedTaskIds.size > 0 && (
+        <BulkEditBar
+          selectedIds={selectedTaskIds}
+          tasks={tasks}
+          users={users}
+          onClearSelection={handleClearSelection}
+          onBulkUpdate={handleBulkUpdate}
         />
       )}
     </>

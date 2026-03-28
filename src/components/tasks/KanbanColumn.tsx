@@ -15,6 +15,10 @@ interface KanbanColumnProps {
   wipLimit?: number | null;
   onAddTask: () => void;
   onTaskClick: (task: Task) => void;
+  onQuickEdit?: (task: Task) => void;
+  selectedTaskIds?: Set<string>;
+  onSelectTask?: (id: string, selected: boolean) => void;
+  onInlineSave?: (id: string, data: Partial<Task>) => Promise<void>;
 }
 
 export function KanbanColumn({
@@ -25,6 +29,10 @@ export function KanbanColumn({
   wipLimit,
   onAddTask,
   onTaskClick,
+  onQuickEdit,
+  selectedTaskIds,
+  onSelectTask,
+  onInlineSave,
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id });
 
@@ -110,6 +118,10 @@ export function KanbanColumn({
               key={task.id}
               task={task}
               onClick={() => onTaskClick(task)}
+              onQuickEdit={onQuickEdit}
+              selected={selectedTaskIds?.has(task.id) ?? false}
+              onSelect={onSelectTask}
+              onInlineSave={onInlineSave}
             />
           ))}
         </SortableContext>

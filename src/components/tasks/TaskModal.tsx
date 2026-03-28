@@ -8,6 +8,7 @@ import type { Task, Project, User, Sprint, Label, Milestone } from "@/store/useA
 import { TaskTimer } from "./TaskTimer";
 import { SimilarTasks } from "./SimilarTasks";
 import { LabelSuggestions } from "./LabelSuggestions";
+import { MarkdownPreview } from "./MarkdownPreview";
 
 interface CommentReaction {
   id: string;
@@ -68,6 +69,7 @@ export function TaskModal({
     recurringEndDate: "",
   });
   const [loading, setLoading] = useState(false);
+  const [descMode, setDescMode] = useState<"edit" | "preview">("edit");
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [availableLabels, setAvailableLabels] = useState<Label[]>([]);
@@ -886,7 +888,30 @@ export function TaskModal({
           {/* Description */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs text-zinc-400">Beschreibung</label>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-zinc-400">Beschreibung</label>
+                {/* Edit / Preview Toggle */}
+                <div className="flex items-center bg-[#1c1c1c] border border-[#2a2a2a] rounded p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setDescMode("edit")}
+                    className={`px-2 py-0.5 rounded text-[10px] transition-colors ${
+                      descMode === "edit" ? "bg-[#2a2a2a] text-white" : "text-zinc-500 hover:text-zinc-300"
+                    }`}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDescMode("preview")}
+                    className={`px-2 py-0.5 rounded text-[10px] transition-colors ${
+                      descMode === "preview" ? "bg-[#2a2a2a] text-white" : "text-zinc-500 hover:text-zinc-300"
+                    }`}
+                  >
+                    Preview
+                  </button>
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={handleAiDescription}
@@ -902,13 +927,19 @@ export function TaskModal({
                 {aiDescLoading ? "KI denkt..." : "KI vorschlagen"}
               </button>
             </div>
-            <textarea
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="Details..."
-              rows={3}
-              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 resize-none"
-            />
+            {descMode === "edit" ? (
+              <textarea
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                placeholder="Details... (Markdown: **bold**, *italic*, `code`, ## Überschrift, - Liste)"
+                rows={3}
+                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 resize-none"
+              />
+            ) : (
+              <div className="min-h-[80px] bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5">
+                <MarkdownPreview content={form.description} />
+              </div>
+            )}
           </div>
 
           {/* Status + Priority */}
