@@ -6,7 +6,8 @@ export type NotificationType =
   | "comment_added"
   | "milestone_due"
   | "sprint_completed"
-  | "mention";
+  | "mention"
+  | "new_email";
 
 /**
  * Erstellt eine Benachrichtigung für einen Benutzer.

@@ -37,6 +37,7 @@ import {
   UserCog,
   Settings,
   Banknote,
+  Mail,
 } from "lucide-react";
 import { useKeyboardShortcutsModal } from "@/hooks/useKeyboardShortcutsModal";
 import { useQuickAdd } from "@/hooks/useQuickAdd";
@@ -48,6 +49,7 @@ const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/announcements", icon: Megaphone, label: "Ankündigungen" },
   { href: "/tasks", icon: CheckSquare, label: "Aufgaben" },
+  { href: "/inbox", icon: Mail, label: "Posteingang" },
   { href: "/sprints", icon: Flag, label: "Sprints" },
   { href: "/timeline", icon: GanttChartSquare, label: "Timeline" },
   { href: "/digest", icon: Newspaper, label: "KI-Digest" },

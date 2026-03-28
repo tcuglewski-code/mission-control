@@ -55,6 +55,7 @@ export interface Task {
   assigneeId?: string | null;
   sprintId?: string | null;
   milestoneId?: string | null;
+  sourceEmailId?: string | null;
   createdAt: Date;
   updatedAt: Date;
   project?: { id: string; name: string; color: string } | null;

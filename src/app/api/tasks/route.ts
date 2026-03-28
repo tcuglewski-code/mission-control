@@ -89,6 +89,7 @@ export async function POST(req: NextRequest) {
       assigneeId,
       sprintId,
       milestoneId,
+      sourceEmailId,
     } = body;
 
     if (!title) {
@@ -109,6 +110,7 @@ export async function POST(req: NextRequest) {
         assigneeId: assigneeId || null,
         sprintId: sprintId || null,
         milestoneId: milestoneId || null,
+        sourceEmailId: sourceEmailId || null,
       },
       include: {
         project: { select: { id: true, name: true, color: true } },
@@ -130,6 +132,14 @@ export async function POST(req: NextRequest) {
     });
 
     triggerWebhooks("task.created", { task }, task.projectId ?? undefined);
+
+    // Email als "Task erstellt" markieren wenn sourceEmailId vorhanden
+    if (sourceEmailId) {
+      await prisma.inboxEmail.update({
+        where: { id: sourceEmailId },
+        data: { taskCreated: true },
+      }).catch(() => null); // Ignoriere Fehler falls Email nicht gefunden
+    }
 
     // Benachrichtigung: Task zugewiesen
     if (task.assigneeId) {

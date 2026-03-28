@@ -23,6 +23,7 @@ const TYPE_COLORS: Record<string, string> = {
   milestone_due: "bg-orange-500",
   sprint_completed: "bg-violet-500",
   mention: "bg-amber-500",
+  new_email: "bg-sky-500",
   // Legacy
   task_update: "bg-blue-500",
   deadline: "bg-red-500",
@@ -36,6 +37,7 @@ const TYPE_ICONS: Record<string, string> = {
   milestone_due: "🏁",
   sprint_completed: "✅",
   mention: "@",
+  new_email: "📧",
   task_update: "🔄",
   deadline: "⏰",
   cron_result: "⚙️",

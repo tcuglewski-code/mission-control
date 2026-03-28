@@ -81,6 +81,7 @@ model Task {
   agentPrompt      String?
   timeSpentSeconds Int       @default(0)
   storyPoints      Int?
+  sourceEmailId    String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   projectId   String?
@@ -91,10 +92,26 @@ model Task {
   assignee  User?      @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
   sprint    Sprint?    @relation(fields: [sprintId], references: [id], onDelete: SetNull)
   milestone Milestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  sourceEmail InboxEmail? @relation(fields: [sourceEmailId], references: [id], onDelete: SetNull)
   comments    TaskComment[]
   events      Event[]
   timeEntries TimeEntry[]
   taskLabels  TaskLabel[]
+}
+
+// ─── E-Mail Posteingang ───────────────────────────────────────────────────────
+model InboxEmail {
+  id          String    @id @default(cuid())
+  from        String
+  subject     String
+  body        String?
+  preview     String?   // Vorschautext (max. 200 Zeichen)
+  receivedAt  DateTime  @default(now())
+  read        Boolean   @default(false)
+  taskCreated Boolean   @default(false)
+  tasks       Task[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model Label {
