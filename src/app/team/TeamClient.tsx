@@ -187,9 +187,13 @@ function MemberProfileModal({ userId, onClose }: { userId: string; onClose: () =
   const emoji = profile?.avatar || agentProfile?.emoji || (profile?.role !== "agent" ? "👤" : "🤖");
 
   return (
-    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl w-full max-w-2xl max-h-[85vh] overflow-hidden shadow-2xl"
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center sm:justify-center sm:p-4" onClick={onClose}>
+      <div className="bg-[#1c1c1c] border border-[#2a2a2a] sm:rounded-xl rounded-t-2xl w-full sm:max-w-2xl max-h-[90vh] sm:max-h-[85vh] overflow-hidden shadow-2xl animate-slide-up sm:animate-none"
         onClick={(e) => e.stopPropagation()}>
+        {/* Mobile Drag-Handle */}
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+          <div className="w-10 h-1 bg-zinc-600 rounded-full" />
+        </div>
         {loading ? (
           <div className="p-12 text-center text-zinc-500 text-sm">Lade Profil...</div>
         ) : !profile ? (

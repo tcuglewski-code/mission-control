@@ -4,17 +4,22 @@ import { AppShell } from "@/components/layout/AppShell";
 import Link from "next/link";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { ChevronLeft, CheckSquare, Users, FileText, FolderArchive, Activity, Globe, Github, ExternalLink, Smartphone, Download, Flag, Target, BarChart2, Clock } from "lucide-react";
+import { ChevronLeft, CheckSquare, Users, FileText, FolderArchive, Globe, Github, ExternalLink, Smartphone, Download, Flag, Target, BarChart2, Clock, Settings, Share2, Wallet } from "lucide-react";
 import { SaveAsTemplateButton } from "@/components/projects/SaveAsTemplateButton";
-import { getStatusBg, getStatusLabel, formatRelativeTime, getActionLabel, getEntityTypeLabel, getInitials } from "@/lib/utils";
+import { ProjectActivityWidget } from "@/components/projects/ProjectActivityWidget";
+import { AiProjectSummary } from "@/components/projects/AiProjectSummary";
+import { getStatusBg, getStatusLabel, getInitials } from "@/lib/utils";
 import { requireServerSession, getAllowedProjectIds } from "@/lib/server-auth";
 import { LivingDescription } from "@/components/projects/LivingDescription";
 import { BudgetCard } from "@/components/projects/BudgetCard";
+import { StoryPointEstimator } from "@/components/projects/StoryPointEstimator";
 import { ProjectPDFButton } from "@/components/projects/ProjectPDFButtonWrapper";
 import { MilestoneList } from "@/components/milestones/MilestoneList";
 import { ProjectStatusBanner } from "@/components/projects/ProjectStatusBanner";
 import { HealthScoreBadge } from "@/components/projects/HealthScoreBadge";
 import { calculateHealthScore } from "@/lib/health-score";
+import { ProjectVisitTracker } from "@/components/projects/ProjectVisitTracker";
+import { ProjectDashboard } from "@/components/projects/ProjectDashboard";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -92,6 +97,13 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         include: { 
           assignee: { select: { id: true, name: true, avatar: true } },
           milestone: { select: { id: true, title: true, color: true } },
+          comments: {
+            select: { authorId: true, authorName: true, createdAt: true },
+            orderBy: { createdAt: "asc" },
+          },
+          timeEntries: {
+            select: { userId: true, createdAt: true },
+          },
         },
         orderBy: { createdAt: "asc" },
       },
@@ -192,6 +204,27 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           Alle Projekte
         </Link>
 
+        {/* Visit Tracking (Client-seitig, LocalStorage) */}
+        <ProjectVisitTracker id={project.id} name={project.name} />
+
+        {/* Archiv-Banner */}
+        {project.archived && (
+          <div className="flex items-center justify-between gap-4 px-5 py-3 bg-amber-500/5 border border-amber-500/20 rounded-xl">
+            <div className="flex items-center gap-3">
+              <FolderArchive className="w-4 h-4 text-amber-400 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-amber-300">Dieses Projekt ist archiviert</p>
+                <p className="text-xs text-amber-400/60 mt-0.5">
+                  Archivierte Projekte sind schreibgeschützt. Keine neuen Tasks oder Kommentare möglich.
+                  {project.archivedAt && (
+                    <> Archiviert am {format(new Date(project.archivedAt), "d. MMMM yyyy", { locale: de })}.</>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl p-6">
           <div className="flex items-start justify-between mb-4">
@@ -267,6 +300,14 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                 <Clock className="w-3.5 h-3.5" />
                 Zeiterfassung
               </Link>
+              {/* Kostenplanung */}
+              <Link
+                href={`/projects/${project.id}/costs`}
+                className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 px-2 py-1 rounded hover:bg-emerald-500/10 border border-emerald-500/20 transition-colors"
+              >
+                <Wallet className="w-3.5 h-3.5" />
+                Kosten
+              </Link>
               {/* HTML-Report im Browser öffnen */}
               <a
                 href={`/api/projects/${project.id}/pdf`}
@@ -282,6 +323,22 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                 projectId={project.id}
                 projectName={project.name}
               />
+              {/* Freigaben */}
+              <Link
+                href={`/projects/${project.id}/sharing`}
+                className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 px-2 py-1 rounded hover:bg-emerald-950/30 border border-emerald-900/30 transition-colors"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                Freigaben
+              </Link>
+              {/* Projekt-Einstellungen (Team) */}
+              <Link
+                href={`/projects/${project.id}/settings`}
+                className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white px-2 py-1 rounded hover:bg-[#252525] border border-[#2a2a2a] transition-colors"
+              >
+                <Settings className="w-3.5 h-3.5" />
+                Einstellungen
+              </Link>
               {/* Als Vorlage speichern */}
               <SaveAsTemplateButton
                 projectId={project.id}
@@ -331,6 +388,33 @@ export default async function ProjectDetailPage({ params }: PageProps) {
             ))}
           </div>
         </div>
+
+        {/* Dashboard: KPI-Karten + Heatmap + Contributor-Ranking */}
+        <ProjectDashboard
+          tasks={project.tasks.map((t) => ({
+            id: t.id,
+            title: t.title,
+            status: t.status,
+            assigneeId: t.assigneeId ?? null,
+            assignee: t.assignee
+              ? { id: t.assignee.id, name: t.assignee.name, avatar: t.assignee.avatar ?? null }
+              : null,
+            dueDate: t.dueDate ? t.dueDate.toISOString() : null,
+            createdAt: t.createdAt.toISOString(),
+            updatedAt: t.updatedAt.toISOString(),
+            comments: (t.comments ?? []).map((c) => ({
+              authorId: c.authorId ?? null,
+              authorName: c.authorName,
+              createdAt: c.createdAt.toISOString(),
+            })),
+            timeEntries: (t.timeEntries ?? []).map((te) => ({
+              userId: te.userId ?? null,
+              createdAt: te.createdAt.toISOString(),
+            })),
+          }))}
+          lastActivityAt={lastLog?.createdAt?.toISOString() ?? null}
+          githubRepo={project.githubRepo ?? null}
+        />
 
         {/* Living Description */}
         <LivingDescription
@@ -491,23 +575,31 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               </div>
             </div>
 
-            {/* Activity */}
-            <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <Activity className="w-4 h-4 text-zinc-400" />
-                <h2 className="text-sm font-semibold text-white">Activity</h2>
-              </div>
-              <div className="space-y-3">
-                {project.logs.map((log) => (
-                  <div key={log.id} className="text-xs text-zinc-400">
-                    <span className="text-zinc-300">{log.user?.name ?? "System"}</span>
-                    {" "}{getActionLabel(log.action)}{" "}
-                    <span className="text-zinc-500">{log.entityName}</span>
-                    <div className="text-zinc-600 mt-0.5">{formatRelativeTime(log.createdAt)}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* Activity Widget */}
+            <ProjectActivityWidget
+              projectId={project.id}
+              initialLogs={project.logs.slice(0, 5).map((log) => ({
+                id: log.id,
+                action: log.action,
+                entityType: log.entityType,
+                entityName: log.entityName,
+                createdAt: log.createdAt.toISOString(),
+                user: log.user ?? null,
+              }))}
+            />
+
+            {/* KI-Zusammenfassung */}
+            <AiProjectSummary
+              projectId={project.id}
+              projectName={project.name}
+            />
+
+            {/* Story Point Schätzung */}
+            <StoryPointEstimator
+              projectId={project.id}
+              defaultDescription={project.description ?? ""}
+              compact
+            />
           </div>
         </div>
       </div>

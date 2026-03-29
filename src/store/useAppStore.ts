@@ -51,6 +51,7 @@ export interface Task {
   startDate?: Date | null;
   agentPrompt?: string | null;
   timeSpentSeconds?: number;
+  storyPoints?: number | null;
   projectId?: string | null;
   assigneeId?: string | null;
   sprintId?: string | null;
@@ -62,6 +63,9 @@ export interface Task {
   recurringDay?: number | null;
   recurringEndDate?: Date | null;
   parentTaskId?: string | null;
+  // Abhängigkeiten & Blocker
+  startAfterTaskId?: string | null;
+  isBlocked?: boolean; // Client-seitig berechnet: true wenn aktive Blocker vorhanden
   createdAt: Date;
   updatedAt: Date;
   project?: { id: string; name: string; color: string } | null;
@@ -69,6 +73,7 @@ export interface Task {
   sprint?: { id: string; name: string } | null;
   milestone?: { id: string; title: string; color: string } | null;
   taskLabels?: { label: Label }[] | null;
+  subtasks?: { id: string; status: string; title: string }[] | null;
 }
 
 export interface Project {

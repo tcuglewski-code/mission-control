@@ -47,6 +47,7 @@ export default async function TasksPage() {
         project: { select: { id: true, name: true, color: true } },
         assignee: { select: { id: true, name: true, avatar: true } },
         sprint: { select: { id: true, name: true } },
+        subtasks: { select: { id: true, status: true, title: true } },
       },
       orderBy: { createdAt: "desc" },
     }),
@@ -75,6 +76,7 @@ export default async function TasksPage() {
             initialTasks={tasks}
             projects={projects}
             users={users}
+            isAdmin={authUser.role === "admin"}
           />
         </Suspense>
       </div>

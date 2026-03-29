@@ -63,12 +63,26 @@ export function QuickAddTaskModal() {
     }
   }, [open]);
 
-  // Keyboard-Shortcut: Cmd+Shift+N
+  // Keyboard-Shortcuts: Cmd+Shift+N und Q (kein Modifier, kein fokussiertes Input)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "N") {
         e.preventDefault();
         setOpen(true);
+      }
+      // Q ohne Modifier → Quick-Capture öffnen (nur wenn kein Input/Textarea fokussiert)
+      if (
+        e.key === "q" &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.shiftKey
+      ) {
+        const tag = (document.activeElement as HTMLElement)?.tagName?.toLowerCase();
+        if (tag !== "input" && tag !== "textarea" && tag !== "select") {
+          e.preventDefault();
+          setOpen(true);
+        }
       }
       if (e.key === "Escape" && open) {
         setOpen(false);
@@ -138,7 +152,7 @@ export function QuickAddTaskModal() {
               <Leaf className="w-4 h-4 text-emerald-400" />
               <span className="text-sm font-semibold text-white">Neuer Task</span>
               <span className="text-[10px] text-zinc-600 bg-[#222] px-1.5 py-0.5 rounded font-mono">
-                ⌘⇧N
+                Q / ⌘⇧N
               </span>
             </div>
             <button

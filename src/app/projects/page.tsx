@@ -51,6 +51,10 @@ export default async function ProjectsPage() {
         orderBy: { createdAt: "desc" },
         take: 1,
       },
+      favorites: {
+        where: { userId: authUser.id },
+        select: { id: true },
+      },
     },
     orderBy: [
       { archived: "asc" },   // aktive zuerst
@@ -58,7 +62,7 @@ export default async function ProjectsPage() {
     ],
   });
 
-  // Health Scores berechnen
+  // Health Scores berechnen + isFavorite flatten
   const projectsWithHealth = projects.map((p) => {
     const hasActiveSprint = p.sprints.some((s) => s.status === "active");
     const lastActivity = p.logs[0]?.createdAt ?? null;
@@ -67,7 +71,7 @@ export default async function ProjectsPage() {
       hasActiveSprint,
       lastActivityAt: lastActivity,
     });
-    return { ...p, healthScore };
+    return { ...p, healthScore, isFavorite: p.favorites.length > 0, favorites: undefined };
   });
 
   return (

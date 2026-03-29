@@ -6,7 +6,7 @@ import { de } from "date-fns/locale";
 import {
   Flag, Plus, Play, CheckCheck, Trash2, Edit2, X, BarChart2,
   Zap, ChevronDown, Check, GripVertical, List, Kanban, TrendingUp,
-  AlertCircle, Clock, ArrowRight
+  AlertCircle, Clock, ArrowRight, Sparkles, Loader2, CheckCircle2, ListTodo
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -394,6 +394,419 @@ function VelocityChart({ sprints }: { sprints: SprintData[] }) {
   );
 }
 
+// ─── Quick Add Task Modal ──────────────────────────────────────────────────
+
+interface QuickAddTaskModalProps {
+  sprintId: string;
+  projects: Project[];
+  onClose: () => void;
+  onCreated: () => void;
+}
+
+function QuickAddTaskModal({ sprintId, projects, onClose, onCreated }: QuickAddTaskModalProps) {
+  const [form, setForm] = useState({
+    title: "",
+    priority: "medium" as string,
+    storyPoints: "",
+    projectId: "",
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.title.trim()) return;
+    setLoading(true);
+    try {
+      const sp = parseInt(form.storyPoints, 10);
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: form.title.trim(),
+          priority: form.priority,
+          storyPoints: isNaN(sp) ? null : sp,
+          projectId: form.projectId || null,
+          sprintId,
+          status: "todo",
+        }),
+      });
+      if (res.ok) {
+        onCreated();
+        onClose();
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl w-full max-w-sm shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-[#2a2a2a]">
+          <h2 className="text-sm font-semibold text-white">Quick Add Task</h2>
+          <button onClick={onClose} className="text-zinc-500 hover:text-white p-1 rounded hover:bg-[#252525]">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-3">
+          <input
+            type="text"
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            placeholder="Task-Titel *"
+            autoFocus
+            required
+            className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50"
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <select
+              value={form.priority}
+              onChange={(e) => setForm({ ...form, priority: e.target.value })}
+              className="bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+            >
+              <option value="critical">🔴 Kritisch</option>
+              <option value="high">🟠 Hoch</option>
+              <option value="medium">🟡 Mittel</option>
+              <option value="low">⚪ Niedrig</option>
+            </select>
+            <input
+              type="number"
+              min={0}
+              max={99}
+              value={form.storyPoints}
+              onChange={(e) => setForm({ ...form, storyPoints: e.target.value })}
+              placeholder="SP"
+              className="bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50"
+            />
+          </div>
+          <select
+            value={form.projectId}
+            onChange={(e) => setForm({ ...form, projectId: e.target.value })}
+            className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+          >
+            <option value="">Kein Projekt</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          <button
+            type="submit"
+            disabled={loading || !form.title.trim()}
+            className="w-full px-4 py-2 text-sm text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 rounded-lg transition-colors font-medium"
+          >
+            {loading ? "Erstellen..." : "Task erstellen"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Backlog Assign Modal ─────────────────────────────────────────────────────
+
+interface BacklogAssignModalProps {
+  sprintId: string;
+  sprintName: string;
+  backlogTasks: TaskItem[];
+  onClose: () => void;
+  onAssigned: () => void;
+}
+
+function BacklogAssignModal({ sprintId, sprintName, backlogTasks, onClose, onAssigned }: BacklogAssignModalProps) {
+  const [assigning, setAssigning] = useState<string | null>(null);
+
+  const handleAssign = async (taskId: string) => {
+    setAssigning(taskId);
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sprintId }),
+      });
+      if (res.ok) {
+        onAssigned();
+      }
+    } finally {
+      setAssigning(null);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl w-full max-w-lg shadow-2xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-[#2a2a2a]">
+          <div>
+            <h2 className="text-sm font-semibold text-white">Backlog Tasks zuweisen</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">→ {sprintName}</p>
+          </div>
+          <button onClick={onClose} className="text-zinc-500 hover:text-white p-1 rounded hover:bg-[#252525]">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-auto p-4">
+          {backlogTasks.length === 0 ? (
+            <div className="text-center py-8 text-zinc-600">
+              <ListTodo className="w-8 h-8 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">Keine Tasks im Backlog</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {backlogTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="flex items-center gap-3 p-3 bg-[#161616] border border-[#2a2a2a] rounded-lg hover:border-[#3a3a3a] transition-colors"
+                >
+                  <PriorityBadge priority={task.priority} />
+                  <p className="text-xs text-white flex-1 truncate">{task.title}</p>
+                  {task.storyPoints != null && (
+                    <span className="text-[10px] text-zinc-500 font-mono">{task.storyPoints} SP</span>
+                  )}
+                  <button
+                    onClick={() => handleAssign(task.id)}
+                    disabled={assigning === task.id}
+                    className="flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 px-2 py-1 rounded hover:bg-emerald-500/10 transition-colors disabled:opacity-50"
+                  >
+                    {assigning === task.id ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <>
+                        <Plus className="w-3 h-3" />
+                        Zuweisen
+                      </>
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── AI Tasks Modal ───────────────────────────────────────────────────────────
+
+interface AIGeneratedTask {
+  title: string;
+  description: string;
+  priority: "critical" | "high" | "medium" | "low";
+  storyPoints: number;
+  category: string;
+  selected?: boolean;
+  created?: boolean;
+  creating?: boolean;
+}
+
+interface AITasksModalProps {
+  sprint: SprintData;
+  projects: Project[];
+  onClose: () => void;
+  onTasksCreated: () => void;
+}
+
+function AITasksModal({ sprint, projects, onClose, onTasksCreated }: AITasksModalProps) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [tasks, setTasks] = useState<AIGeneratedTask[]>([]);
+  const [summary, setSummary] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [createdCount, setCreatedCount] = useState(0);
+
+  useEffect(() => {
+    const generate = async () => {
+      try {
+        const res = await fetch("/api/ai/sprint-tasks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sprintName: sprint.name,
+            sprintDescription: sprint.description,
+            sprintGoal: sprint.goal,
+            projectName: sprint.project?.name,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || "Fehler bei AI-Generierung");
+          return;
+        }
+        setTasks(data.tasks.map((t: AIGeneratedTask) => ({ ...t, selected: true })));
+        setSummary(data.summary);
+      } catch (err) {
+        setError("Verbindungsfehler");
+      } finally {
+        setLoading(false);
+      }
+    };
+    generate();
+  }, [sprint]);
+
+  const toggleTask = (index: number) => {
+    setTasks((prev) => prev.map((t, i) => i === index ? { ...t, selected: !t.selected } : t));
+  };
+
+  const toggleAll = () => {
+    const allSelected = tasks.every((t) => t.selected);
+    setTasks((prev) => prev.map((t) => ({ ...t, selected: !allSelected })));
+  };
+
+  const handleCreate = async () => {
+    const selected = tasks.filter((t) => t.selected && !t.created);
+    if (selected.length === 0) return;
+    setCreating(true);
+    setCreatedCount(0);
+
+    for (let i = 0; i < selected.length; i++) {
+      const task = selected[i];
+      const idx = tasks.findIndex((t) => t.title === task.title);
+      setTasks((prev) => prev.map((t, j) => j === idx ? { ...t, creating: true } : t));
+
+      try {
+        await fetch("/api/tasks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: task.title,
+            description: task.description,
+            priority: task.priority,
+            storyPoints: task.storyPoints,
+            sprintId: sprint.id,
+            projectId: sprint.projectId,
+            status: "todo",
+          }),
+        });
+        setTasks((prev) => prev.map((t, j) => j === idx ? { ...t, created: true, creating: false } : t));
+        setCreatedCount((c) => c + 1);
+      } catch {
+        setTasks((prev) => prev.map((t, j) => j === idx ? { ...t, creating: false } : t));
+      }
+    }
+
+    setCreating(false);
+    onTasksCreated();
+    setTimeout(onClose, 500);
+  };
+
+  const selectedCount = tasks.filter((t) => t.selected && !t.created).length;
+  const totalSP = tasks.filter((t) => t.selected).reduce((s, t) => s + t.storyPoints, 0);
+
+  return (
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl w-full max-w-2xl shadow-2xl max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-[#2a2a2a]">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-purple-400" />
+            <h2 className="text-sm font-semibold text-white">KI-generierte Tasks</h2>
+          </div>
+          <button onClick={onClose} className="text-zinc-500 hover:text-white p-1 rounded hover:bg-[#252525]">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-auto p-5">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 text-purple-400 animate-spin mb-3" />
+              <p className="text-sm text-zinc-400">Generiere Tasks für "{sprint.name}"...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-3" />
+              <p className="text-sm text-red-400">{error}</p>
+            </div>
+          ) : (
+            <>
+              {summary && (
+                <p className="text-xs text-zinc-400 mb-4 bg-[#161616] p-3 rounded-lg border border-[#2a2a2a]">
+                  {summary}
+                </p>
+              )}
+
+              <div className="flex items-center justify-between mb-3">
+                <button
+                  onClick={toggleAll}
+                  className="text-xs text-zinc-400 hover:text-white flex items-center gap-1.5"
+                >
+                  <Check className="w-3 h-3" />
+                  {tasks.every((t) => t.selected) ? "Alle abwählen" : "Alle auswählen"}
+                </button>
+                <span className="text-xs text-zinc-500">
+                  {selectedCount} ausgewählt · {totalSP} SP
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {tasks.map((task, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => !task.created && toggleTask(idx)}
+                    className={cn(
+                      "flex items-start gap-3 p-3 rounded-lg border transition-all cursor-pointer",
+                      task.created
+                        ? "bg-emerald-500/10 border-emerald-500/30"
+                        : task.selected
+                        ? "bg-[#1e1e1e] border-purple-500/30 hover:border-purple-500/50"
+                        : "bg-[#161616] border-[#2a2a2a] hover:border-[#3a3a3a] opacity-60"
+                    )}
+                  >
+                    <div className="mt-0.5">
+                      {task.created ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      ) : task.creating ? (
+                        <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
+                      ) : (
+                        <div className={cn(
+                          "w-4 h-4 rounded border-2 flex items-center justify-center",
+                          task.selected ? "border-purple-400 bg-purple-400" : "border-zinc-600"
+                        )}>
+                          {task.selected && <Check className="w-2.5 h-2.5 text-white" />}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-white font-medium">{task.title}</p>
+                      {task.description && (
+                        <p className="text-[11px] text-zinc-500 mt-0.5 line-clamp-2">{task.description}</p>
+                      )}
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <PriorityBadge priority={task.priority} />
+                        <span className="text-[10px] text-zinc-500 font-mono">{task.storyPoints} SP</span>
+                        <span className="text-[10px] text-zinc-600 bg-[#252525] px-1.5 py-0.5 rounded">{task.category}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {!loading && !error && (
+          <div className="flex items-center justify-between px-5 py-3 border-t border-[#2a2a2a]">
+            {creating ? (
+              <span className="text-xs text-purple-400">
+                <Loader2 className="w-3 h-3 inline animate-spin mr-1" />
+                {createdCount}/{selectedCount} erstellt...
+              </span>
+            ) : (
+              <span className="text-xs text-zinc-500">{tasks.filter((t) => t.created).length} Tasks erstellt</span>
+            )}
+            <button
+              onClick={handleCreate}
+              disabled={creating || selectedCount === 0}
+              className="px-4 py-2 text-sm text-white bg-purple-600 hover:bg-purple-500 disabled:opacity-50 rounded-lg transition-colors font-medium flex items-center gap-2"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              {selectedCount} Tasks erstellen
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Sprint Modal ─────────────────────────────────────────────────────────────
 
 interface TeamUserMin {
@@ -712,6 +1125,12 @@ export function SprintsClient() {
   const [activeTab, setActiveTab] = useState<"board" | "velocity" | "backlog">("board");
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [localTasks, setLocalTasks] = useState<TaskItem[]>([]);
+  
+  // Neue Modals
+  const [quickAddSprintId, setQuickAddSprintId] = useState<string | null>(null);
+  const [backlogAssignSprint, setBacklogAssignSprint] = useState<SprintData | null>(null);
+  const [aiTasksSprint, setAiTasksSprint] = useState<SprintData | null>(null);
+  const [aiConfigured, setAiConfigured] = useState<boolean | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -759,6 +1178,10 @@ export function SprintsClient() {
     fetch("/api/projects").then((r) => r.json()).then((data: Project[]) => {
       if (Array.isArray(data)) setProjects(data);
     }).catch(() => {});
+    // Check AI config
+    fetch("/api/ai/sprint-tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sprintName: "__check__" }) })
+      .then((r) => setAiConfigured(r.status !== 503))
+      .catch(() => setAiConfigured(false));
   }, [fetchSprints, fetchTasks]);
 
   // ─── Lokale Tasks updaten wenn Sprint sich ändert ─────────────────────────
@@ -1045,6 +1468,39 @@ export function SprintsClient() {
                       );
                     })()}
                     <div className="flex items-center gap-2 ml-auto">
+                      {/* KI-Tasks generieren */}
+                      <button
+                        onClick={() => aiConfigured && setAiTasksSprint(activeSprint)}
+                        disabled={!aiConfigured}
+                        title={aiConfigured ? "KI-Tasks generieren" : "KI nicht konfiguriert (ANTHROPIC_API_KEY fehlt)"}
+                        className={cn(
+                          "flex items-center gap-1 text-xs px-2 py-1.5 rounded-lg transition-colors",
+                          aiConfigured
+                            ? "text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 border border-purple-500/20"
+                            : "text-zinc-600 cursor-not-allowed border border-zinc-700"
+                        )}
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        KI-Tasks
+                      </button>
+                      {/* + Task */}
+                      <button
+                        onClick={() => setQuickAddSprintId(activeSprint.id)}
+                        className="flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 px-2 py-1.5 rounded-lg hover:bg-emerald-500/10 border border-emerald-500/20 transition-colors"
+                        title="Task hinzufügen"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Task
+                      </button>
+                      {/* Backlog zuweisen */}
+                      <button
+                        onClick={() => setBacklogAssignSprint(activeSprint)}
+                        className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 px-2 py-1.5 rounded-lg hover:bg-blue-500/10 border border-blue-500/20 transition-colors"
+                        title="Backlog Tasks zuweisen"
+                      >
+                        <ListTodo className="w-3.5 h-3.5" />
+                        Backlog
+                      </button>
                       <button
                         onClick={() => setModalSprint(activeSprint)}
                         className="text-xs text-zinc-500 hover:text-white p-1.5 rounded hover:bg-[#252525] transition-colors"
@@ -1277,6 +1733,37 @@ export function SprintsClient() {
           projects={projects}
           onClose={() => setModalSprint(undefined)}
           onSave={handleSave}
+        />
+      )}
+
+      {/* Quick Add Task Modal */}
+      {quickAddSprintId && (
+        <QuickAddTaskModal
+          sprintId={quickAddSprintId}
+          projects={projects}
+          onClose={() => setQuickAddSprintId(null)}
+          onCreated={() => { fetchTasks(); fetchSprints(); }}
+        />
+      )}
+
+      {/* Backlog Assign Modal */}
+      {backlogAssignSprint && (
+        <BacklogAssignModal
+          sprintId={backlogAssignSprint.id}
+          sprintName={backlogAssignSprint.name}
+          backlogTasks={localTasks.filter((t) => !t.sprintId && t.status === "todo")}
+          onClose={() => setBacklogAssignSprint(null)}
+          onAssigned={() => { fetchTasks(); fetchSprints(); }}
+        />
+      )}
+
+      {/* AI Tasks Modal */}
+      {aiTasksSprint && (
+        <AITasksModal
+          sprint={aiTasksSprint}
+          projects={projects}
+          onClose={() => setAiTasksSprint(null)}
+          onTasksCreated={() => { fetchTasks(); fetchSprints(); }}
         />
       )}
     </div>

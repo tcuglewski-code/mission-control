@@ -26,6 +26,10 @@ export async function GET(req: NextRequest) {
     active: (user as any).active ?? true,
     notifEmailDigest: (user as any).notifEmailDigest ?? true,
     notifPush: (user as any).notifPush ?? false,
+    theme: (user as any).theme ?? "system",
+    compact: (user as any).compact ?? false,
+    hourlyRate: (user as any).hourlyRate ?? 0,
+    twoFactorEnabled: (user as any).twoFactorEnabled ?? false,
     createdAt: user.createdAt,
   });
 }
@@ -41,7 +45,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { username, email, notifEmailDigest, notifPush } = body;
+  const { username, email, notifEmailDigest, notifPush, theme, compact } = body;
 
   const updateData: Record<string, unknown> = {};
 
@@ -71,6 +75,23 @@ export async function PATCH(req: NextRequest) {
     updateData.notifPush = notifPush;
   }
 
+  if (theme !== undefined) {
+    const validThemes = ["light", "dark", "wald", "system"];
+    if (!validThemes.includes(theme)) {
+      return NextResponse.json({ error: "Ungültiges Theme" }, { status: 400 });
+    }
+    updateData.theme = theme;
+  }
+
+  if (compact !== undefined) {
+    updateData.compact = Boolean(compact);
+  }
+
+  const { hourlyRate } = body;
+  if (hourlyRate !== undefined) {
+    updateData.hourlyRate = Math.max(0, Number(hourlyRate) || 0);
+  }
+
   try {
     const updated = await prisma.authUser.update({
       where: { id: session.id },
@@ -85,6 +106,9 @@ export async function PATCH(req: NextRequest) {
       mcRole: (updated as any).mcRole ?? "entwickler",
       notifEmailDigest: (updated as any).notifEmailDigest ?? true,
       notifPush: (updated as any).notifPush ?? false,
+      theme: (updated as any).theme ?? "system",
+      compact: (updated as any).compact ?? false,
+      hourlyRate: (updated as any).hourlyRate ?? 0,
     });
   } catch (e) {
     console.error("[settings/profile] PATCH error:", e);

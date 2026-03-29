@@ -56,6 +56,7 @@ interface SprintData {
   endDate: string | null;
   storyPoints: number | null;
   completedPoints: number | null;
+  projectId?: string | null;
   tasks: TaskItem[];
 }
 
@@ -262,6 +263,19 @@ function SprintCard({
         <div className="mt-4 pt-3 border-t border-[#2a2a2a] text-[10px] text-zinc-500 flex items-center gap-1">
           <Clock className="w-3 h-3" />
           {format(new Date(sprint.startDate), "d. MMM", { locale: de })} – {format(new Date(sprint.endDate), "d. MMM yyyy", { locale: de })}
+        </div>
+      )}
+
+      {/* Retrospektive-Link für abgeschlossene Sprints */}
+      {sprint.status === "completed" && (sprint.projectId ?? "") && (
+        <div className="mt-3">
+          <Link
+            href={`/projects/${sprint.projectId}/retrospective?sprintId=${sprint.id}`}
+            className="flex items-center gap-1.5 text-[10px] text-blue-400 hover:text-blue-300 transition-colors"
+          >
+            <TrendingUp className="w-3 h-3" />
+            Retrospektive öffnen
+          </Link>
         </div>
       )}
     </div>

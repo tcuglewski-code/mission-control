@@ -354,28 +354,34 @@ function DocRow({
   };
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 hover:bg-[#1e1e1e] transition-colors group border-b border-[#2a2a2a] last:border-0">
+    <div className="flex items-center gap-3 px-3 sm:px-4 py-3 hover:bg-[#1e1e1e] transition-colors group border-b border-[#2a2a2a] last:border-0">
       {/* Icon */}
-      <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-current/5", cfg.color)}>
+      <div className={cn("w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0 bg-current/5", cfg.color)}>
         <Icon className={cn("w-4 h-4", cfg.color)} />
       </div>
 
       {/* Name + Meta */}
       <div className="flex-1 min-w-0">
         <p className="text-sm text-white font-medium truncate">{doc.name}</p>
-        <div className="flex items-center gap-2 mt-0.5 text-[11px] text-zinc-600">
+        <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-zinc-600 flex-wrap">
           {doc.project && (
             <span className="text-zinc-500">{doc.project.name}</span>
           )}
           {doc.project && <span>•</span>}
           <span>{formatDate(doc.createdAt)}</span>
-          <span>•</span>
-          <span>{doc.uploader}</span>
-          {doc.size && <><span>•</span><span>{formatBytes(doc.size)}</span></>}
+          <span className="hidden sm:inline">•</span>
+          <span className="hidden sm:inline">{doc.uploader}</span>
+          {doc.size && <><span className="hidden sm:inline">•</span><span className="hidden sm:inline">{formatBytes(doc.size)}</span></>}
+          <span className={cn(
+            "inline-flex sm:hidden items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full border ml-0.5",
+            cfg.color, "border-current/20 bg-transparent"
+          )}>
+            {cfg.label}
+          </span>
         </div>
       </div>
 
-      {/* Typ-Badge */}
+      {/* Typ-Badge (Desktop) */}
       <span className={cn(
         "text-[11px] px-2 py-0.5 rounded-full border hidden sm:inline-flex items-center gap-1",
         cfg.color, "border-current/20 bg-transparent"
@@ -383,15 +389,15 @@ function DocRow({
         {cfg.label}
       </span>
 
-      {/* Aktionen */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      {/* Aktionen — immer sichtbar auf Mobile, Hover auf Desktop */}
+      <div className="flex items-center gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 sm:transition-opacity">
         {/* Vorschau */}
         <button
           onClick={() => onPreview(doc)}
           title="Vorschau"
-          className="p-1.5 rounded-md text-zinc-400 hover:text-white hover:bg-[#2a2a2a] transition-colors"
+          className="p-2.5 sm:p-1.5 rounded-md text-zinc-400 hover:text-white hover:bg-[#2a2a2a] transition-colors min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
         >
-          <Eye className="w-3.5 h-3.5" />
+          <Eye className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
         </button>
 
         {/* Download / Link */}
@@ -401,12 +407,12 @@ function DocRow({
           rel="noopener noreferrer"
           download={doc.fileType !== "link" ? doc.name : undefined}
           title={doc.fileType === "link" ? "Link öffnen" : "Herunterladen"}
-          className="p-1.5 rounded-md text-zinc-400 hover:text-white hover:bg-[#2a2a2a] transition-colors"
+          className="p-2.5 sm:p-1.5 rounded-md text-zinc-400 hover:text-white hover:bg-[#2a2a2a] transition-colors min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
         >
           {doc.fileType === "link" ? (
-            <ExternalLink className="w-3.5 h-3.5" />
+            <ExternalLink className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
           ) : (
-            <Download className="w-3.5 h-3.5" />
+            <Download className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
           )}
         </a>
 
@@ -415,13 +421,13 @@ function DocRow({
           onClick={handleDelete}
           title={confirming ? "Wirklich löschen?" : "Löschen"}
           className={cn(
-            "p-1.5 rounded-md transition-colors",
+            "p-2.5 sm:p-1.5 rounded-md transition-colors min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center",
             confirming
               ? "text-red-400 bg-red-500/10 hover:bg-red-500/20"
               : "text-zinc-400 hover:text-red-400 hover:bg-[#2a2a2a]"
           )}
         >
-          <Trash2 className="w-3.5 h-3.5" />
+          <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
         </button>
       </div>
     </div>

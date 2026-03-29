@@ -25,6 +25,7 @@ model User {
   tools          String?  // JSON array of tool names
   skills         String?  // JSON array of skill names
   weeklyCapacity Int      @default(40) // Wochenkapazität in Stunden
+  hourlyRate     Float    @default(0)  // Stundensatz in € für Personalkosten-Kalkulation
   createdAt      DateTime @default(now())
   tasks          Task[]
   projects       ProjectMember[]
@@ -67,13 +68,16 @@ model Project {
   tickets    Ticket[]
   webhooks   Webhook[]
   invoices   Invoice[]
+  favorites  ProjectFavorite[]
+  costs      ProjectCost[]
 }
 
 model ProjectMember {
-  id        String  @id @default(cuid())
+  id        String   @id @default(cuid())
   projectId String
   userId    String
-  role      String  @default("member")
+  role      String   @default("viewer") // owner | editor | viewer
+  createdAt DateTime @default(now())
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@unique([projectId, userId])
@@ -99,6 +103,7 @@ model Task {
   recurringDay         Int?               // Wochentag 1-7 (Mo=1) oder Tag des Monats 1-31
   recurringEndDate     DateTime?          // Wann endet die Wiederholung
   parentTaskId         String?            // ID der Ursprungs-Task (bei erzeugten Kopien)
+  startAfterTaskId     String?            // Startet erst nach: ID der Vorgänger-Task
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
   projectId   String?
@@ -110,10 +115,25 @@ model Task {
   sprint    Sprint?    @relation(fields: [sprintId], references: [id], onDelete: SetNull)
   milestone Milestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
   sourceEmail InboxEmail? @relation(fields: [sourceEmailId], references: [id], onDelete: SetNull)
+  parentTask  Task?     @relation("TaskSubtasks", fields: [parentTaskId], references: [id], onDelete: SetNull)
+  subtasks    Task[]    @relation("TaskSubtasks")
   comments    TaskComment[]
   events      Event[]
   timeEntries TimeEntry[]
   taskLabels  TaskLabel[]
+}
+
+// ─── Board-Spalten ────────────────────────────────────────────────────────────
+model BoardColumn {
+  id        String   @id @default(cuid())
+  projectId String?  // null = globale Standard-Spalte
+  name      String
+  statusKey String   // interner Schlüssel z.B. "todo", "in_progress", "review", "done"
+  order     Int      @default(0)
+  wipLimit  Int?     // null = kein Limit
+  color     String   @default("#6b7280")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ─── E-Mail Posteingang ───────────────────────────────────────────────────────
@@ -188,7 +208,19 @@ model TaskComment {
   authorEmail String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task      Task               @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  reactions CommentReaction[]
+}
+
+// ─── Kommentar-Reaktionen ─────────────────────────────────────────────────────
+model CommentReaction {
+  id        String      @id @default(cuid())
+  commentId String
+  userId    String      // AuthUser ID
+  emoji     String      // z.B. "👍", "❤️", "😄", "🎉", "👀", "🚀"
+  createdAt DateTime    @default(now())
+  comment   TaskComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  @@unique([commentId, userId, emoji])
 }
 
 model Document {
@@ -346,11 +378,36 @@ model AuthUser {
   permissions   String[] // Granulare Rechte z.B. ["projects.view", "tasks.view"]
   notifEmailDigest   Boolean @default(true)
   notifPush          Boolean @default(false)
+  notifPrefs         String? // JSON: { eventPrefs: {...}, quietHoursStart, quietHoursEnd, digestFrequency, digestTime }
+  quietHoursStart    Int     @default(22)  // Ruhezeit ab (Stunde 0-23)
+  quietHoursEnd      Int     @default(8)   // Ruhezeit bis (Stunde 0-23)
+  digestFrequency    String  @default("daily") // "daily" | "weekly" | "never"
+  digestTime         String  @default("08:00") // HH:MM
   onboardingComplete Boolean @default(false)
   tourComplete       Boolean @default(false)
+  theme              String  @default("system") // "light" | "dark" | "wald" | "system"
+  compact            Boolean @default(false)    // Kompaktmodus
+  hourlyRate         Float   @default(0)        // Stundensatz in € für Personalkosten
+  // Sprint Q016: 2FA TOTP
+  twoFactorSecret      String?   // Base32-encoded TOTP secret
+  twoFactorEnabled     Boolean   @default(false)
+  twoFactorBackupCodes String[]  @default([]) // Hashed backup codes
+  twoFactorVerifiedAt  DateTime? // When 2FA was first verified
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   notifications Notification[]
+}
+
+// ─── Fehler-Protokoll ─────────────────────────────────────────────────────────
+model ErrorLog {
+  id         String   @id @default(cuid())
+  path       String
+  method     String   @default("GET")
+  statusCode Int      @default(500)
+  message    String
+  stack      String?
+  userId     String?
+  createdAt  DateTime @default(now())
 }
 
 model Notification {
@@ -369,10 +426,23 @@ model Invitation {
   id          String    @id @default(cuid())
   token       String    @unique @default(cuid())
   email       String?
+  role        String    @default("entwickler") // admin | projektmanager | entwickler | beobachter
   createdAt   DateTime  @default(now())
   expiresAt   DateTime
   usedAt      DateTime?
   createdById String
+}
+
+// UserInvite — erweitertes Einladungssystem mit 48h-Token
+model UserInvite {
+  id        String    @id @default(cuid())
+  email     String
+  token     String    @unique @default(cuid())
+  role      String    @default("entwickler") // admin | projektmanager | entwickler | beobachter
+  expiresAt DateTime
+  used      Boolean   @default(false)
+  createdById String?
+  createdAt DateTime  @default(now())
 }
 
 model ApiKey {
@@ -414,9 +484,10 @@ model DailyDigest {
 
 // ─── Task Dependencies ────────────────────────────────────────────────────────
 model TaskDependency {
-  id          String @id @default(cuid())
+  id          String  @id @default(cuid())
   taskId      String
   dependsOnId String
+  isBlocker   Boolean @default(false) // true = blockierende Abhängigkeit (Task kann nicht auf "done" bis Blocker erledigt)
   @@unique([taskId, dependsOnId])
 }
 
@@ -425,8 +496,9 @@ model ProjectTemplate {
   id            String   @id @default(cuid())
   name          String
   description   String?
-  category      String?  // "aufforstung", "pflege", "saatgut", etc.
+  category      String?  // "aufforstung", "pflege", "saatgut", "foerderung", etc.
   tasks         Json     // Array von Task-Definitionen
+  milestones    Json?    // Array von Meilenstein-Definitionen (Sprint GG)
   isSystem      Boolean  @default(false)  // System-Vorlagen (forstspezifisch)
   createdBy     String?  // User ID des Erstellers
   createdByName String?  // Anzeigename des Erstellers
@@ -475,11 +547,69 @@ model FileDoc {
 
 // ─── Rechnungen / Invoices ────────────────────────────────────────────────────
 model Invoice {
-  id          String    @id @default(cuid())
-  projectId   String
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  number      String    // Rechnungsnummer z.B. RE-2024-001
+  id             String        @id @default(cuid())
+  projectId      String
+  project        Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  number         String        // Rechnungsnummer z.B. RE-2024-001
+  description    String?
+  amount         Float         // Brutto-Betrag in €
+  status         String        @default("OPEN") // OPEN | SENT | PARTIAL | PAID | OVERDUE | CANCELLED | DRAFT
+  invoiceDate    DateTime      @default(now())
+  dueDate        DateTime
+  paidAt         DateTime?
+  // Zahlungseingang (Legacy + neu via Payment-Tabelle)
+  paymentMethod  String?       // "Überweisung" | "Bar" | "EC" | "PayPal"
+  paymentAmount  Float?        // Gesamtbetrag aller Zahlungen (wird automatisch aktualisiert)
+  paymentDate    DateTime?     // Datum der letzten Zahlung
+  // Mahnwesen
+  dunningLevel   Int           @default(0)  // 0 = keine Mahnung, 1/2/3
+  dunningDate    DateTime?     // Datum der letzten Mahnung
+  dunningFee     Float         @default(0)  // Mahngebühr gesamt in €
+  // Vorlage-Referenz
+  templateId     String?       // Welche Vorlage wurde verwendet?
+  // Kundenadresse
+  clientName     String?
+  clientAddress  String?       // Mehrzeilig
+  // Zahlungsbedingungen + Bank
+  paymentTerms   String?       @default("Zahlbar innerhalb von 14 Tagen ohne Abzug.")
+  bankDetails    String?       @default("Koch Aufforstung GmbH · IBAN: DE00 0000 0000 0000 0000 00 · BIC: XXXXXXXX")
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  items          InvoiceItem[]
+  payments       Payment[]
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Float    @default(1)
+  unitPrice   Float
+  vatRate     Float    @default(19) // 7 oder 19 (Prozent)
+  position    Int      @default(0)  // Reihenfolge
+  createdAt   DateTime @default(now())
+}
+
+// ─── Zahlungs-Tracking ────────────────────────────────────────────────────────
+model Payment {
+  id        String   @id @default(cuid())
+  invoiceId String
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount    Float
+  date      DateTime @default(now())
+  method    String   @default("Überweisung") // "Überweisung" | "Bar" | "EC-Karte" | "PayPal" | "Lastschrift"
+  note      String?
+  createdAt DateTime @default(now())
+}
+
+// ─── Rechnungs-Vorlagen ───────────────────────────────────────────────────────
+model InvoiceTemplate {
+  id          String   @id @default(cuid())
+  name        String
   description String?
+<<<<<<< HEAD
   amount      Float     // Betrag in €
   status      String    @default("OPEN") // OPEN | PAID | OVERDUE | CANCELLED
   dueDate     DateTime
@@ -489,6 +619,32 @@ model Invoice {
   paidAt      DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+=======
+  positions   String   // JSON: Array von { description, quantity, unitPrice, vatRate }
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ─── Persönliche Tagesnotizen ─────────────────────────────────────────────────
+model UserDayNote {
+  id        String   @id @default(cuid())
+  userId    String
+  date      String   // ISO-Datum "2024-03-28"
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([userId, date])
+}
+
+// ─── Heutiger Fokus (max. 3 Tasks) ────────────────────────────────────────────
+model UserTaskFocus {
+  id        String   @id @default(cuid())
+  userId    String
+  taskId    String
+  date      String   // ISO-Datum "2024-03-28"
+  createdAt DateTime @default(now())
+  @@unique([userId, taskId, date])
+>>>>>>> origin/master
 }
 
 // ─── Integrations-Konfiguration ───────────────────────────────────────────────
@@ -523,11 +679,36 @@ model Milestone {
 
 // ─── Projekt-Sharing ──────────────────────────────────────────────────────────
 model ProjectShare {
+<<<<<<< HEAD
   id        String    @id @default(cuid())
   projectId String
   token     String    @unique @default(cuid())
   expiresAt DateTime?
   createdAt DateTime  @default(now())
+=======
+  id                String    @id @default(cuid())
+  projectId         String
+  token             String    @unique @default(cuid())
+  label             String?   // Optionale Bezeichnung z.B. "Kunde Müller"
+  expiresAt         DateTime?
+  passwordHash      String?   // SHA256-Hash für optionalen Passwortschutz
+  showTimeTracking  Boolean   @default(false)
+  showCosts         Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  guestComments     GuestComment[]
+}
+
+// ─── Gast-Kommentare (Kunden-Portal) ─────────────────────────────────────────
+model GuestComment {
+  id          String   @id @default(cuid())
+  shareId     String
+  projectId   String
+  guestName   String?
+  guestEmail  String?
+  message     String
+  createdAt   DateTime @default(now())
+  share       ProjectShare @relation(fields: [shareId], references: [id], onDelete: Cascade)
+>>>>>>> origin/master
 }
 
 // ─── Projekt-Favoriten ────────────────────────────────────────────────────────
@@ -558,6 +739,7 @@ model RetroItem {
   createdAt DateTime     @default(now())
 }
 
+<<<<<<< HEAD
 // ─── Pomodoro-Sessions ────────────────────────────────────────────────────────
 model PomodoroSession {
   id          String   @id @default(cuid())
@@ -569,6 +751,8 @@ model PomodoroSession {
   createdAt   DateTime @default(now())
 }
 
+=======
+>>>>>>> origin/master
 // ─── Report-Scheduler ─────────────────────────────────────────────────────────
 model ProjectReportSchedule {
   id        String    @id @default(cuid())
@@ -581,6 +765,7 @@ model ProjectReportSchedule {
   updatedAt DateTime  @updatedAt
 }
 
+<<<<<<< HEAD
 // ─── Kunden / CRM (Sprint GV) ────────────────────────────────────────────────
 model Client {
   id            String   @id @default(cuid())
@@ -596,11 +781,25 @@ model Client {
   projects  Project[]
   invoices  Invoice[]
   quotes    Quote[]
+=======
+// ─── Projekt-Kosten (Sprint GS) ───────────────────────────────────────────────
+model ProjectCost {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  category    String   @default("Sonstiges") // "Material" | "Personal" | "Fahrtkosten" | "Sonstiges"
+  amount      Float
+  description String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+>>>>>>> origin/master
 }
 
 // ─── Angebote / Quotes (Sprint GU) ───────────────────────────────────────────
 model Quote {
   id          String   @id @default(cuid())
+<<<<<<< HEAD
   number      String   @unique
   projectId   String?
   clientId    String?
@@ -615,19 +814,194 @@ model Quote {
   pdfUrl      String?
   amount      Float    @default(0)
   invoiceId   String?
+=======
+  number      String   @unique  // AN-2026-001
+  projectId   String?
+  clientName  String
+  clientEmail String?
+  title       String
+  items       Json     // Array von { description, quantity, unitPrice, vatRate }
+  validUntil  DateTime
+  status      String   @default("draft") // draft | sent | accepted | declined | expired | invoiced
+  note        String?
+  pdfUrl      String?
+  amount      Float    @default(0) // Brutto-Gesamtbetrag
+  invoiceId   String?  // Falls umgewandelt → Rechnung-ID
+>>>>>>> origin/master
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
+<<<<<<< HEAD
 // ─── Gespeicherte Ansichten ───────────────────────────────────────────────────
+=======
+// ─── Gespeicherte Ansichten (Sprint FZ) ───────────────────────────────────────
+>>>>>>> origin/master
 model SavedView {
   id        String   @id @default(cuid())
   userId    String
   name      String
+<<<<<<< HEAD
   filterRaw String
   icon      String?
+=======
+  filterRaw String   // raw filter string e.g. "assignee:ich status:offen"
+  icon      String?  // optional emoji or icon name
+>>>>>>> origin/master
   isDefault Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
+<<<<<<< HEAD
+=======
+// ─── Auto-Loop (Ralph Loop) ───────────────────────────────────────────────────
+model LoopTask {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  repo        String    // ka-forstmanager | ka-app | mission-control | wordpress | research
+  priority    String    @default("medium") // high | medium | low
+  status      String    @default("todo")   // todo | in_progress | done | failed
+  result      String?
+  errorMsg    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  startedAt   DateTime?
+  completedAt DateTime?
+}
+
+model LoopSettings {
+  id               String   @id @default("singleton")
+  enabled          Boolean  @default(false)
+  scheduleExpr     String   @default("0,30 1-4 * * *")
+  timezone         String   @default("Europe/Berlin")
+  maxTasksPerNight Int      @default(8)
+  model            String   @default("anthropic/claude-opus-4-5")
+  updatedAt        DateTime @updatedAt
+}
+
+model LoopLog {
+  id        String   @id @default(cuid())
+  taskId    String?
+  message   String
+  level     String   @default("info") // info | success | error | warning
+  createdAt DateTime @default(now())
+}
+
+// ─── Backup Jobs (AF011) ──────────────────────────────────────────────────────
+model BackupJob {
+  id           String    @id @default(cuid())
+  tenantId     String    // z.B. "mission-control", "forstmanager", "secondbrain"
+  tenantName   String    // Anzeigename z.B. "Mission Control DB"
+  backupType   String    // "neon" | "mysql" | "wp-files"
+  status       String    @default("pending") // "pending" | "running" | "success" | "failed" | "skipped"
+  startedAt    DateTime?
+  completedAt  DateTime?
+  sizeBytes    BigInt?
+  duration     Int?      // Sekunden
+  error        String?
+  backupUrl    String?   // Falls extern gespeichert (z.B. S3, Nextcloud)
+  metadata     Json?     // Zusätzliche Infos (Tabellen-Count, etc.)
+  createdAt    DateTime  @default(now())
+}
+
+model BackupConfig {
+  id              String   @id @default(cuid())
+  tenantId        String   @unique
+  tenantName      String
+  backupType      String   // "neon" | "mysql" | "wp-files"
+  connectionInfo  String?  // Verschlüsselte Connection-Infos (Host, etc. - keine Passwörter im Klartext!)
+  enabled         Boolean  @default(true)
+  schedule        String   @default("daily") // "daily" | "weekly" | "hourly"
+  retentionDays   Int      @default(30)
+  lastBackupAt    DateTime?
+  lastBackupStatus String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ─── Uptime Monitoring (AF012) ────────────────────────────────────────────────
+model UptimeCheck {
+  id           String    @id @default(cuid())
+  tenantId     String    // z.B. "mission-control", "forstmanager", "ka-website"
+  tenantName   String
+  url          String
+  status       String    // "up" | "down" | "timeout" | "error"
+  statusCode   Int?
+  responseTime Int?      // Millisekunden
+  error        String?
+  checkedAt    DateTime  @default(now())
+}
+
+model MonitoringConfig {
+  id              String   @id @default(cuid())
+  tenantId        String   @unique
+  tenantName      String
+  url             String
+  enabled         Boolean  @default(true)
+  checkInterval   Int      @default(5)  // Minuten
+  timeout         Int      @default(10) // Sekunden
+  alertOnDown     Boolean  @default(true)
+  consecutiveFails Int     @default(0)  // Zähler für aufeinanderfolgende Fehler
+  lastStatus      String?  // "up" | "down"
+  lastCheckedAt   DateTime?
+  lastAlertAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ─── Sales Pipeline (AF022) ───────────────────────────────────────────────────
+model Deal {
+  id           String    @id @default(cuid())
+  title        String
+  company      String
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
+  value        Float     @default(0)  // Potentieller Deal-Wert in €
+  stage        String    @default("prospect") // prospect | qualified | demo | proposal | closed-won | closed-lost
+  probability  Int       @default(10) // 0-100 Abschluss-Wahrscheinlichkeit
+  source       String?   // "Website" | "Empfehlung" | "Kaltakquise" | "Messe" | "LinkedIn"
+  notes        String?
+  industry     String?   // Branche z.B. "Forstbetrieb", "Landschaftsbau"
+  employees    Int?      // Anzahl Mitarbeiter (für Sizing)
+  nextAction   String?   // Nächster Schritt
+  nextActionDate DateTime?
+  lostReason   String?   // Wenn closed-lost: warum?
+  wonDate      DateTime? // Wenn closed-won: wann?
+  lostDate     DateTime? // Wenn closed-lost: wann?
+  ownerId      String?   // Sales-Verantwortlicher
+  ownerName    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model DealActivity {
+  id        String   @id @default(cuid())
+  dealId    String
+  type      String   // "note" | "call" | "email" | "meeting" | "stage_change"
+  content   String
+  authorId  String?
+  authorName String?
+  metadata  String?  // JSON für zusätzliche Infos (z.B. alte/neue Stage)
+  createdAt DateTime @default(now())
+}
+
+// ─── KI Token-Tracking ────────────────────────────────────────────────────────
+model AiUsage {
+  id           String   @id @default(cuid())
+  source       String   // "api" | "max"
+  feature      String   // "sprint-tasks" | "project-estimate" | "task-description" | "project-summary" | "foerderberater" | "amadeus-sprint" | "other"
+  model        String   // "claude-3-5-haiku-20241022" | "claude-sonnet-4-6" | "claude-opus-4-5"
+  inputTokens  Int      @default(0)
+  outputTokens Int      @default(0)
+  totalTokens  Int      @default(0)
+  costUsd      Float    @default(0)  // exakt bei api, geschätzt bei max
+  projectId    String?  // optional: welches Projekt
+  taskId       String?  // optional: welcher Task
+  sprintId     String?  // optional: welcher Sprint
+  metadata     String?  // JSON string für zusätzliche Infos
+  createdAt    DateTime @default(now())
+}
+>>>>>>> origin/master

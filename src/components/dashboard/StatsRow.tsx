@@ -44,11 +44,12 @@ export function StatsRow({ activeProjects, openTasks, teamMembers, activityToday
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    /* Mobile: horizontal scroll; Desktop: 4-column grid */
+    <div className="flex gap-3 overflow-x-auto pb-1 lg:grid lg:grid-cols-4 lg:gap-4 lg:overflow-visible lg:pb-0 scrollbar-hide">
       {stats.map((stat) => (
         <div
           key={stat.label}
-          className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-lg p-4 hover:border-[#3a3a3a] transition-colors"
+          className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-lg p-4 hover:border-[#3a3a3a] transition-colors shrink-0 w-[160px] lg:w-auto"
         >
           <div className="flex items-start justify-between mb-3">
             <div className={`w-8 h-8 rounded-md ${stat.bg} flex items-center justify-center`}>

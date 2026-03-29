@@ -79,8 +79,8 @@ export function MilestoneForm({ milestone, projectId, projects = [], onClose, on
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl w-full max-w-md shadow-2xl">
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center sm:justify-center sm:p-4">
+      <div className="bg-[#1c1c1c] border border-[#2a2a2a] sm:rounded-xl w-full sm:max-w-md shadow-2xl max-h-[92vh] overflow-y-auto rounded-t-2xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#2a2a2a]">
           <h2 className="text-sm font-semibold text-white">
             {milestone ? "Meilenstein bearbeiten" : "Neuer Meilenstein"}
@@ -101,7 +101,7 @@ export function MilestoneForm({ milestone, projectId, projects = [], onClose, on
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               placeholder="Meilenstein-Titel..."
-              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50"
+              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50"
               required
             />
           </div>
@@ -113,7 +113,7 @@ export function MilestoneForm({ milestone, projectId, projects = [], onClose, on
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="Was soll erreicht werden..."
               rows={3}
-              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 resize-none"
+              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 resize-none"
             />
           </div>
 
@@ -123,7 +123,7 @@ export function MilestoneForm({ milestone, projectId, projects = [], onClose, on
               <select
                 value={form.projectId}
                 onChange={(e) => setForm({ ...form, projectId: e.target.value })}
-                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white focus:outline-none focus:border-emerald-500/50"
                 required
               >
                 <option value="">Projekt auswählen...</option>
@@ -140,7 +140,7 @@ export function MilestoneForm({ milestone, projectId, projects = [], onClose, on
               <select
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value })}
-                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white focus:outline-none focus:border-emerald-500/50"
               >
                 {STATUS_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -153,7 +153,7 @@ export function MilestoneForm({ milestone, projectId, projects = [], onClose, on
                 type="date"
                 value={form.dueDate}
                 onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+                className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white focus:outline-none focus:border-emerald-500/50"
               />
             </div>
           </div>

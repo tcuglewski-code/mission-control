@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifyCronAuth } from "@/lib/cron-auth";
 
 /**
  * GET /api/invoices/overdue-check
@@ -7,15 +8,12 @@ import { prisma } from "@/lib/prisma";
  * Cron-Endpunkt: Setzt alle fälligen OPEN-Rechnungen auf OVERDUE und
  * sendet Benachrichtigungen an alle Admins.
  *
- * Kann mit einem Cron-Job (z.B. Vercel Cron täglich) aufgerufen werden.
- * Sicherung: CRON_SECRET Header oder interner Aufruf.
+ * Aufruf via Vercel Cron: Authorization: Bearer <CRON_SECRET>
  */
 export async function GET(req: NextRequest) {
   try {
-    // Optionale Absicherung via Secret
-    const cronSecret = req.headers.get("x-cron-secret");
-    if (process.env.CRON_SECRET && cronSecret !== process.env.CRON_SECRET) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!verifyCronAuth(req)) {
+      return NextResponse.json({ error: "Unauthorized — CRON_SECRET erforderlich" }, { status: 401 });
     }
 
     const today = new Date();

@@ -7,7 +7,8 @@ export type NotificationType =
   | "milestone_due"
   | "sprint_completed"
   | "mention"
-  | "new_email";
+  | "new_email"
+  | "blocker_resolved";
 
 /**
  * Erstellt eine Benachrichtigung für einen Benutzer.

@@ -43,6 +43,9 @@ export default async function ProjectSprintsPage({ params }: PageProps) {
     orderBy: { createdAt: "desc" },
   });
 
+  // Füge projectId zu jedem Sprint hinzu
+  const sprintsWithProjectId = sprints.map((s) => ({ ...s, projectId: id }));
+
   // Backlog-Tasks: Tasks im Projekt ohne Sprint-Zuweisung
   const backlogTasks = await prisma.task.findMany({
     where: {
@@ -69,7 +72,7 @@ export default async function ProjectSprintsPage({ params }: PageProps) {
     >
       <ProjectSprintsClient
         project={project}
-        initialSprints={sprints as any}
+        initialSprints={sprintsWithProjectId as any}
         initialBacklogTasks={backlogTasks as any}
       />
     </AppShell>

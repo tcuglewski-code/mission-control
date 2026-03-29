@@ -96,6 +96,32 @@ export const AVAILABLE_WIDGETS: WidgetDefinition[] = [
     defaultVisible: true,
     defaultOrder: 13,
     description: "Top 3 Kunden nach Umsatz + Neukunden diesen Monat",
+    id: "live-feed",
+    title: "Live Feed",
+    defaultVisible: true,
+    defaultOrder: 10,
+    description: "Letzte 5 Team-Aktionen in Echtzeit (30s Auto-Update)",
+  },
+  {
+    id: "projekt-budgets",
+    title: "Projekt-Budgets",
+    defaultVisible: true,
+    defaultOrder: 11,
+    description: "Top 5 Projekte nach Budget-Auslastung — Warnung bei >80% / >100%",
+  },
+  {
+    id: "angebote",
+    title: "Angebote",
+    defaultVisible: true,
+    defaultOrder: 12,
+    description: "Offene Angebote, Annahmerate und durchschnittliche Angebotssumme",
+  },
+  {
+    id: "ai-cost",
+    title: "KI-Kosten",
+    defaultVisible: true,
+    defaultOrder: 13,
+    description: "Token-Verbrauch und Kosten der KI-Features (API + Max/Amadeus)",
   },
 ];
 

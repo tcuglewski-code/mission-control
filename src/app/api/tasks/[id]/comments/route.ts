@@ -27,6 +27,11 @@ export async function GET(
     const comments = await prisma.taskComment.findMany({
       where: { taskId },
       orderBy: { createdAt: "asc" },
+      include: {
+        reactions: {
+          select: { id: true, emoji: true, userId: true, createdAt: true },
+        },
+      },
     });
 
     return NextResponse.json(comments);

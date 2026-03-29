@@ -1,9 +1,9 @@
 "use client";
 
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   CheckSquare,
@@ -41,6 +41,16 @@ import {
   Mail,
   BarChart2,
   Plug,
+  ActivitySquare,
+  Bell,
+  Search,
+  Bookmark,
+  Trash2,
+  Radio,
+  Activity,
+  BellRing,
+  RefreshCw,
+  Target,
 } from "lucide-react";
 import { useKeyboardShortcutsModal } from "@/hooks/useKeyboardShortcutsModal";
 import { useQuickAdd } from "@/hooks/useQuickAdd";
@@ -50,8 +60,13 @@ import { useThemeStore } from "@/store/useThemeStore";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/live", icon: Radio, label: "Live Dashboard" },
+  { href: "/search", icon: Search, label: "Erweiterte Suche" },
+  { href: "/my-day", icon: Sun, label: "Mein Tag" },
+  { href: "/my-week", icon: CalendarDays, label: "Meine Woche" },
   { href: "/announcements", icon: Megaphone, label: "Ankündigungen" },
   { href: "/tasks", icon: CheckSquare, label: "Aufgaben" },
+  { href: "/notifications", icon: Bell, label: "Benachrichtigungen" },
   { href: "/inbox", icon: Mail, label: "Posteingang" },
   { href: "/sprints", icon: Flag, label: "Sprints" },
   { href: "/timeline", icon: GanttChartSquare, label: "Timeline" },
@@ -60,15 +75,25 @@ const navItems = [
   { href: "/time", icon: Clock, label: "Zeiterfassung" },
   { href: "/pomodoro", icon: Timer, label: "Pomodoro" },
   { href: "/cronjobs", icon: Timer, label: "Cron Jobs" },
+  { href: "/loop", icon: RefreshCw, label: "🔄 Auto-Loop" },
   { href: "/projects", icon: FolderKanban, label: "Projekte" },
   { href: "/clients", icon: Building2, label: "Kunden" },
+  { href: "/sales", icon: Target, label: "Sales Pipeline" },
   { href: "/finance", icon: Banknote, label: "Finanzen" },
+  { href: "/quotes", icon: FileText, label: "Angebote" },
+  { href: "/invoice-templates", icon: FileText, label: "Rechnungsvorlagen" },
+  { href: "/activity", icon: ActivitySquare, label: "Aktivitäten" },
   { href: "/analytics", icon: BarChart2, label: "Analytics" },
+  { href: "/reports/weekly", icon: ClipboardList, label: "Team-Report" },
+  { href: "/reports/export", icon: FileText, label: "CSV Export" },
   { href: "/memory", icon: Brain, label: "Memory" },
   { href: "/docs", icon: FileText, label: "Dokumente" },
   { href: "/documents", icon: FolderArchive, label: "Dateiverwaltung" },
   { href: "/team", icon: Users, label: "Team" },
+  { href: "/team/activity", icon: ActivitySquare, label: "Team-Aktivität" },
   { href: "/tools", icon: Wrench, label: "Tools" },
+  { href: "/estimator", icon: Zap, label: "📊 SP-Schätzer" },
+  { href: "/ai-usage", icon: Brain, label: "💰 KI-Kosten" },
   { href: "/databases", icon: Database, label: "Datenbanken" },
   { href: "/tickets", icon: Ticket, label: "Tickets" },
   { href: "/webhooks", icon: Webhook, label: "Webhooks" },
@@ -90,6 +115,128 @@ function ThemeToggleButton() {
   );
 }
 
+interface TeamActivity {
+  userName: string;
+  action: string;
+  entityName: string;
+  createdAt: string;
+}
+
+function TeamNavItemWithTooltip({
+  href,
+  icon: Icon,
+  label,
+  isActive,
+  onClose,
+}: {
+  href: string;
+  icon: React.ElementType;
+  label: string;
+  isActive: boolean;
+  onClose: () => void;
+}) {
+  const [tooltip, setTooltip] = useState<TeamActivity | null>(null);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const loadActivity = async () => {
+    if (tooltip) return; // bereits geladen
+    try {
+      const res = await fetch("/api/activity?limit=1");
+      if (res.ok) {
+        const data = await res.json();
+        const logs = data.logs ?? [];
+        if (logs.length > 0) {
+          const log = logs[0];
+          setTooltip({
+            userName: log.user?.name ?? "Unbekannt",
+            action: log.action,
+            entityName: log.entityName,
+            createdAt: log.createdAt,
+          });
+        }
+      }
+    } catch {}
+  };
+
+  const handleMouseEnter = () => {
+    loadActivity();
+    timeoutRef.current = setTimeout(() => setShowTooltip(true), 300);
+  };
+
+  const handleMouseLeave = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setShowTooltip(false);
+  };
+
+  const actionLabels: Record<string, string> = {
+    created: "erstellt",
+    updated: "aktualisiert",
+    deleted: "gelöscht",
+    completed: "abgeschlossen",
+    status_changed: "Status geändert",
+    assigned: "zugewiesen",
+    commented: "kommentiert",
+  };
+
+  return (
+    <div className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+      <Link
+        href={href}
+        onClick={onClose}
+        className={cn(
+          "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
+          isActive
+            ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
+            : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+        )}
+      >
+        {isActive && (
+          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-emerald-500 rounded-r-full" />
+        )}
+        <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-emerald-400" : "")} />
+        <span>{label}</span>
+      </Link>
+
+      {/* Tooltip */}
+      {showTooltip && tooltip && (
+        <div className="absolute left-full top-0 ml-2 z-50 w-56 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-xl p-3 pointer-events-none">
+          <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-1.5">
+            Letzte Aktivität
+          </p>
+          <p className="text-xs text-white leading-snug">
+            <span className="font-medium text-emerald-400">{tooltip.userName}</span>{" "}
+            hat{" "}
+            <span className="text-zinc-300">
+              {tooltip.entityName.length > 20
+                ? tooltip.entityName.slice(0, 20) + "…"
+                : tooltip.entityName}
+            </span>{" "}
+            {actionLabels[tooltip.action] ?? tooltip.action}
+          </p>
+          <p className="text-[10px] text-zinc-600 mt-1">
+            {new Date(tooltip.createdAt).toLocaleTimeString("de-DE", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}{" "}
+            Uhr
+          </p>
+          {/* Arrow */}
+          <span className="absolute top-3 -left-1.5 w-2.5 h-2.5 bg-[#1a1a1a] border-l border-b border-[#2a2a2a] rotate-45" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface SavedView { id: string; name: string; filterRaw: string; icon?: string; }
+
+const DEFAULT_SIDEBAR_VIEWS: SavedView[] = [
+  { id: "__meine-tasks", name: "Meine Tasks", filterRaw: "assignee:ich status:offen", icon: "👤" },
+  { id: "__diese-woche", name: "Diese Woche fällig", filterRaw: "due:diese-woche", icon: "📅" },
+  { id: "__blockiert", name: "Blockiert", filterRaw: "filter:blocked", icon: "🚫" },
+];
+
 export function Sidebar() {
   const pathname = usePathname();
   const { sidebarOpen, setSidebarOpen } = useAppStore();
@@ -97,6 +244,8 @@ export function Sidebar() {
   const { setOpen: openQuickAdd } = useQuickAdd();
   const { data: session } = useSession();
   const [meData, setMeData] = useState<{ username: string; role: string } | null>(null);
+  const [savedViews, setSavedViews] = useState<SavedView[]>([]);
+  const [viewsExpanded, setViewsExpanded] = useState(true);
 
   // Load fresh user data from DB via /api/me (JWT doesn't store role)
   useEffect(() => {
@@ -104,6 +253,11 @@ export function Sidebar() {
       fetch("/api/me")
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => { if (data) setMeData(data); })
+        .catch(() => {});
+      // Gespeicherte Ansichten laden
+      fetch("/api/saved-views")
+        .then((r) => (r.ok ? r.json() : []))
+        .then((data) => { if (Array.isArray(data)) setSavedViews(data); })
         .catch(() => {});
     }
   }, [session?.user?.id]);
@@ -147,13 +301,26 @@ export function Sidebar() {
         <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            // Spezial-Rendering für Team-Link: Tooltip mit letzter Aktivität
+            if (item.href === "/team") {
+              return (
+                <TeamNavItemWithTooltip
+                  key={item.href}
+                  href={item.href}
+                  icon={item.icon}
+                  label={item.label}
+                  isActive={isActive}
+                  onClose={() => setSidebarOpen(false)}
+                />
+              );
+            }
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors relative group",
+                  "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
                   isActive
                     ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
                     : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
@@ -168,6 +335,51 @@ export function Sidebar() {
             );
           })}
 
+          {/* Gespeicherte Ansichten */}
+          <div className="pt-2 mt-1 border-t border-gray-200 dark:border-[#2a2a2a]">
+            <button
+              onClick={() => setViewsExpanded((v) => !v)}
+              className="w-full flex items-center justify-between px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 hover:text-zinc-400 transition-colors"
+            >
+              <span className="flex items-center gap-1">
+                <Bookmark className="w-3 h-3" /> Gespeicherte Ansichten
+              </span>
+              <span className="text-[8px]">{viewsExpanded ? "▲" : "▼"}</span>
+            </button>
+            {viewsExpanded && (
+              <div className="space-y-0.5">
+                {[...DEFAULT_SIDEBAR_VIEWS, ...savedViews].map((view) => (
+                  <div key={view.id} className="flex items-center group">
+                    <Link
+                      href={`/search?q=${encodeURIComponent(view.filterRaw)}`}
+                      onClick={() => setSidebarOpen(false)}
+                      className={cn(
+                        "flex-1 flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors",
+                        pathname === "/search"
+                          ? "text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+                          : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+                      )}
+                    >
+                      <span className="text-xs">{view.icon ?? "📌"}</span>
+                      <span className="truncate text-xs">{view.name}</span>
+                    </Link>
+                    {!view.id.startsWith("__") && (
+                      <button
+                        onClick={async () => {
+                          await fetch(`/api/saved-views/${view.id}`, { method: "DELETE" });
+                          setSavedViews((prev) => prev.filter((v) => v.id !== view.id));
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-zinc-600 hover:text-red-400 transition-all"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Settings links */}
           <div className="pt-2 mt-1 border-t border-gray-200 dark:border-[#2a2a2a]">
             <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
@@ -177,7 +389,7 @@ export function Sidebar() {
               href="/settings/profile"
               onClick={() => setSidebarOpen(false)}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors relative group",
+                "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
                 pathname === "/settings/profile"
                   ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
                   : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
@@ -190,12 +402,29 @@ export function Sidebar() {
               <span>Mein Profil</span>
             </Link>
 
+            <Link
+              href="/settings/permissions"
+              onClick={() => setSidebarOpen(false)}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
+                pathname === "/settings/permissions"
+                  ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
+                  : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+              )}
+            >
+              {pathname === "/settings/permissions" && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-violet-500 rounded-r-full" />
+              )}
+              <ShieldCheck className={cn("w-4 h-4 shrink-0", pathname === "/settings/permissions" ? "text-violet-400" : "")} />
+              <span>Berechtigungen</span>
+            </Link>
+
             {role === "admin" && (
               <Link
                 href="/settings/users"
                 onClick={() => setSidebarOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors relative group",
+                  "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
                   pathname === "/settings/users"
                     ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
                     : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
@@ -226,6 +455,40 @@ export function Sidebar() {
                 <span>Integrationen</span>
               </Link>
             )}
+
+            <Link
+              href="/settings/notifications"
+              onClick={() => setSidebarOpen(false)}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
+                pathname === "/settings/notifications"
+                  ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
+                  : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+              )}
+            >
+              {pathname === "/settings/notifications" && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-orange-500 rounded-r-full" />
+              )}
+              <BellRing className={cn("w-4 h-4 shrink-0", pathname === "/settings/notifications" ? "text-orange-400" : "")} />
+              <span>Benachrichtigungen</span>
+            </Link>
+
+            <Link
+              href="/settings/system"
+              onClick={() => setSidebarOpen(false)}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
+                pathname === "/settings/system"
+                  ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
+                  : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+              )}
+            >
+              {pathname === "/settings/system" && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-red-500 rounded-r-full" />
+              )}
+              <Activity className={cn("w-4 h-4 shrink-0", pathname === "/settings/system" ? "text-red-400" : "")} />
+              <span>System-Status</span>
+            </Link>
           </div>
 
           {/* Admin links */}
@@ -238,7 +501,7 @@ export function Sidebar() {
                 href="/admin/users"
                 onClick={() => setSidebarOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors relative group",
+                  "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
                   pathname === "/admin/users"
                     ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
                     : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
@@ -251,10 +514,26 @@ export function Sidebar() {
                 <span>Benutzer (Legacy)</span>
               </Link>
               <Link
+                href="/admin/invites"
+                onClick={() => setSidebarOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
+                  pathname === "/admin/invites"
+                    ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
+                    : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+                )}
+              >
+                {pathname === "/admin/invites" && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-amber-500 rounded-r-full" />
+                )}
+                <Mail className={cn("w-4 h-4 shrink-0", pathname === "/admin/invites" ? "text-amber-400" : "")} />
+                <span>Einladungen</span>
+              </Link>
+              <Link
                 href="/admin/audit"
                 onClick={() => setSidebarOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors relative group",
+                  "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
                   pathname === "/admin/audit"
                     ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
                     : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
@@ -266,6 +545,38 @@ export function Sidebar() {
                 <ClipboardList className={cn("w-4 h-4 shrink-0", pathname === "/admin/audit" ? "text-amber-400" : "")} />
                 <span>Audit Trail</span>
               </Link>
+              <Link
+                href="/admin/backups"
+                onClick={() => setSidebarOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
+                  pathname === "/admin/backups"
+                    ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
+                    : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+                )}
+              >
+                {pathname === "/admin/backups" && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-amber-500 rounded-r-full" />
+                )}
+                <Database className={cn("w-4 h-4 shrink-0", pathname === "/admin/backups" ? "text-amber-400" : "")} />
+                <span>Backups</span>
+              </Link>
+              <Link
+                href="/admin/monitoring"
+                onClick={() => setSidebarOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
+                  pathname === "/admin/monitoring"
+                    ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
+                    : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+                )}
+              >
+                {pathname === "/admin/monitoring" && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-amber-500 rounded-r-full" />
+                )}
+                <Activity className={cn("w-4 h-4 shrink-0", pathname === "/admin/monitoring" ? "text-amber-400" : "")} />
+                <span>Monitoring</span>
+              </Link>
             </div>
           )}
         </nav>
@@ -275,7 +586,7 @@ export function Sidebar() {
           <button
             onClick={() => { openQuickAdd(true); setSidebarOpen(false); }}
             data-tour="quick-add"
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e] transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e] transition-colors"
           >
             <Zap className="w-4 h-4 shrink-0 text-emerald-500" />
             <span>Neuer Task</span>
@@ -285,7 +596,7 @@ export function Sidebar() {
           </button>
           <button
             onClick={() => openShortcuts(true)}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e] transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e] transition-colors"
           >
             <Keyboard className="w-4 h-4 shrink-0" />
             <span>Tastenkürzel</span>

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { AlertTriangle, RefreshCw, X, ArrowRight, ChevronLeft, Users } from "lucide-react";
+import { AlertTriangle, RefreshCw, X, ArrowRight, ChevronLeft, Users, TrendingUp } from "lucide-react";
 import Link from "next/link";
 
 // ─── Typen ────────────────────────────────────────────────────────────────────
@@ -168,6 +168,155 @@ function UmverteilenModal({ user, weekKey, tasks, allUsers, onClose, onReassign 
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Story Points Kapazität Section ─────────────────────────────────────────
+
+interface SPCapacityData {
+  userId: string;
+  userName: string;
+  avgVelocity: number;
+  maxVelocity: number;
+  sprintCount: number;
+  recommended: number;
+}
+
+interface SPCapacityResponse {
+  users: SPCapacityData[];
+  teamTotal: number;
+  teamAvg: number;
+}
+
+function StoryPointsCapacitySection({ users, spToHours }: { users: UserInfo[]; spToHours: number }) {
+  const [spData, setSpData] = useState<SPCapacityResponse | null>(null);
+  const [spLoading, setSpLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const loadSPData = useCallback(async () => {
+    setSpLoading(true);
+    try {
+      const res = await fetch("/api/team/sp-capacity");
+      if (res.ok) setSpData(await res.json());
+    } finally {
+      setSpLoading(false);
+    }
+  }, []);
+
+  const handleOpen = () => {
+    setOpen(true);
+    if (!spData) loadSPData();
+  };
+
+  return (
+    <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl overflow-hidden">
+      <button
+        onClick={() => open ? setOpen(false) : handleOpen()}
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#1e1e1e] transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-blue-400" />
+          <span className="text-sm font-semibold text-white">Story-Points-Kapazität & Empfehlungen</span>
+          <span className="text-xs text-zinc-500 ml-1">(basierend auf historischen Sprints)</span>
+        </div>
+        <span className="text-zinc-500 text-xs">{open ? "▲ Schließen" : "▼ Öffnen"}</span>
+      </button>
+
+      {open && (
+        <div className="border-t border-[#2a2a2a] p-5">
+          {spLoading ? (
+            <p className="text-xs text-zinc-500 animate-pulse">Lade Velocity-Daten...</p>
+          ) : !spData ? (
+            <p className="text-xs text-zinc-500">Keine Daten verfügbar.</p>
+          ) : (
+            <div className="space-y-4">
+              {/* Team-Übersicht */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-[#252525] rounded-lg p-3 text-center">
+                  <div className="text-xl font-bold text-blue-400">{spData.teamTotal}</div>
+                  <div className="text-[10px] text-zinc-500 mt-0.5">Team SP (Ø/Sprint)</div>
+                </div>
+                <div className="bg-[#252525] rounded-lg p-3 text-center">
+                  <div className="text-xl font-bold text-emerald-400">{spData.teamAvg}</div>
+                  <div className="text-[10px] text-zinc-500 mt-0.5">Ø SP pro Person</div>
+                </div>
+                <div className="bg-[#252525] rounded-lg p-3 text-center">
+                  <div className="text-xl font-bold text-white">{users.length}</div>
+                  <div className="text-[10px] text-zinc-500 mt-0.5">Team-Mitglieder</div>
+                </div>
+              </div>
+
+              {/* Pro-Person-Tabelle */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-[#2a2a2a] text-zinc-500">
+                      <th className="text-left py-2 pr-4">Mitglied</th>
+                      <th className="text-center px-3 py-2">Ø Velocity</th>
+                      <th className="text-center px-3 py-2">Max</th>
+                      <th className="text-center px-3 py-2">Sprints</th>
+                      <th className="text-center px-3 py-2">Empfohlen</th>
+                      <th className="text-left px-3 py-2">Kapazitäts-Balken</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {spData.users.map((u) => {
+                      const maxCapacity = Math.round(
+                        (users.find((us) => us.id === u.userId)?.weeklyCapacity ?? 40) / spToHours
+                      );
+                      const fillPct = maxCapacity > 0 ? Math.min((u.recommended / maxCapacity) * 100, 100) : 0;
+                      const emoji = users.find((us) => us.id === u.userId)?.avatar ?? "👤";
+                      return (
+                        <tr key={u.userId} className="border-b border-[#2a2a2a] last:border-0">
+                          <td className="py-2.5 pr-4">
+                            <div className="flex items-center gap-2">
+                              <span>{emoji}</span>
+                              <span className="text-white">{u.userName}</span>
+                            </div>
+                          </td>
+                          <td className="text-center px-3 py-2 text-zinc-300 font-mono">{u.avgVelocity}</td>
+                          <td className="text-center px-3 py-2 text-zinc-400 font-mono">{u.maxVelocity}</td>
+                          <td className="text-center px-3 py-2 text-zinc-500">{u.sprintCount}</td>
+                          <td className="text-center px-3 py-2">
+                            <span className="inline-flex items-center gap-1 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded font-semibold">
+                              {u.recommended} SP
+                            </span>
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-2 bg-[#252525] rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-blue-500/60 rounded-full transition-all"
+                                  style={{ width: `${fillPct}%` }}
+                                />
+                              </div>
+                              <span className="text-[10px] text-zinc-500 shrink-0">
+                                {Math.round(fillPct)}% von {maxCapacity} SP
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {spData.users.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="py-6 text-center text-zinc-600">
+                          Noch keine abgeschlossenen Sprints mit Story Points.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <p className="text-[10px] text-zinc-600">
+                * Empfohlene Sprint-Last = 85% der durchschnittlichen historischen Velocity (inkl. Puffer)
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -394,6 +543,9 @@ export function ResourcesClient() {
           </div>
         </div>
       )}
+
+      {/* ─── Story-Points-Kapazität pro Person ─── */}
+      <StoryPointsCapacitySection users={users} spToHours={SP_TO_HOURS} />
 
       {/* ─── Umverteilen Modal ─── */}
       {umverteilenTarget && (
