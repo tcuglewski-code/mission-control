@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
     theme: (user as any).theme ?? "system",
     compact: (user as any).compact ?? false,
     hourlyRate: (user as any).hourlyRate ?? 0,
+    twoFactorEnabled: (user as any).twoFactorEnabled ?? false,
     createdAt: user.createdAt,
   });
 }
