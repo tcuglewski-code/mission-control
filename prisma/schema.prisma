@@ -824,6 +824,36 @@ model BackupConfig {
   updatedAt       DateTime @updatedAt
 }
 
+// ─── Uptime Monitoring (AF012) ────────────────────────────────────────────────
+model UptimeCheck {
+  id           String    @id @default(cuid())
+  tenantId     String    // z.B. "mission-control", "forstmanager", "ka-website"
+  tenantName   String
+  url          String
+  status       String    // "up" | "down" | "timeout" | "error"
+  statusCode   Int?
+  responseTime Int?      // Millisekunden
+  error        String?
+  checkedAt    DateTime  @default(now())
+}
+
+model MonitoringConfig {
+  id              String   @id @default(cuid())
+  tenantId        String   @unique
+  tenantName      String
+  url             String
+  enabled         Boolean  @default(true)
+  checkInterval   Int      @default(5)  // Minuten
+  timeout         Int      @default(10) // Sekunden
+  alertOnDown     Boolean  @default(true)
+  consecutiveFails Int     @default(0)  // Zähler für aufeinanderfolgende Fehler
+  lastStatus      String?  // "up" | "down"
+  lastCheckedAt   DateTime?
+  lastAlertAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
 // ─── KI Token-Tracking ────────────────────────────────────────────────────────
 model AiUsage {
   id           String   @id @default(cuid())

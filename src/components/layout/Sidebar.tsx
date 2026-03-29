@@ -537,6 +537,22 @@ export function Sidebar() {
                 <Database className={cn("w-4 h-4 shrink-0", pathname === "/admin/backups" ? "text-amber-400" : "")} />
                 <span>Backups</span>
               </Link>
+              <Link
+                href="/admin/monitoring"
+                onClick={() => setSidebarOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
+                  pathname === "/admin/monitoring"
+                    ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
+                    : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+                )}
+              >
+                {pathname === "/admin/monitoring" && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-amber-500 rounded-r-full" />
+                )}
+                <Activity className={cn("w-4 h-4 shrink-0", pathname === "/admin/monitoring" ? "text-amber-400" : "")} />
+                <span>Monitoring</span>
+              </Link>
             </div>
           )}
         </nav>
