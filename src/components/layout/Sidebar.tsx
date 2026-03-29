@@ -48,6 +48,7 @@ import {
   Activity,
   BellRing,
   RefreshCw,
+  Target,
 } from "lucide-react";
 import { useKeyboardShortcutsModal } from "@/hooks/useKeyboardShortcutsModal";
 import { useQuickAdd } from "@/hooks/useQuickAdd";
@@ -73,6 +74,7 @@ const navItems = [
   { href: "/cronjobs", icon: Timer, label: "Cron Jobs" },
   { href: "/loop", icon: RefreshCw, label: "🔄 Auto-Loop" },
   { href: "/projects", icon: FolderKanban, label: "Projekte" },
+  { href: "/sales", icon: Target, label: "Sales Pipeline" },
   { href: "/finance", icon: Banknote, label: "Finanzen" },
   { href: "/quotes", icon: FileText, label: "Angebote" },
   { href: "/invoice-templates", icon: FileText, label: "Rechnungsvorlagen" },

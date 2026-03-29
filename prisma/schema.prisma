@@ -854,6 +854,43 @@ model MonitoringConfig {
   updatedAt       DateTime @updatedAt
 }
 
+// ─── Sales Pipeline (AF022) ───────────────────────────────────────────────────
+model Deal {
+  id           String    @id @default(cuid())
+  title        String
+  company      String
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
+  value        Float     @default(0)  // Potentieller Deal-Wert in €
+  stage        String    @default("prospect") // prospect | qualified | demo | proposal | closed-won | closed-lost
+  probability  Int       @default(10) // 0-100 Abschluss-Wahrscheinlichkeit
+  source       String?   // "Website" | "Empfehlung" | "Kaltakquise" | "Messe" | "LinkedIn"
+  notes        String?
+  industry     String?   // Branche z.B. "Forstbetrieb", "Landschaftsbau"
+  employees    Int?      // Anzahl Mitarbeiter (für Sizing)
+  nextAction   String?   // Nächster Schritt
+  nextActionDate DateTime?
+  lostReason   String?   // Wenn closed-lost: warum?
+  wonDate      DateTime? // Wenn closed-won: wann?
+  lostDate     DateTime? // Wenn closed-lost: wann?
+  ownerId      String?   // Sales-Verantwortlicher
+  ownerName    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model DealActivity {
+  id        String   @id @default(cuid())
+  dealId    String
+  type      String   // "note" | "call" | "email" | "meeting" | "stage_change"
+  content   String
+  authorId  String?
+  authorName String?
+  metadata  String?  // JSON für zusätzliche Infos (z.B. alte/neue Stage)
+  createdAt DateTime @default(now())
+}
+
 // ─── KI Token-Tracking ────────────────────────────────────────────────────────
 model AiUsage {
   id           String   @id @default(cuid())
