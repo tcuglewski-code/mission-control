@@ -455,3 +455,6 @@ export default function NewQuotePage() {
     </AppShell>
   );
 }
+
+// Force dynamic rendering (useSearchParams requires Suspense or dynamic)
+export const dynamic = "force-dynamic";

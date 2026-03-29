@@ -760,3 +760,4 @@ export function SearchClient() {
     </div>
   );
 }
+export const dynamic = "force-dynamic";
