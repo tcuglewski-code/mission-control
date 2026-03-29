@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionOrApiKey } from "@/lib/api-auth";
+import { sendEmail } from "@/lib/email";
 
 // POST /api/projects/[id]/share/email — Sendet Projekt-Update per Email an Kunden
 export async function POST(
@@ -103,53 +104,21 @@ export async function POST(
 </body>
 </html>`;
 
-    // Email-Versand vorbereiten
-    // Wenn SMTP konfiguriert ist, wird gesendet; sonst wird der HTML-Body zurückgegeben
-    const smtpHost = process.env.SMTP_HOST;
-    const smtpPort = parseInt(process.env.SMTP_PORT ?? "587");
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
-    const smtpFrom = process.env.SMTP_FROM ?? "noreply@kochaufforstung.de";
-
-    if (smtpHost && smtpUser && smtpPass) {
-      // Nodemailer dynamisch importieren (falls verfügbar)
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
-        const nodemailer = require("nodemailer") as any;
-        const transporter = nodemailer.createTransport({
-          host: smtpHost,
-          port: smtpPort,
-          secure: smtpPort === 465,
-          auth: { user: smtpUser, pass: smtpPass },
-        });
-
-        await transporter.sendMail({
-          from: `"Koch Aufforstung GmbH" <${smtpFrom}>`,
-          to: recipientEmail,
-          subject: `Projekt-Update: ${project.name}`,
-          html: emailHtml,
-        });
-
-        return NextResponse.json({ success: true, method: "smtp" });
-      } catch (smtpErr) {
-        console.error("[Email SMTP Error]", smtpErr);
-        // Fallback: HTML zurückgeben
-        return NextResponse.json({
-          success: false,
-          method: "preview",
-          html: emailHtml,
-          error: "SMTP-Versand fehlgeschlagen. E-Mail-Vorschau wird zurückgegeben.",
-        });
-      }
-    }
-
-    // Kein SMTP konfiguriert — HTML-Vorschau zurückgeben
-    return NextResponse.json({
-      success: true,
-      method: "preview",
-      html: emailHtml,
+    // E-Mail senden via zentrale email.ts Library (graceful degradation eingebaut)
+    const result = await sendEmail({
       to: recipientEmail,
       subject: `Projekt-Update: ${project.name}`,
+      html: emailHtml,
+    });
+
+    return NextResponse.json({
+      success: result.success,
+      method: result.method,
+      messageId: result.messageId,
+      error: result.error,
+      html: result.html,
+      to: result.to,
+      subject: result.subject,
       shareUrl,
     });
   } catch (error) {
