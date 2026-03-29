@@ -792,6 +792,38 @@ model LoopLog {
   createdAt DateTime @default(now())
 }
 
+// ─── Backup Jobs (AF011) ──────────────────────────────────────────────────────
+model BackupJob {
+  id           String    @id @default(cuid())
+  tenantId     String    // z.B. "mission-control", "forstmanager", "secondbrain"
+  tenantName   String    // Anzeigename z.B. "Mission Control DB"
+  backupType   String    // "neon" | "mysql" | "wp-files"
+  status       String    @default("pending") // "pending" | "running" | "success" | "failed" | "skipped"
+  startedAt    DateTime?
+  completedAt  DateTime?
+  sizeBytes    BigInt?
+  duration     Int?      // Sekunden
+  error        String?
+  backupUrl    String?   // Falls extern gespeichert (z.B. S3, Nextcloud)
+  metadata     Json?     // Zusätzliche Infos (Tabellen-Count, etc.)
+  createdAt    DateTime  @default(now())
+}
+
+model BackupConfig {
+  id              String   @id @default(cuid())
+  tenantId        String   @unique
+  tenantName      String
+  backupType      String   // "neon" | "mysql" | "wp-files"
+  connectionInfo  String?  // Verschlüsselte Connection-Infos (Host, etc. - keine Passwörter im Klartext!)
+  enabled         Boolean  @default(true)
+  schedule        String   @default("daily") // "daily" | "weekly" | "hourly"
+  retentionDays   Int      @default(30)
+  lastBackupAt    DateTime?
+  lastBackupStatus String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
 // ─── KI Token-Tracking ────────────────────────────────────────────────────────
 model AiUsage {
   id           String   @id @default(cuid())
