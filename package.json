@@ -12,6 +12,7 @@
     "db:migrate": "prisma migrate deploy",
     "db:baseline": "prisma migrate resolve --applied 20260329010000_init",
     "db:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
+    "db:seed:demo": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed-demo-onboarding.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {
