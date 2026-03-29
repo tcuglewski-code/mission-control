@@ -30,7 +30,7 @@
     },
     {
       "path": "/api/cron/uptime",
-      "schedule": "0 * * * *"
+      "schedule": "0 8 * * *"
     }
   ]
 }
