@@ -1,21 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { calcNextDueDate, type RecurringIntervalType } from "@/lib/recurring";
+import { verifyCronAuth } from "@/lib/cron-auth";
 
 /**
  * GET /api/recurring/generate
- * Vercel Cron Handler: täglich um 00:00 Uhr
+ * Vercel Cron Handler: täglich um 00:00 Uhr UTC
  * Erstellt die nächsten Instanzen für alle aktiven wiederkehrenden Tasks.
  */
 export async function GET(req: NextRequest) {
   try {
     // Cron-Secret prüfen (von Vercel automatisch gesetzt)
-    const authHeader = req.headers.get("authorization");
-    if (
-      authHeader !== `Bearer ${process.env.CRON_SECRET}` &&
-      process.env.NODE_ENV !== "development"
-    ) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!verifyCronAuth(req)) {
+      return NextResponse.json({ error: "Unauthorized — CRON_SECRET erforderlich" }, { status: 401 });
     }
 
     const now = new Date();

@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { subDays, isWithinInterval, format } from "date-fns";
 import { de } from "date-fns/locale";
+import { verifyCronAuth } from "@/lib/cron-auth";
 
 // POST /api/cron/send-reports — Vercel Cron: Montag 06:00 UTC
 // Sendet wöchentliche Status-Reports an konfigurierte E-Mail-Adressen
 export async function GET(req: NextRequest) {
   // Vercel Cron Security: Authorization-Header prüfen
-  const authHeader = req.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}` && process.env.NODE_ENV === "production") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!verifyCronAuth(req)) {
+    return NextResponse.json({ error: "Unauthorized — CRON_SECRET erforderlich" }, { status: 401 });
   }
 
   try {

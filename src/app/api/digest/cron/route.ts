@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifyCronAuth } from "@/lib/cron-auth";
 
-// Vercel Cron Handler: täglich 07:00 Uhr
-// Konfiguration in vercel.json: { "crons": [{ "path": "/api/digest/cron", "schedule": "0 7 * * *" }] }
+// Vercel Cron Handler: täglich 06:00 Uhr UTC
+// Konfiguration in vercel.json: { "crons": [{ "path": "/api/digest/cron", "schedule": "0 6 * * *" }] }
 
 export async function GET(req: NextRequest) {
   try {
     // Cron-Secret prüfen (von Vercel automatisch gesetzt)
-    const authHeader = req.headers.get("authorization");
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}` && process.env.NODE_ENV !== "development") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!verifyCronAuth(req)) {
+      return NextResponse.json({ error: "Unauthorized — CRON_SECRET erforderlich" }, { status: 401 });
     }
 
     // Digest generieren durch Weiterleitung an den generate-Endpunkt

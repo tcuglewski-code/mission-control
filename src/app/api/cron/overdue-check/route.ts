@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifyCronAuth } from "@/lib/cron-auth";
 
 /**
  * GET /api/cron/overdue-check
  * Täglich prüfen welche Rechnungen überfällig sind.
  * Aufruf via Vercel Cron oder externem Cron-Dienst.
- * Authorization: Bearer <CRON_SECRET> oder x-cron-secret Header
+ * Authorization: Bearer <CRON_SECRET>
  */
 export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!verifyCronAuth(req)) {
+    return NextResponse.json({ error: "Unauthorized — CRON_SECRET erforderlich" }, { status: 401 });
   }
 
   try {
