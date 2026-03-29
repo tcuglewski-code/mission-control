@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import Link from "next/link";
@@ -53,7 +53,7 @@ function newItem(): QuoteItem {
 }
 
 // ─── Hauptkomponente ──────────────────────────────────────────────────────────
-export default function NewQuotePage() {
+function NewQuotePageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -457,4 +457,11 @@ export default function NewQuotePage() {
 }
 
 // Force dynamic rendering (useSearchParams requires Suspense or dynamic)
-export const dynamic = "force-dynamic";
+
+export default function NewQuotePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center"><div className="text-zinc-500 text-sm">Lädt...</div></div>}>
+      <NewQuotePageInner />
+    </Suspense>
+  );
+}

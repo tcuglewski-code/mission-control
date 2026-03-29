@@ -44,4 +44,3 @@ export function DashboardTourWrapper() {
     />
   );
 }
-export const dynamic = "force-dynamic";

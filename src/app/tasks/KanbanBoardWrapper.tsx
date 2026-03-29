@@ -674,4 +674,3 @@ export function KanbanBoardWrapper({ initialTasks, projects, users, isAdmin }: K
     </>
   );
 }
-export const dynamic = "force-dynamic";
