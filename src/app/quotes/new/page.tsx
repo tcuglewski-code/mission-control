@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import Link from "next/link";
@@ -52,8 +52,8 @@ function newItem(): QuoteItem {
   };
 }
 
-// ─── Hauptkomponente ──────────────────────────────────────────────────────────
-export default function NewQuotePage() {
+// ─── Inner Component (uses useSearchParams) ───────────────────────────────────
+function NewQuoteForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -423,5 +423,14 @@ export default function NewQuotePage() {
         </form>
       </div>
     </AppShell>
+  );
+}
+
+// ─── Page Export mit Suspense ─────────────────────────────────────────────────
+export default function NewQuotePage() {
+  return (
+    <Suspense fallback={<AppShell title="Neues Angebot"><div className="flex items-center justify-center py-20 text-zinc-500">Lade…</div></AppShell>}>
+      <NewQuoteForm />
+    </Suspense>
   );
 }
