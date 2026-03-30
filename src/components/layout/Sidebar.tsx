@@ -75,6 +75,7 @@ const navItems = [
   { href: "/loop", icon: RefreshCw, label: "🔄 Auto-Loop" },
   { href: "/projects", icon: FolderKanban, label: "Projekte" },
   { href: "/sales", icon: Target, label: "Sales Pipeline" },
+  { href: "/okr", icon: Target, label: "OKR Dashboard" },
   { href: "/finance", icon: Banknote, label: "Finanzen" },
   { href: "/quotes", icon: FileText, label: "Angebote" },
   { href: "/invoice-templates", icon: FileText, label: "Rechnungsvorlagen" },
