@@ -891,6 +891,24 @@ model DealActivity {
   createdAt DateTime @default(now())
 }
 
+// ─── Integrations (Q024: Slack, Discord, etc.) ────────────────────────────────
+model IntegrationConfig {
+  id           String    @id @default(cuid())
+  type         String    @unique // "slack" | "discord" | "telegram" | "email"
+  name         String
+  webhookUrl   String?   // Webhook URL für Slack/Discord
+  botToken     String?   // Optional: Bot Token für erweiterte Features
+  channelId    String?   // Channel/Chat ID
+  events       String?   // JSON array: ["task.created", "task.completed", "comment.added"]
+  enabled      Boolean   @default(false)
+  status       String    @default("inactive") // "active" | "inactive" | "error"
+  lastTestedAt DateTime?
+  lastError    String?
+  metadata     String?   // JSON für zusätzliche Konfiguration
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
 // ─── KI Token-Tracking ────────────────────────────────────────────────────────
 model AiUsage {
   id           String   @id @default(cuid())
