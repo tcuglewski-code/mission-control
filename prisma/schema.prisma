@@ -665,20 +665,6 @@ model UserTaskFocus {
   @@unique([userId, taskId, date])
 }
 
-// ─── Integrations-Konfiguration ───────────────────────────────────────────────
-model IntegrationConfig {
-  id           String    @id @default(cuid())
-  type         String    @unique // "github" | "slack" | "discord" | "smtp" | "webhook"
-  name         String
-  config       String // JSON: { webhookUrl, token, projectId, events[], smtpHost, ... }
-  enabled      Boolean   @default(false)
-  status       String    @default("inactive") // "active" | "inactive" | "error"
-  lastTestedAt DateTime?
-  lastError    String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-}
-
 // ─── Meilensteine ─────────────────────────────────────────────────────────────
 model Milestone {
   id          String    @id @default(cuid())
