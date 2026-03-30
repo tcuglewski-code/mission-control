@@ -2,83 +2,126 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionOrApiKey } from "@/lib/api-auth";
 
-// Standardkonfigurationen für alle unterstützten Integrationstypen
-const DEFAULT_INTEGRATIONS = [
-  { type: "github",  name: "GitHub",       status: "inactive", enabled: false },
-  { type: "slack",   name: "Slack",        status: "inactive", enabled: false },
-  { type: "discord", name: "Discord",      status: "inactive", enabled: false },
-  { type: "smtp",    name: "E-Mail (SMTP)", status: "inactive", enabled: false },
-  { type: "webhook", name: "Webhook",      status: "inactive", enabled: false },
-];
-
-// GET /api/integrations — Alle Integrationen (konfiguriert + nicht konfiguriert)
+/**
+ * GET /api/integrations
+ * Liste aller konfigurierten Integrationen
+ */
 export async function GET(req: NextRequest) {
-  try {
-    const user = await getSessionOrApiKey(req);
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (user.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const auth = await getSessionOrApiKey(req);
+  if (!auth) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-    const configured = await prisma.integrationConfig.findMany({
-      orderBy: { createdAt: "asc" },
+  try {
+    const integrations = await prisma.integrationConfig.findMany({
+      orderBy: { createdAt: "desc" },
     });
 
-    // Nicht konfigurierte Typen als Platzhalter hinzufügen
-    const configuredTypes = new Set(configured.map((c) => c.type));
-    const missing = DEFAULT_INTEGRATIONS.filter((d) => !configuredTypes.has(d.type));
+    // Webhook URLs maskieren (Sicherheit)
+    const masked = integrations.map((i) => ({
+      ...i,
+      webhookUrl: i.webhookUrl ? maskUrl(i.webhookUrl) : null,
+      botToken: i.botToken ? "••••••••" : null,
+    }));
 
-    const all = [
-      ...configured.map((c) => ({
-        ...c,
-        config: (() => { try { return JSON.parse(c.config); } catch { return {}; } })(),
-      })),
-      ...missing.map((d) => ({ ...d, id: null, config: {}, createdAt: null, updatedAt: null, lastTestedAt: null, lastError: null })),
-    ];
-
-    return NextResponse.json(all);
-  } catch (err) {
-    console.error("[GET /api/integrations]", err);
-    return NextResponse.json({ error: "Interner Fehler" }, { status: 500 });
+    return NextResponse.json(masked);
+  } catch (error) {
+    console.error("[GET /api/integrations] Error:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch integrations" },
+      { status: 500 }
+    );
   }
 }
 
-// POST /api/integrations — Integration erstellen oder aktualisieren
+/**
+ * POST /api/integrations
+ * Neue Integration erstellen oder aktualisieren (upsert by type)
+ */
 export async function POST(req: NextRequest) {
-  try {
-    const user = await getSessionOrApiKey(req);
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (user.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const auth = await getSessionOrApiKey(req);
+  if (!auth) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
+  // Nur Admins dürfen Integrationen konfigurieren
+  if (auth.role !== "admin") {
+    return NextResponse.json({ error: "Admin required" }, { status: 403 });
+  }
+
+  try {
     const body = await req.json();
-    const { type, name, config, enabled } = body;
+    const { type, name, webhookUrl, botToken, channelId, events, enabled, metadata } = body;
 
     if (!type || !name) {
-      return NextResponse.json({ error: "type und name sind Pflichtfelder" }, { status: 400 });
+      return NextResponse.json(
+        { error: "type and name are required" },
+        { status: 400 }
+      );
     }
 
+    // Validiere type
+    const validTypes = ["slack", "discord", "telegram", "email"];
+    if (!validTypes.includes(type)) {
+      return NextResponse.json(
+        { error: `Invalid type. Must be one of: ${validTypes.join(", ")}` },
+        { status: 400 }
+      );
+    }
+
+    // Upsert: erstellt oder aktualisiert basierend auf type
     const integration = await prisma.integrationConfig.upsert({
       where: { type },
-      update: {
-        name,
-        config: JSON.stringify(config ?? {}),
-        enabled: enabled ?? false,
-        status: enabled ? "active" : "inactive",
-        updatedAt: new Date(),
-      },
       create: {
         type,
         name,
-        config: JSON.stringify(config ?? {}),
+        webhookUrl,
+        botToken,
+        channelId,
+        events: events ? JSON.stringify(events) : null,
         enabled: enabled ?? false,
-        status: enabled ? "active" : "inactive",
+        status: "inactive",
+        metadata: metadata ? JSON.stringify(metadata) : null,
+      },
+      update: {
+        name,
+        webhookUrl,
+        botToken,
+        channelId,
+        events: events ? JSON.stringify(events) : undefined,
+        enabled,
+        metadata: metadata ? JSON.stringify(metadata) : undefined,
+        updatedAt: new Date(),
       },
     });
 
     return NextResponse.json({
       ...integration,
-      config: (() => { try { return JSON.parse(integration.config); } catch { return {}; } })(),
+      webhookUrl: integration.webhookUrl ? maskUrl(integration.webhookUrl) : null,
+      botToken: integration.botToken ? "••••••••" : null,
     });
-  } catch (err) {
-    console.error("[POST /api/integrations]", err);
-    return NextResponse.json({ error: "Interner Fehler" }, { status: 500 });
+  } catch (error) {
+    console.error("[POST /api/integrations] Error:", error);
+    return NextResponse.json(
+      { error: "Failed to save integration" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * Maskiert eine URL für sichere Anzeige
+ */
+function maskUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    const path = parsed.pathname;
+    // Zeige nur letzte 8 Zeichen des Paths
+    if (path.length > 12) {
+      return `${parsed.origin}/...${path.slice(-8)}`;
+    }
+    return url;
+  } catch {
+    return "••••••••";
   }
 }

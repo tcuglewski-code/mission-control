@@ -575,15 +575,16 @@ model Invoice {
   clientName    String?
   clientAddress String? // Mehrzeilig
   // Zahlungsbedingungen + Bank
-  paymentTerms  String?       @default("Zahlbar innerhalb von 14 Tagen ohne Abzug.")
-  bankDetails   String?       @default("Koch Aufforstung GmbH · IBAN: DE00 0000 0000 0000 0000 00 · BIC: XXXXXXXX")
-  notes         String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  items         InvoiceItem[]
-  payments      Payment[]
-  Client        Client?       @relation(fields: [clientId], references: [id])
-  clientId      String?
+  paymentTerms   String?       @default("Zahlbar innerhalb von 14 Tagen ohne Abzug.")
+  bankDetails    String?       @default("Koch Aufforstung GmbH · IBAN: DE00 0000 0000 0000 0000 00 · BIC: XXXXXXXX")
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  items          InvoiceItem[]
+  reminders      InvoiceReminder[]
+  payments       Payment[]
+  Client         Client?       @relation(fields: [clientId], references: [id])
+  clientId       String?
 }
 
 model InvoiceItem {
@@ -608,6 +609,20 @@ model Payment {
   method    String   @default("Überweisung") // "Überweisung" | "Bar" | "EC-Karte" | "PayPal" | "Lastschrift"
   note      String?
   createdAt DateTime @default(now())
+}
+
+// ─── Mahnungs-Tracking (automatisch via Cron) ─────────────────────────────────
+model InvoiceReminder {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  level       Int      // 1 = 1. Mahnung, 2 = 2. Mahnung, 3 = letzte Mahnung
+  fee         Float    @default(0) // Mahngebühr für diese Stufe
+  sentAt      DateTime @default(now())
+  sentVia     String   @default("system") // "system" | "email" | "post"
+  note        String?
+  createdAt   DateTime @default(now())
+  @@index([invoiceId])
 }
 
 // ─── Rechnungs-Vorlagen ───────────────────────────────────────────────────────
@@ -955,6 +970,24 @@ model DealActivity {
   createdAt  DateTime @default(now())
 }
 
+// ─── Integrations (Q024: Slack, Discord, etc.) ────────────────────────────────
+model IntegrationConfig {
+  id           String    @id @default(cuid())
+  type         String    @unique // "slack" | "discord" | "telegram" | "email"
+  name         String
+  webhookUrl   String?   // Webhook URL für Slack/Discord
+  botToken     String?   // Optional: Bot Token für erweiterte Features
+  channelId    String?   // Channel/Chat ID
+  events       String?   // JSON array: ["task.created", "task.completed", "comment.added"]
+  enabled      Boolean   @default(false)
+  status       String    @default("inactive") // "active" | "inactive" | "error"
+  lastTestedAt DateTime?
+  lastError    String?
+  metadata     String?   // JSON für zusätzliche Konfiguration
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
 // ─── KI Token-Tracking ────────────────────────────────────────────────────────
 model AiUsage {
   id           String   @id @default(cuid())
@@ -970,4 +1003,36 @@ model AiUsage {
   sprintId     String? // optional: welcher Sprint
   metadata     String? // JSON string für zusätzliche Infos
   createdAt    DateTime @default(now())
+}
+
+// ─── OKR System (Q028) ────────────────────────────────────────────────────────
+model Objective {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  period      String    // "Q1 2026", "Q2 2026", etc.
+  deadline    DateTime?
+  status      String    @default("on-track") // "on-track" | "at-risk" | "off-track" | "completed"
+  progress    Int       @default(0) // 0-100, berechnet aus Key Results
+  projectId   String?   // Optional: Verknüpfung mit Projekt
+  ownerId     String?
+  ownerName   String?
+  isArchived  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  keyResults  KeyResult[]
+}
+
+model KeyResult {
+  id          String    @id @default(cuid())
+  objectiveId String
+  objective   Objective @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+  title       String
+  metric      String?   // Was wird gemessen? z.B. "MRR", "Anzahl Kunden"
+  current     Float     @default(0)
+  target      Float     @default(100)
+  unit        String?   // "%", "€", "Kunden", etc.
+  progress    Int       @default(0) // 0-100
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }

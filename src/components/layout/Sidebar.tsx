@@ -79,6 +79,7 @@ const navItems = [
   { href: "/projects", icon: FolderKanban, label: "Projekte" },
   { href: "/clients", icon: Building2, label: "Kunden" },
   { href: "/sales", icon: Target, label: "Sales Pipeline" },
+  { href: "/okr", icon: Target, label: "OKR Dashboard" },
   { href: "/finance", icon: Banknote, label: "Finanzen" },
   { href: "/quotes", icon: FileText, label: "Angebote" },
   { href: "/invoice-templates", icon: FileText, label: "Rechnungsvorlagen" },
@@ -576,6 +577,38 @@ export function Sidebar() {
                 )}
                 <Activity className={cn("w-4 h-4 shrink-0", pathname === "/admin/monitoring" ? "text-amber-400" : "")} />
                 <span>Monitoring</span>
+              </Link>
+              <Link
+                href="/admin/tickets"
+                onClick={() => setSidebarOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
+                  pathname === "/admin/tickets"
+                    ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
+                    : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+                )}
+              >
+                {pathname === "/admin/tickets" && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-amber-500 rounded-r-full" />
+                )}
+                <Ticket className={cn("w-4 h-4 shrink-0", pathname === "/admin/tickets" ? "text-amber-400" : "")} />
+                <span>Support-Tickets</span>
+              </Link>
+              <Link
+                href="/admin/integrations"
+                onClick={() => setSidebarOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
+                  pathname === "/admin/integrations"
+                    ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
+                    : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+                )}
+              >
+                {pathname === "/admin/integrations" && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-amber-500 rounded-r-full" />
+                )}
+                <Zap className={cn("w-4 h-4 shrink-0", pathname === "/admin/integrations" ? "text-amber-400" : "")} />
+                <span>Integrationen</span>
               </Link>
             </div>
           )}
