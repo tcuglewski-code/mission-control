@@ -574,6 +574,7 @@ model Invoice {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   items          InvoiceItem[]
+  reminders      InvoiceReminder[]
   payments       Payment[]
 }
 
@@ -599,6 +600,20 @@ model Payment {
   method    String   @default("Überweisung") // "Überweisung" | "Bar" | "EC-Karte" | "PayPal" | "Lastschrift"
   note      String?
   createdAt DateTime @default(now())
+}
+
+// ─── Mahnungs-Tracking (automatisch via Cron) ─────────────────────────────────
+model InvoiceReminder {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  level       Int      // 1 = 1. Mahnung, 2 = 2. Mahnung, 3 = letzte Mahnung
+  fee         Float    @default(0) // Mahngebühr für diese Stufe
+  sentAt      DateTime @default(now())
+  sentVia     String   @default("system") // "system" | "email" | "post"
+  note        String?
+  createdAt   DateTime @default(now())
+  @@index([invoiceId])
 }
 
 // ─── Rechnungs-Vorlagen ───────────────────────────────────────────────────────
