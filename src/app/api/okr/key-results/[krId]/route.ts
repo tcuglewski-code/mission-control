@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { getSessionOrApiKey } from "@/lib/auth-utils"
+import { getSessionOrApiKey } from "@/lib/api-auth"
 
 // PUT /api/okr/key-results/[krId] — Update key result
 export async function PUT(

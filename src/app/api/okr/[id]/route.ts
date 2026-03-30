@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { getSessionOrApiKey } from "@/lib/auth-utils"
+import { getSessionOrApiKey } from "@/lib/api-auth"
 
 // GET /api/okr/[id] — Get single objective with key results
 export async function GET(

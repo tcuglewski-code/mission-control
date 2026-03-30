@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { getSessionOrApiKey } from "@/lib/auth-utils"
+import { getSessionOrApiKey } from "@/lib/api-auth"
 
 // POST /api/okr/[id]/key-results — Add key result to objective
 export async function POST(
