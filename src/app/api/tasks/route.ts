@@ -123,7 +123,17 @@ export async function POST(req: NextRequest) {
       recurringEndDate,
       parentTaskId,
       startAfterTaskId,
+      // ICE Scoring (AF058)
+      iceImpact,
+      iceConfidence,
+      iceEase,
     } = body;
+    
+    // ICE Score berechnen wenn alle Werte vorhanden
+    let iceScore: number | null = null;
+    if (iceImpact && iceConfidence && iceEase) {
+      iceScore = (iceImpact * iceConfidence * iceEase) / 10;
+    }
 
     if (!title) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
@@ -150,6 +160,11 @@ export async function POST(req: NextRequest) {
         recurringEndDate: recurringEndDate ? new Date(recurringEndDate) : null,
         parentTaskId: parentTaskId || null,
         startAfterTaskId: startAfterTaskId || null,
+        // ICE Scoring (AF058)
+        iceImpact: iceImpact || null,
+        iceConfidence: iceConfidence || null,
+        iceEase: iceEase || null,
+        iceScore: iceScore,
       },
       include: {
         project: { select: { id: true, name: true, color: true } },

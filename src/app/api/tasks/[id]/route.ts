@@ -141,6 +141,9 @@ async function updateTask(id: string, body: Record<string, unknown>) {
     recurringEndDate,
     parentTaskId,
     startAfterTaskId,
+    iceImpact,
+    iceConfidence,
+    iceEase,
   } = body as {
     title?: string;
     description?: string;
@@ -162,7 +165,27 @@ async function updateTask(id: string, body: Record<string, unknown>) {
     recurringEndDate?: string | null;
     parentTaskId?: string | null;
     startAfterTaskId?: string | null;
+    iceImpact?: number | null;
+    iceConfidence?: number | null;
+    iceEase?: number | null;
   };
+  
+  // ICE Score berechnen wenn alle Werte vorhanden
+  let iceScore: number | null = null;
+  const hasIceUpdate = iceImpact !== undefined || iceConfidence !== undefined || iceEase !== undefined;
+  if (hasIceUpdate) {
+    // Bestehende Werte aus DB holen falls nicht alle übergeben
+    const existingTask = await prisma.task.findUnique({
+      where: { id },
+      select: { iceImpact: true, iceConfidence: true, iceEase: true },
+    });
+    const impact = iceImpact ?? existingTask?.iceImpact;
+    const confidence = iceConfidence ?? existingTask?.iceConfidence;
+    const ease = iceEase ?? existingTask?.iceEase;
+    if (impact && confidence && ease) {
+      iceScore = (impact * confidence * ease) / 10;
+    }
+  }
 
   // ─── Blocker-Validation: Blockierte Tasks können nicht auf "done" gesetzt werden ───
   if (status === "done") {
@@ -209,6 +232,11 @@ async function updateTask(id: string, body: Record<string, unknown>) {
       ...(recurringEndDate !== undefined && { recurringEndDate: recurringEndDate ? new Date(recurringEndDate) : null }),
       ...(parentTaskId !== undefined && { parentTaskId: parentTaskId ?? null }),
       ...(startAfterTaskId !== undefined && { startAfterTaskId: startAfterTaskId ?? null }),
+      // ICE Scoring (AF058)
+      ...(iceImpact !== undefined && { iceImpact: iceImpact ?? null }),
+      ...(iceConfidence !== undefined && { iceConfidence: iceConfidence ?? null }),
+      ...(iceEase !== undefined && { iceEase: iceEase ?? null }),
+      ...(iceScore !== null && { iceScore }),
     },
     include: {
       project: { select: { id: true, name: true, color: true } },

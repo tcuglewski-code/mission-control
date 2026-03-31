@@ -65,6 +65,7 @@ const navItems = [
   { href: "/my-week", icon: CalendarDays, label: "Meine Woche" },
   { href: "/announcements", icon: Megaphone, label: "Ankündigungen" },
   { href: "/tasks", icon: CheckSquare, label: "Aufgaben" },
+  { href: "/ice-ranking", icon: Target, label: "🎯 ICE Priorisierung" },
   { href: "/notifications", icon: Bell, label: "Benachrichtigungen" },
   { href: "/inbox", icon: Mail, label: "Posteingang" },
   { href: "/sprints", icon: Flag, label: "Sprints" },

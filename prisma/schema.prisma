@@ -95,29 +95,35 @@ model Task {
   storyPoints          Int?
   sourceEmailId        String?
   // ─── Wiederkehrende Tasks ──────────────────────────────────────────────────
-  recurring            Boolean            @default(false)
-  recurringInterval    RecurringInterval?
-  recurringDay         Int?               // Wochentag 1-7 (Mo=1) oder Tag des Monats 1-31
-  recurringEndDate     DateTime?          // Wann endet die Wiederholung
-  parentTaskId         String?            // ID der Ursprungs-Task (bei erzeugten Kopien)
-  startAfterTaskId     String?            // Startet erst nach: ID der Vorgänger-Task
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
-  projectId   String?
-  assigneeId  String?
-  sprintId    String?
-  milestoneId String?
-  project   Project?   @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  assignee  User?      @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
-  sprint    Sprint?    @relation(fields: [sprintId], references: [id], onDelete: SetNull)
-  milestone Milestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
-  sourceEmail InboxEmail? @relation(fields: [sourceEmailId], references: [id], onDelete: SetNull)
-  parentTask  Task?     @relation("TaskSubtasks", fields: [parentTaskId], references: [id], onDelete: SetNull)
-  subtasks    Task[]    @relation("TaskSubtasks")
-  comments    TaskComment[]
-  events      Event[]
-  timeEntries TimeEntry[]
-  taskLabels  TaskLabel[]
+  shortId           Int? // Kurzreferenz für GitHub #NNN
+  recurring         Boolean            @default(false)
+  recurringInterval RecurringInterval?
+  recurringDay      Int? // Wochentag 1-7 (Mo=1) oder Tag des Monats 1-31
+  recurringEndDate  DateTime? // Wann endet die Wiederholung
+  parentTaskId      String? // ID der Ursprungs-Task (bei erzeugten Kopien)
+  startAfterTaskId  String? // Startet erst nach: ID der Vorgänger-Task
+  // ─── ICE Scoring (AF058) ───────────────────────────────────────────────────
+  iceImpact         Int? // 1-10: Wie viel Wert bringt das Feature?
+  iceConfidence     Int? // 1-10: Wie sicher sind wir bei der Einschätzung?
+  iceEase           Int? // 1-10: Wie einfach ist die Umsetzung?
+  iceScore          Float? // Berechnet: (Impact × Confidence × Ease) / 10
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  projectId         String?
+  assigneeId        String?
+  sprintId          String?
+  milestoneId       String?
+  project           Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  assignee          User?              @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+  sprint            Sprint?            @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+  milestone         Milestone?         @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  sourceEmail       InboxEmail?        @relation(fields: [sourceEmailId], references: [id], onDelete: SetNull)
+  parentTask        Task?              @relation("TaskSubtasks", fields: [parentTaskId], references: [id], onDelete: SetNull)
+  subtasks          Task[]             @relation("TaskSubtasks")
+  comments          TaskComment[]
+  events            Event[]
+  timeEntries       TimeEntry[]
+  taskLabels        TaskLabel[]
 }
 
 // ─── Board-Spalten ────────────────────────────────────────────────────────────
