@@ -39,6 +39,10 @@
     {
       "path": "/api/cron/ai-budget-check",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/hunter-leads",
+      "schedule": "0 9 * * 1"
     }
   ]
 }
