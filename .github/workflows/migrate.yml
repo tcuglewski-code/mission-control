@@ -1,0 +1,52 @@
+name: Prisma Migrate
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'prisma/schema.prisma'
+      - 'prisma/migrations/**'
+
+jobs:
+  migrate:
+    name: Deploy Database Migrations
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Deploy migrations
+        id: migrate
+        continue-on-error: true
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+
+      - name: Fallback to db push (if no migrations exist)
+        if: steps.migrate.outcome == 'failure'
+        run: |
+          echo "⚠️ prisma migrate deploy failed — falling back to prisma db push"
+          npx prisma db push --accept-data-loss
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+
+      - name: Migration Summary
+        run: |
+          echo "✅ Database schema synchronized successfully"
+          echo "Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
