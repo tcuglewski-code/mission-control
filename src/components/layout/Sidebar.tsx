@@ -49,6 +49,7 @@ import {
   BellRing,
   RefreshCw,
   Target,
+  TrendingUp,
 } from "lucide-react";
 import { useKeyboardShortcutsModal } from "@/hooks/useKeyboardShortcutsModal";
 import { useQuickAdd } from "@/hooks/useQuickAdd";
@@ -91,6 +92,7 @@ const navItems = [
   { href: "/tools", icon: Wrench, label: "Tools" },
   { href: "/estimator", icon: Zap, label: "📊 SP-Schätzer" },
   { href: "/ai-usage", icon: Brain, label: "💰 KI-Kosten" },
+  { href: "/roi", icon: TrendingUp, label: "📈 ROI Dashboard" },
   { href: "/databases", icon: Database, label: "Datenbanken" },
   { href: "/tickets", icon: Ticket, label: "Tickets" },
   { href: "/webhooks", icon: Webhook, label: "Webhooks" },

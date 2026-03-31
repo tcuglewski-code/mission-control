@@ -957,6 +957,26 @@ model AiBudgetConfig {
   updatedAt            DateTime @updatedAt
 }
 
+// ─── Agent ROI Tracking (AF057) ───────────────────────────────────────────────
+model AgentTaskRoi {
+  id                    String   @id @default(cuid())
+  taskTitle             String
+  taskDescription       String?
+  category              String   @default("other") // "code" | "research" | "content" | "qa" | "devops" | "design" | "other"
+  agentName             String   @default("Amadeus") // Agent der den Task ausgeführt hat
+  estimatedManualHours  Float    // Geschätzte manuelle Zeit in Stunden
+  actualAgentMinutes    Float    // Tatsächliche Agenten-Zeit in Minuten
+  costUsd               Float    @default(0) // API-Kosten
+  savedHours            Float?   // Berechnet: estimatedManualHours - (actualAgentMinutes/60)
+  hourlyRateSaved       Float    @default(75) // Angenommener Stundensatz €/h für Einsparungsberechnung
+  projectId             String?
+  projectName           String?
+  completedAt           DateTime @default(now())
+  notes                 String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
 // ─── OKR System (Q028) ────────────────────────────────────────────────────────
 model Objective {
   id          String    @id @default(cuid())
