@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Brain, DollarSign, Hash, Zap, TrendingUp } from "lucide-react";
+import { Brain, DollarSign, Hash, Zap, TrendingUp, AlertTriangle, Settings, Save, X } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -23,6 +23,27 @@ interface UsageData {
     api: { tokens: number; cost: number };
     max: { tokens: number; cost: number };
   };
+}
+
+interface BudgetData {
+  config: {
+    dailyBudgetUsd: number;
+    monthlyBudgetUsd: number;
+    alertThreshold: number;
+    alertEnabled: boolean;
+    alertTelegram: boolean;
+  };
+  current: {
+    daily: { cost: number; budget: number; percent: number; tokens: number; calls: number };
+    monthly: { cost: number; budget: number; percent: number; tokens: number; calls: number };
+  };
+  alerts: {
+    dailyWarning: boolean;
+    monthlyWarning: boolean;
+    dailyExceeded: boolean;
+    monthlyExceeded: boolean;
+  };
+  telegramConfigured: boolean;
 }
 
 function formatTokens(tokens: number): string {
@@ -49,10 +70,21 @@ const FEATURE_LABELS: Record<string, string> = {
 
 export default function AiUsagePage() {
   const [data, setData] = useState<UsageData | null>(null);
+  const [budget, setBudget] = useState<BudgetData | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<"7d" | "30d" | "90d" | "all">("30d");
   const [source, setSource] = useState<"api" | "max" | "all">("all");
+  const [showSettings, setShowSettings] = useState(false);
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsForm, setSettingsForm] = useState({
+    dailyBudgetUsd: 5,
+    monthlyBudgetUsd: 100,
+    alertThreshold: 0.8,
+    alertEnabled: true,
+    alertTelegram: true,
+  });
 
+  // Fetch usage data
   useEffect(() => {
     setLoading(true);
     fetch(`/api/ai/usage?period=${period}&source=${source}`)
@@ -63,6 +95,43 @@ export default function AiUsagePage() {
       })
       .catch(() => setLoading(false));
   }, [period, source]);
+
+  // Fetch budget data
+  useEffect(() => {
+    fetch("/api/ai/budget")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) {
+          setBudget(data);
+          setSettingsForm({
+            dailyBudgetUsd: data.config.dailyBudgetUsd,
+            monthlyBudgetUsd: data.config.monthlyBudgetUsd,
+            alertThreshold: data.config.alertThreshold,
+            alertEnabled: data.config.alertEnabled,
+            alertTelegram: data.config.alertTelegram,
+          });
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  const saveSettings = async () => {
+    setSettingsLoading(true);
+    try {
+      const res = await fetch("/api/ai/budget", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settingsForm),
+      });
+      if (res.ok) {
+        const updated = await fetch("/api/ai/budget").then((r) => r.json());
+        setBudget(updated);
+        setShowSettings(false);
+      }
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
 
   const totalCalls = data?.byFeature.reduce((sum, f) => sum + f.calls, 0) || 0;
   const avgCostPerCall = totalCalls > 0 ? (data?.totalCostUsd || 0) / totalCalls : 0;
@@ -87,7 +156,7 @@ export default function AiUsagePage() {
           </p>
         </div>
 
-        {/* Filters */}
+        {/* Filters + Settings */}
         <div className="flex gap-2">
           <select
             value={period}
@@ -108,8 +177,158 @@ export default function AiUsagePage() {
             <option value="api">Nur API</option>
             <option value="max">Nur Max/Amadeus</option>
           </select>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="px-3 py-2 bg-[#1c1c1c] border border-[#2a2a2a] rounded-lg text-sm text-white hover:bg-[#2a2a2a] transition-colors"
+            title="Budget-Einstellungen"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
         </div>
       </div>
+
+      {/* Budget Alerts */}
+      {budget?.alerts && (budget.alerts.dailyWarning || budget.alerts.monthlyWarning) && (
+        <div className={`rounded-xl p-4 border ${
+          budget.alerts.dailyExceeded || budget.alerts.monthlyExceeded
+            ? "bg-red-500/10 border-red-500/30"
+            : "bg-amber-500/10 border-amber-500/30"
+        }`}>
+          <div className="flex items-start gap-3">
+            <AlertTriangle className={`w-5 h-5 mt-0.5 ${
+              budget.alerts.dailyExceeded || budget.alerts.monthlyExceeded
+                ? "text-red-400"
+                : "text-amber-400"
+            }`} />
+            <div>
+              <p className={`font-medium ${
+                budget.alerts.dailyExceeded || budget.alerts.monthlyExceeded
+                  ? "text-red-400"
+                  : "text-amber-400"
+              }`}>
+                {budget.alerts.dailyExceeded || budget.alerts.monthlyExceeded
+                  ? "Budget überschritten!"
+                  : "Budget-Warnung"}
+              </p>
+              <div className="text-sm text-zinc-300 mt-1 space-y-1">
+                {budget.alerts.dailyWarning && (
+                  <p>
+                    Heute: ${budget.current.daily.cost.toFixed(2)} / ${budget.current.daily.budget.toFixed(2)} 
+                    ({budget.current.daily.percent}%)
+                  </p>
+                )}
+                {budget.alerts.monthlyWarning && (
+                  <p>
+                    Dieser Monat: ${budget.current.monthly.cost.toFixed(2)} / ${budget.current.monthly.budget.toFixed(2)} 
+                    ({budget.current.monthly.percent}%)
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">Budget-Einstellungen</h2>
+              <button onClick={() => setShowSettings(false)} className="text-zinc-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-zinc-400 mb-1">Tagesbudget (USD)</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  value={settingsForm.dailyBudgetUsd}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, dailyBudgetUsd: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-zinc-400 mb-1">Monatsbudget (USD)</label>
+                <input
+                  type="number"
+                  step="5"
+                  min="0"
+                  value={settingsForm.monthlyBudgetUsd}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, monthlyBudgetUsd: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-zinc-400 mb-1">Warn-Schwelle (%)</label>
+                <input
+                  type="number"
+                  step="5"
+                  min="0"
+                  max="100"
+                  value={Math.round(settingsForm.alertThreshold * 100)}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, alertThreshold: (parseFloat(e.target.value) || 80) / 100 })}
+                  className="w-full px-3 py-2 bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg text-white"
+                />
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="alertEnabled"
+                  checked={settingsForm.alertEnabled}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, alertEnabled: e.target.checked })}
+                  className="w-4 h-4 rounded bg-[#0f0f0f] border-[#2a2a2a]"
+                />
+                <label htmlFor="alertEnabled" className="text-sm text-zinc-300">Alerts aktiviert</label>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="alertTelegram"
+                  checked={settingsForm.alertTelegram}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, alertTelegram: e.target.checked })}
+                  className="w-4 h-4 rounded bg-[#0f0f0f] border-[#2a2a2a]"
+                />
+                <label htmlFor="alertTelegram" className="text-sm text-zinc-300">
+                  Telegram-Benachrichtigung
+                  {budget && !budget.telegramConfigured && (
+                    <span className="text-amber-400 text-xs ml-2">(nicht konfiguriert)</span>
+                  )}
+                </label>
+              </div>
+            </div>
+            
+            <div className="flex gap-2 mt-6">
+              <button
+                onClick={() => setShowSettings(false)}
+                className="flex-1 px-4 py-2 bg-[#2a2a2a] rounded-lg text-white hover:bg-[#3a3a3a]"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={saveSettings}
+                disabled={settingsLoading}
+                className="flex-1 px-4 py-2 bg-emerald-600 rounded-lg text-white hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {settingsLoading ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                Speichern
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center h-64">

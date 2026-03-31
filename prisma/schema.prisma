@@ -941,6 +941,22 @@ model AiUsage {
   createdAt    DateTime @default(now())
 }
 
+// ─── AI Budget Config (AF056) ─────────────────────────────────────────────────
+model AiBudgetConfig {
+  id                   String   @id @default("singleton")
+  dailyBudgetUsd       Float    @default(5.0)   // Tagesbudget in USD
+  monthlyBudgetUsd     Float    @default(100.0) // Monatsbudget in USD
+  alertThreshold       Float    @default(0.8)   // Alert bei 80% des Budgets
+  alertEnabled         Boolean  @default(true)
+  alertTelegram        Boolean  @default(true)
+  alertEmail           Boolean  @default(false)
+  alertEmails          String[] @default([])    // E-Mail-Adressen für Alerts
+  lastDailyAlertAt     DateTime?
+  lastMonthlyAlertAt   DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
 // ─── OKR System (Q028) ────────────────────────────────────────────────────────
 model Objective {
   id          String    @id @default(cuid())
