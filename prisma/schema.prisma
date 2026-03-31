@@ -12,6 +12,7 @@ enum RecurringInterval {
   DAILY
   WEEKLY
   MONTHLY
+  QUARTERLY
   YEARLY
 }
 

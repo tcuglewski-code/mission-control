@@ -15,6 +15,7 @@
     "db:seed:demo": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed-demo-onboarding.ts",
     "db:seed:support": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed-support.ts",
     "db:seed:roi": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed-roi-demo.ts",
+    "db:seed:quarterly": "tsx prisma/seed-quarterly-review.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {

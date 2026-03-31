@@ -64,7 +64,7 @@ export function TaskModal({
     milestoneId: "",
     storyPoints: null as number | null,
     recurring: false,
-    recurringInterval: "WEEKLY" as "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY",
+    recurringInterval: "WEEKLY" as "DAILY" | "WEEKLY" | "MONTHLY" | "QUARTERLY" | "YEARLY",
     recurringDay: "" as string,
     recurringEndDate: "",
   });
@@ -373,7 +373,7 @@ export function TaskModal({
         milestoneId: task.milestoneId ?? "",
         storyPoints: task.storyPoints ?? null,
         recurring: task.recurring ?? false,
-        recurringInterval: (task.recurringInterval as "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY") ?? "WEEKLY",
+        recurringInterval: (task.recurringInterval as "DAILY" | "WEEKLY" | "MONTHLY" | "QUARTERLY" | "YEARLY") ?? "WEEKLY",
         recurringDay: task.recurringDay?.toString() ?? "",
         recurringEndDate: task.recurringEndDate ? format(new Date(task.recurringEndDate), "yyyy-MM-dd") : "",
       });
@@ -1207,7 +1207,7 @@ export function TaskModal({
                     onChange={(e) =>
                       setForm({
                         ...form,
-                        recurringInterval: e.target.value as "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY",
+                        recurringInterval: e.target.value as "DAILY" | "WEEKLY" | "MONTHLY" | "QUARTERLY" | "YEARLY",
                         recurringDay: "",
                       })
                     }
@@ -1216,6 +1216,7 @@ export function TaskModal({
                     <option value="DAILY">Täglich</option>
                     <option value="WEEKLY">Wöchentlich</option>
                     <option value="MONTHLY">Monatlich</option>
+                    <option value="QUARTERLY">Quartalsweise</option>
                     <option value="YEARLY">Jährlich</option>
                   </select>
                 </div>
@@ -1241,8 +1242,8 @@ export function TaskModal({
                   </div>
                 )}
 
-                {/* Tag des Monats (nur bei MONTHLY) */}
-                {form.recurringInterval === "MONTHLY" && (
+                {/* Tag des Monats (bei MONTHLY oder QUARTERLY) */}
+                {(form.recurringInterval === "MONTHLY" || form.recurringInterval === "QUARTERLY") && (
                   <div>
                     <label className="text-xs text-zinc-500 mb-1 block">Tag des Monats</label>
                     <select

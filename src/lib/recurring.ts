@@ -2,7 +2,7 @@
  * Hilfsfunktionen für wiederkehrende Tasks
  */
 
-export type RecurringIntervalType = "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
+export type RecurringIntervalType = "DAILY" | "WEEKLY" | "MONTHLY" | "QUARTERLY" | "YEARLY";
 
 /**
  * Berechnet das nächste Fälligkeitsdatum basierend auf Intervall und aktuellem Datum.
@@ -46,6 +46,16 @@ export function calcNextDueDate(
       break;
     }
 
+    case "QUARTERLY": {
+      next.setMonth(next.getMonth() + 3);
+      if (recurringDay && recurringDay >= 1 && recurringDay <= 31) {
+        // Tag des Monats setzen (für Ende des Quartals, z.B. 31. März → 30. Juni)
+        const lastDay = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+        next.setDate(Math.min(recurringDay, lastDay));
+      }
+      break;
+    }
+
     case "YEARLY":
       next.setFullYear(next.getFullYear() + 1);
       break;
@@ -76,6 +86,11 @@ export function getRecurringLabel(
         return `Monatlich am ${recurringDay}.`;
       }
       return "Monatlich";
+    case "QUARTERLY":
+      if (recurringDay) {
+        return `Quartalsweise am ${recurringDay}.`;
+      }
+      return "Quartalsweise";
     case "YEARLY":
       return "Jährlich";
     default:
