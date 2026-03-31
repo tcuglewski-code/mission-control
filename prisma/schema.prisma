@@ -622,6 +622,26 @@ model InvoiceReminder {
   @@index([invoiceId])
 }
 
+// ─── Betriebsausgaben (AF069: Cash Flow Dashboard) ───────────────────────────
+model Expense {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  amount      Float    // Betrag in €
+  category    String   @default("Sonstiges") // "Hosting" | "SaaS" | "Personal" | "Marketing" | "Tools" | "Sonstiges"
+  vendor      String?  // Anbieter z.B. "Vercel", "Neon", "Anthropic", "Expo"
+  date        DateTime @default(now())
+  recurring   Boolean  @default(false) // Monatlich wiederkehrende Kosten?
+  projectId   String?  // Optional: Zuordnung zu Projekt
+  notes       String?
+  receipt     String?  // URL zum Beleg (optional)
+  createdBy   String?  // AuthUser ID
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([date])
+  @@index([category])
+}
+
 // ─── Rechnungs-Vorlagen ───────────────────────────────────────────────────────
 model InvoiceTemplate {
   id          String   @id @default(cuid())
@@ -1013,4 +1033,43 @@ model KeyResult {
   progress    Int       @default(0) // 0-100
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+// ─── Upselling Trigger System (AF068) ─────────────────────────────────────────
+model UpsellConfig {
+  id                    String   @id @default("singleton")
+  enabled               Boolean  @default(true)
+  // Trigger Schwellwerte
+  userThreshold         Int      @default(5)      // Ab X Nutzer → Pro Upgrade
+  taskMonthlyThreshold  Int      @default(100)    // Ab X Tasks/Monat → Pro Upgrade
+  apiCostThreshold      Float    @default(20.0)   // Ab X USD/Monat → Enterprise
+  storageThreshold      Int      @default(500)    // Ab X MB Dokumente → Storage Addon
+  // Benachrichtigungen
+  alertTelegram         Boolean  @default(true)
+  alertEmail            Boolean  @default(false)
+  alertEmails           String[] @default([])
+  // Cooldown (verhindert Spam)
+  cooldownDays          Int      @default(30)     // Min. Tage zwischen Alerts pro Tenant
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model UpsellTrigger {
+  id            String    @id @default(cuid())
+  tenantId      String    // Tenant/Projekt/Kunde Identifier
+  tenantName    String
+  triggerType   String    // "users" | "tasks" | "api_cost" | "storage" | "feature_request"
+  triggerValue  Float     // Aktueller Wert der den Trigger ausgelöst hat
+  threshold     Float     // Schwellwert der überschritten wurde
+  suggestedPlan String    // "pro" | "enterprise" | "storage_addon" | "custom"
+  message       String    // Upselling-Nachricht für Sales
+  status        String    @default("new") // "new" | "contacted" | "converted" | "dismissed"
+  priority      String    @default("medium") // "low" | "medium" | "high"
+  metadata      String?   // JSON für zusätzliche Infos
+  contactedAt   DateTime?
+  convertedAt   DateTime?
+  dismissedAt   DateTime?
+  notes         String?   // Sales-Notizen
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }

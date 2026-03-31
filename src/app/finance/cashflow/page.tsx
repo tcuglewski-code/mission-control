@@ -14,7 +14,7 @@
 import { useEffect, useState, useCallback } from "react"
 import { AppShell } from "@/components/layout/AppShell"
 import Link from "next/link"
-import { TrendingUp, TrendingDown, DollarSign, Clock, ArrowUpRight, ArrowDownRight } from "lucide-react"
+import { TrendingUp, TrendingDown, DollarSign, Clock, ArrowUpRight, ArrowDownRight, Plus, Settings } from "lucide-react"
 
 interface CashflowKpis {
   mrr: number
@@ -186,6 +186,12 @@ export default function CashflowDashboard() {
             >
               Aktualisieren
             </button>
+            <Link
+              href="/finance/expenses"
+              className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-blue-700"
+            >
+              <Plus size={14} /> Ausgabe
+            </Link>
           </div>
         </div>
 

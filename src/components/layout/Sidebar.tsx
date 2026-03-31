@@ -79,6 +79,7 @@ const navItems = [
   { href: "/sales", icon: Target, label: "Sales Pipeline" },
   { href: "/okr", icon: Target, label: "OKR Dashboard" },
   { href: "/finance", icon: Banknote, label: "Finanzen" },
+  { href: "/finance/cashflow", icon: TrendingUp, label: "💰 Cash Flow" },
   { href: "/quotes", icon: FileText, label: "Angebote" },
   { href: "/invoice-templates", icon: FileText, label: "Rechnungsvorlagen" },
   { href: "/activity", icon: ActivitySquare, label: "Aktivitäten" },
