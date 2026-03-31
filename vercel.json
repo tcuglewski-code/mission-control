@@ -30,7 +30,7 @@
     },
     {
       "path": "/api/cron/uptime",
-      "schedule": "0 * * * *"
+      "schedule": "0 12 * * *"
     },
     {
       "path": "/api/cron/invoice-reminders",
@@ -38,7 +38,7 @@
     },
     {
       "path": "/api/cron/ai-budget-check",
-      "schedule": "0 8,20 * * *"
+      "schedule": "0 8 * * *"
     }
   ]
 }
