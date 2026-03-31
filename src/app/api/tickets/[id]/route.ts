@@ -86,9 +86,12 @@ export async function PATCH(
     if (changes.length > 0) {
       await prisma.activityLog.create({
         data: {
-          type: 'ticket_updated',
+          entityType: 'ticket',
+        entityId: id,
+        entityName: id,
+        action: 'ticket_updated',
           action: `Ticket aktualisiert: ${changes.join(', ')}`,
-          userId: auth.userId,
+          userId: null,
           userEmail: auth.email,
           meta: JSON.stringify({ ticketId: id, changes }),
           projectId: existing.projectId,
@@ -127,9 +130,12 @@ export async function DELETE(
 
     await prisma.activityLog.create({
       data: {
-        type: 'ticket_deleted',
+        entityType: 'ticket',
+        entityId: id,
+        entityName: id,
+        action: 'ticket_deleted',
         action: `Ticket gelöscht: ${existing.title}`,
-        userId: auth.userId,
+        userId: null,
         userEmail: auth.email,
         meta: JSON.stringify({ ticketId: id }),
         projectId: existing.projectId,

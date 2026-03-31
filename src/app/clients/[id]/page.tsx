@@ -247,7 +247,7 @@ export default function ClientDetailPage() {
 
   if (loading) {
     return (
-      <AppShell>
+      <AppShell title="Kunde">
         <div className="flex items-center justify-center min-h-[50vh] text-zinc-600">
           <Loader2 className="w-6 h-6 animate-spin" />
         </div>
@@ -257,7 +257,7 @@ export default function ClientDetailPage() {
 
   if (!client) {
     return (
-      <AppShell>
+      <AppShell title="Kunde">
         <div className="flex flex-col items-center justify-center min-h-[50vh] text-zinc-600 gap-3">
           <Building2 className="w-12 h-12 opacity-30" />
           <p>Kunde nicht gefunden</p>
@@ -279,7 +279,7 @@ export default function ClientDetailPage() {
   );
 
   return (
-    <AppShell>
+    <AppShell title="Kunde">
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-zinc-500">
