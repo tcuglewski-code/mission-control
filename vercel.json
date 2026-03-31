@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/cron/dsgvo-compliance",
+      "schedule": "0 10 * * 1"
+    },
+    {
       "path": "/api/cron/monthly-report",
       "schedule": "0 9 1 * *"
     },
