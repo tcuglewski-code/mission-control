@@ -55,6 +55,10 @@
     {
       "path": "/api/cron/hunter-leads",
       "schedule": "0 9 * * 1"
+    },
+    {
+      "path": "/api/cron/upsell-check",
+      "schedule": "0 10 * * *"
     }
   ]
 }

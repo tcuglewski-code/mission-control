@@ -595,6 +595,22 @@ export function Sidebar() {
                 <Zap className={cn("w-4 h-4 shrink-0", pathname === "/admin/integrations" ? "text-amber-400" : "")} />
                 <span>Integrationen</span>
               </Link>
+              <Link
+                href="/admin/upselling"
+                onClick={() => setSidebarOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
+                  pathname === "/admin/upselling"
+                    ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
+                    : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+                )}
+              >
+                {pathname === "/admin/upselling" && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-amber-500 rounded-r-full" />
+                )}
+                <TrendingUp className={cn("w-4 h-4 shrink-0", pathname === "/admin/upselling" ? "text-amber-400" : "")} />
+                <span>🎯 Upselling</span>
+              </Link>
             </div>
           )}
         </nav>
