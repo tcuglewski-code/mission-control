@@ -59,6 +59,10 @@
     {
       "path": "/api/cron/upsell-check",
       "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/seo-article-generator",
+      "schedule": "0 10 15 * *"
     }
   ]
 }
