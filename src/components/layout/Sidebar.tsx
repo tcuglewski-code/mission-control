@@ -51,6 +51,7 @@ import {
   BellRing,
   RefreshCw,
   Target,
+  Download,
 } from "lucide-react";
 import { useKeyboardShortcutsModal } from "@/hooks/useKeyboardShortcutsModal";
 import { useQuickAdd } from "@/hooks/useQuickAdd";
@@ -86,7 +87,7 @@ const navItems = [
   { href: "/activity", icon: ActivitySquare, label: "Aktivitäten" },
   { href: "/analytics", icon: BarChart2, label: "Analytics" },
   { href: "/reports/weekly", icon: ClipboardList, label: "Team-Report" },
-  { href: "/reports/export", icon: FileText, label: "CSV Export" },
+  { href: "/exports", icon: Download, label: "Export-Center" },
   { href: "/memory", icon: Brain, label: "Memory" },
   { href: "/docs", icon: FileText, label: "Dokumente" },
   { href: "/documents", icon: FolderArchive, label: "Dateiverwaltung" },
