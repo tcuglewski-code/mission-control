@@ -28,6 +28,7 @@ export default async function DashboardPage() {
   const todayStart = startOfDay(new Date());
   const todayEnd = endOfDay(new Date());
 
+  // Use .catch(() => fallback) pattern for resilience when tables might not exist
   const [
     openTasksCount,
     teamCount,
@@ -47,10 +48,10 @@ export default async function DashboardPage() {
         status: { not: "done" },
         ...(allowedIds ? { projectId: { in: allowedIds } } : {}),
       },
-    }),
+    }).catch(() => 0),
 
     // Team member count
-    prisma.user.count(),
+    prisma.user.count().catch(() => 0),
 
     // Activity today
     prisma.activityLog.count({
@@ -58,7 +59,7 @@ export default async function DashboardPage() {
         createdAt: { gte: todayStart, lte: todayEnd },
         ...(allowedIds ? { projectId: { in: allowedIds } } : {}),
       },
-    }),
+    }).catch(() => 0),
 
     // Recent activity logs
     prisma.activityLog.findMany({
@@ -66,7 +67,7 @@ export default async function DashboardPage() {
       include: { user: { select: { name: true, avatar: true } } },
       orderBy: { createdAt: "desc" },
       take: 10,
-    }),
+    }).catch(() => []),
 
     // Active projects for widget
     prisma.project.findMany({
@@ -79,13 +80,13 @@ export default async function DashboardPage() {
       },
       orderBy: { updatedAt: "desc" },
       take: 6,
-    }),
+    }).catch(() => []),
 
     // Budget projects
     prisma.project.findMany({
       where: allowedIds ? { id: { in: allowedIds } } : {},
       select: { id: true, name: true, budget: true, budgetUsed: true, color: true },
-    }),
+    }).catch(() => []),
 
     // Open tasks (list)
     prisma.task.findMany({
@@ -98,7 +99,7 @@ export default async function DashboardPage() {
       },
       orderBy: [{ priority: "desc" }, { dueDate: "asc" }],
       take: 10,
-    }),
+    }).catch(() => []),
 
     // My tasks (assigned to current user)
     appUserId
@@ -113,7 +114,7 @@ export default async function DashboardPage() {
           },
           orderBy: [{ dueDate: "asc" }],
           take: 10,
-        })
+        }).catch(() => [])
       : Promise.resolve([]),
 
     // Upcoming milestones
@@ -127,7 +128,7 @@ export default async function DashboardPage() {
       },
       orderBy: { dueDate: "asc" },
       take: 6,
-    }),
+    }).catch(() => []),
 
     // Time entries today
     prisma.timeEntry.findMany({
@@ -144,7 +145,7 @@ export default async function DashboardPage() {
       },
       orderBy: { startTime: "desc" },
       take: 10,
-    }),
+    }).catch(() => []),
 
     // Team members with open task count
     prisma.user.findMany({
@@ -161,7 +162,7 @@ export default async function DashboardPage() {
         },
       },
       take: 10,
-    }),
+    }).catch(() => []),
   ]);
 
   const totalMinutesToday = timeEntriesToday.reduce(
