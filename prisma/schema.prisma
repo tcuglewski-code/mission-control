@@ -1117,6 +1117,29 @@ model MeetingActionItem {
   updatedAt   DateTime  @updatedAt
 }
 
+// ─── Decisions Log (Q050) ─────────────────────────────────────────────────────
+model Decision {
+  id             String    @id @default(cuid())
+  title          String
+  decisionDate   DateTime  @default(now())
+  context        String?   // Warum wurde diese Entscheidung getroffen? (Markdown)
+  decision       String    // Was wurde entschieden? (Markdown)
+  alternatives   String?   // Welche Alternativen wurden betrachtet? (Markdown)
+  impact         String?   // Erwartete Auswirkung (Markdown)
+  category       String    @default("Tech") // "Tech" | "Business" | "Product" | "Prozess" | "Team" | "Sonstiges"
+  status         String    @default("active") // "active" | "superseded" | "reversed"
+  ownerId        String?   // AuthUser ID des Verantwortlichen
+  ownerName      String?
+  projectId      String?   // Optional: Verknüpfung mit Projekt
+  projectName    String?
+  tags           String?   // Komma-separierte Tags für Filter
+  supersededBy   String?   // ID der neuen Entscheidung wenn superseded
+  reversedReason String?   // Grund für Aufhebung wenn reversed
+  isArchived     Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
 // ─── Risk Register (Q037) ─────────────────────────────────────────────────────
 model Risk {
   id             String    @id @default(cuid())

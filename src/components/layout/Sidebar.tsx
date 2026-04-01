@@ -81,6 +81,7 @@ const navItems = [
   { href: "/okr", icon: Target, label: "OKR Dashboard" },
   { href: "/meetings", icon: NotebookPen, label: "Meeting Notes" },
   { href: "/risks", icon: ShieldCheck, label: "⚠️ Risk Register" },
+  { href: "/decisions", icon: FileText, label: "📋 Decisions Log" },
   { href: "/finance", icon: Banknote, label: "Finanzen" },
   { href: "/finance/cashflow", icon: TrendingUp, label: "💰 Cash Flow" },
   { href: "/quotes", icon: FileText, label: "Angebote" },
