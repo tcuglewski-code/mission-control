@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/cron/onboarding-check",
+      "schedule": "0 8 * * *"
+    },
+    {
       "path": "/api/cron/dsgvo-compliance",
       "schedule": "0 10 * * 1"
     },

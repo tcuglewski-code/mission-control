@@ -1160,3 +1160,82 @@ model Risk {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 }
+
+// ─── Customer Onboarding Tracking (AF083: Cleo-Agent) ─────────────────────────
+model CustomerOnboarding {
+  id              String    @id @default(cuid())
+  tenantId        String    @unique // z.B. "koch-aufforstung", "kunde-2"
+  tenantName      String    // Anzeigename
+  projectId       String?   // Optional: Verknüpfung mit MC-Projekt
+  // Status
+  status          String    @default("in_progress") // "in_progress" | "completed" | "paused" | "cancelled"
+  week            Int       @default(1) // Aktuelle Onboarding-Woche (1-4)
+  startDate       DateTime  @default(now())
+  targetGoLive    DateTime? // Geplantes Go-Live-Datum
+  actualGoLive    DateTime? // Tatsächliches Go-Live
+  // Woche 1: Kickoff
+  w1_kickoff         Boolean @default(false)
+  w1_requirements    Boolean @default(false)
+  w1_configPlan      Boolean @default(false)
+  // Woche 2: Setup
+  w2_domain          Boolean @default(false)
+  w2_database        Boolean @default(false)
+  w2_appSetup        Boolean @default(false)
+  w2_dataImport      Boolean @default(false)
+  // Woche 3: Training
+  w3_adminTraining   Boolean @default(false)
+  w3_workerTraining  Boolean @default(false)
+  w3_testRun         Boolean @default(false)
+  // Woche 4: Go-Live
+  w4_finalCheck      Boolean @default(false)
+  w4_goLive          Boolean @default(false)
+  w4_supportHandover Boolean @default(false)
+  // Zusätzliche Checkpoints
+  avvSigned          Boolean @default(false) // Auftragsverarbeitungsvertrag
+  contractSigned     Boolean @default(false) // SaaS-Vertrag
+  firstPayment       Boolean @default(false) // Erste Zahlung eingegangen
+  // Meta
+  contactName        String?
+  contactEmail       String?
+  notes              String? // Freitext-Notizen
+  lastReminderSentAt DateTime?
+  reminderCount      Int     @default(0)
+  ownerId            String? // Zuständiger Sales/PM
+  ownerName          String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+// ─── Onboarding Check Config (Cleo-Agent Settings) ────────────────────────────
+model OnboardingCheckConfig {
+  id                   String   @id @default("singleton")
+  enabled              Boolean  @default(true)
+  // Benachrichtigungen
+  alertTelegram        Boolean  @default(true)
+  alertSlack           Boolean  @default(false)
+  // Schwellwerte
+  staleDaysThreshold   Int      @default(7)  // Tage ohne Fortschritt → Alert
+  reminderCooldownDays Int      @default(3)  // Min. Tage zwischen Erinnerungen
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+// ─── Decisions Log (Q050) ─────────────────────────────────────────────────────
+model Decision {
+  id           String    @id @default(cuid())
+  title        String
+  decisionDate DateTime  @default(now())
+  context      String?   // Warum wurde diese Entscheidung getroffen?
+  decision     String    // Die eigentliche Entscheidung
+  alternatives String?   // Welche Alternativen wurden erwogen?
+  impact       String?   // Erwartete Auswirkung
+  category     String    @default("Tech") // "Tech" | "Business" | "Product" | "Prozess" | "Team" | "Sonstiges"
+  status       String    @default("active") // "active" | "superseded" | "reversed"
+  supersededBy String?   // ID der neuen Entscheidung (wenn ersetzt)
+  projectId    String?
+  tags         String[]  @default([])
+  ownerId      String?
+  ownerName    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
