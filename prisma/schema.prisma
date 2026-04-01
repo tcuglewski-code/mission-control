@@ -1116,3 +1116,24 @@ model MeetingActionItem {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
+
+// ─── Risk Register (Q037) ─────────────────────────────────────────────────────
+model Risk {
+  id             String    @id @default(cuid())
+  title          String
+  description    String?
+  category       String    @default("Tech") // "Tech" | "Business" | "Ressourcen" | "Legal" | "External"
+  probability    Int       @default(3) // 1-5 (1=sehr gering, 5=sehr hoch)
+  impact         Int       @default(3) // 1-5 (1=minimal, 5=kritisch)
+  riskScore      Int?      // Berechnet: probability × impact (1-25)
+  status         String    @default("identified") // "identified" | "mitigated" | "accepted" | "closed"
+  mitigations    String?   // Gegenmaßnahmen (Markdown)
+  contingency    String?   // Notfallplan falls Risiko eintritt
+  ownerId        String?
+  ownerName      String?
+  projectId      String?   // Optional: Verknüpfung mit Projekt
+  dueDate        DateTime? // Deadline für Gegenmaßnahmen
+  lastReviewedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
