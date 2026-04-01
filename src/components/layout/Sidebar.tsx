@@ -50,6 +50,7 @@ import {
   RefreshCw,
   Target,
   TrendingUp,
+  NotebookPen,
 } from "lucide-react";
 import { useKeyboardShortcutsModal } from "@/hooks/useKeyboardShortcutsModal";
 import { useQuickAdd } from "@/hooks/useQuickAdd";
@@ -78,6 +79,7 @@ const navItems = [
   { href: "/projects", icon: FolderKanban, label: "Projekte" },
   { href: "/sales", icon: Target, label: "Sales Pipeline" },
   { href: "/okr", icon: Target, label: "OKR Dashboard" },
+  { href: "/meetings", icon: NotebookPen, label: "Meeting Notes" },
   { href: "/finance", icon: Banknote, label: "Finanzen" },
   { href: "/finance/cashflow", icon: TrendingUp, label: "💰 Cash Flow" },
   { href: "/quotes", icon: FileText, label: "Angebote" },

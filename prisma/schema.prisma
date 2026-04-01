@@ -1074,3 +1074,45 @@ model UpsellTrigger {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
+
+// ─── Meeting Notes (Q032) ─────────────────────────────────────────────────────
+model Meeting {
+  id            String    @id @default(cuid())
+  title         String
+  date          DateTime
+  duration      Int?      // Minuten
+  location      String?   // "Video-Call" | "Büro" | "Telefon" | "Vor Ort"
+  // Teilnehmer (JSON array: [{name: "Tomek", email: "..."}, ...])
+  participants  String?
+  // Inhalte
+  agenda        String?   // Markdown
+  notes         String?   // Markdown — Protokoll
+  decisions     String?   // Markdown — Beschlüsse
+  // Verknüpfungen
+  projectId     String?
+  projectName   String?
+  organizerId   String?   // AuthUser ID
+  organizerName String?
+  // Status
+  status        String    @default("scheduled") // "scheduled" | "completed" | "cancelled"
+  isArchived    Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  // Relations
+  actionItems   MeetingActionItem[]
+}
+
+model MeetingActionItem {
+  id          String    @id @default(cuid())
+  meetingId   String
+  meeting     Meeting   @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  title       String
+  assigneeId  String?   // AuthUser oder User ID
+  assigneeName String?
+  dueDate     DateTime?
+  status      String    @default("open") // "open" | "in_progress" | "done"
+  taskId      String?   // Optional: Verknüpfung mit Task (wenn aus Action Item ein Task erstellt wurde)
+  priority    String    @default("medium") // "low" | "medium" | "high"
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
