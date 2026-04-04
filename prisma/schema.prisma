@@ -1219,23 +1219,3 @@ model OnboardingCheckConfig {
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 }
-
-// ─── Decisions Log (Q050) ─────────────────────────────────────────────────────
-model Decision {
-  id           String    @id @default(cuid())
-  title        String
-  decisionDate DateTime  @default(now())
-  context      String?   // Warum wurde diese Entscheidung getroffen?
-  decision     String    // Die eigentliche Entscheidung
-  alternatives String?   // Welche Alternativen wurden erwogen?
-  impact       String?   // Erwartete Auswirkung
-  category     String    @default("Tech") // "Tech" | "Business" | "Product" | "Prozess" | "Team" | "Sonstiges"
-  status       String    @default("active") // "active" | "superseded" | "reversed"
-  supersededBy String?   // ID der neuen Entscheidung (wenn ersetzt)
-  projectId    String?
-  tags         String[]  @default([])
-  ownerId      String?
-  ownerName    String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-}
