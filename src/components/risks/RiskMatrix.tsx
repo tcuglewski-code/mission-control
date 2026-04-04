@@ -1,16 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-
-interface Risk {
-  id: string
-  title: string
-  probability: number
-  impact: number
-  riskScore: number | null
-  category: string
-  status: string
-}
+import type { Risk } from '@/types/risk'
 
 interface RiskMatrixProps {
   risks: Risk[]

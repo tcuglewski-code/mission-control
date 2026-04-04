@@ -11,7 +11,13 @@ import { NextRequest, NextResponse } from "next/server";
  * ohne Auth aufgerufen werden wenn ALLOW_DEV_CRON=true gesetzt ist.
  */
 
-export function verifyCronAuth(req: NextRequest): boolean {
+export interface CronAuthResult {
+  authorized: boolean;
+  error?: string;
+  reason?: string;
+}
+
+export function verifyCronAuth(req: Request | NextRequest): CronAuthResult {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 
@@ -19,30 +25,30 @@ export function verifyCronAuth(req: NextRequest): boolean {
   if (!cronSecret) {
     if (process.env.NODE_ENV === "production") {
       console.error("[CRON AUTH] CRON_SECRET nicht konfiguriert in Production!");
-      return false;
+      return { authorized: false, error: "CRON_SECRET nicht konfiguriert", reason: "CRON_SECRET nicht konfiguriert" };
     }
     // In Development ohne Secret erlauben wenn explizit aktiviert
     if (process.env.ALLOW_DEV_CRON === "true") {
       console.warn("[CRON AUTH] Development-Modus: Cron ohne Secret erlaubt (ALLOW_DEV_CRON=true)");
-      return true;
+      return { authorized: true };
     }
     console.error("[CRON AUTH] CRON_SECRET nicht konfiguriert und ALLOW_DEV_CRON nicht gesetzt");
-    return false;
+    return { authorized: false, error: "CRON_SECRET nicht konfiguriert", reason: "CRON_SECRET nicht konfiguriert" };
   }
 
   // Bearer Token prüfen
   if (authHeader === `Bearer ${cronSecret}`) {
-    return true;
+    return { authorized: true };
   }
 
   // Alternativer x-cron-secret Header (Legacy-Kompatibilität)
   const legacyHeader = req.headers.get("x-cron-secret");
   if (legacyHeader === cronSecret) {
     console.warn("[CRON AUTH] Legacy x-cron-secret Header verwendet — bitte auf Authorization umstellen");
-    return true;
+    return { authorized: true };
   }
 
-  return false;
+  return { authorized: false, error: "Unauthorized — CRON_SECRET erforderlich", reason: "Unauthorized — CRON_SECRET erforderlich" };
 }
 
 /**
@@ -53,10 +59,11 @@ export function withCronAuth(
   handler: (req: NextRequest) => Promise<NextResponse>
 ): (req: NextRequest) => Promise<NextResponse> {
   return async (req: NextRequest) => {
-    if (!verifyCronAuth(req)) {
+    const authResult = verifyCronAuth(req);
+    if (!authResult.authorized) {
       console.error(`[CRON AUTH] Unauthorized: ${req.nextUrl.pathname}`);
       return NextResponse.json(
-        { error: "Unauthorized — CRON_SECRET erforderlich" },
+        { error: authResult.error ?? "Unauthorized — CRON_SECRET erforderlich" },
         { status: 401 }
       );
     }

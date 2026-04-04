@@ -404,7 +404,10 @@ export default function AiUsagePage() {
                       borderRadius: "8px",
                     }}
                     labelStyle={{ color: "#888" }}
-                    formatter={(value: number) => [`$${value.toFixed(4)}`, "Kosten"]}
+                    formatter={(value) => {
+                      const numValue = typeof value === 'number' ? value : 0;
+                      return [`$${numValue.toFixed(4)}`, "Kosten"];
+                    }}
                   />
                   <Bar dataKey="Kosten" fill="#10b981" radius={[4, 4, 0, 0]} />
                 </BarChart>
