@@ -10,22 +10,26 @@ updates:
       day: "monday"
       time: "06:00"
       timezone: "Europe/Berlin"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5
     commit-message:
       prefix: "deps"
     labels:
       - "dependencies"
       - "automated"
+    # ONLY auto-merge patch updates — minor/major need manual review
+    # Major version bumps often have breaking changes (react-markdown 9→10!)
     groups:
       patch-updates:
         patterns:
           - "*"
         update-types:
           - "patch"
-    # Auto-merge patch updates via GitHub Actions workflow
-    # Requires separate workflow: .github/workflows/dependabot-automerge.yml
+    ignore:
+      # Block all major version auto-updates — must be reviewed manually
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
-  # GitHub Actions
+  # GitHub Actions — only patch/minor
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -36,3 +40,6 @@ updates:
     labels:
       - "ci"
       - "automated"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
