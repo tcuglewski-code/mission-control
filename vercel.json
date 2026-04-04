@@ -67,6 +67,10 @@
     {
       "path": "/api/cron/seo-article-generator",
       "schedule": "0 10 15 * *"
+    },
+    {
+      "path": "/api/cron/cleanup-pd-access-log",
+      "schedule": "0 3 * * *"
     }
   ]
 }

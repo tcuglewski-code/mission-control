@@ -1219,3 +1219,32 @@ model OnboardingCheckConfig {
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 }
+
+// ============================================================
+// ACCESS LOGGING FÜR PERSONENBEZOGENE DATEN (Sprint DA-29)
+// DSGVO-konforme Protokollierung aller Zugriffe auf PD
+// Retention: 90 Tage (automatische Löschung via Cron)
+// ============================================================
+
+model PdAccessLog {
+  id         String   @id @default(cuid())
+  userId     String?  // User-ID des Zugreifenden (null bei unauthentifiziert)
+  userName   String?  // Name des Users (für Archiv, falls User gelöscht)
+  resource   String   // Betroffene Ressource: USER_PROFILE, AUTH_USER, INVOICE, EXPENSE
+  resourceId String?  // ID des spezifischen Datensatzes (optional)
+  action     String   // READ, WRITE, DELETE, EXPORT, BULK_READ
+  ip         String?  // IP-Adresse des Zugreifenden
+  userAgent  String?  // Browser/Client
+  endpoint   String?  // API-Endpoint z.B. "/api/users/123"
+  method     String?  // HTTP-Methode: GET, POST, PUT, DELETE
+  statusCode Int?     // HTTP-Statuscode der Antwort
+  metadata   Json?    // Zusätzliche Daten (z.B. Filter-Parameter bei Bulk-Read)
+  createdAt  DateTime @default(now())
+  // Retention: Einträge >90 Tage werden via Cron gelöscht
+  // Kein updatedAt - Einträge sind immutable
+
+  @@index([userId])
+  @@index([resource])
+  @@index([createdAt])
+  @@index([ip])
+}
