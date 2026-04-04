@@ -108,9 +108,8 @@ async function checkWordPressBackup(): Promise<{
 
 export async function GET(request: NextRequest) {
   // Auth prüfen
-  const authResult = verifyCronAuth(request)
-  if (!authResult.authorized) {
-    return NextResponse.json({ error: authResult.error }, { status: 401 })
+  if (!verifyCronAuth(request)) {
+    return NextResponse.json({ error: "Unauthorized — CRON_SECRET erforderlich" }, { status: 401 })
   }
   
   const results: Array<{
@@ -186,7 +185,7 @@ export async function GET(request: NextRequest) {
         completedAt: new Date(),
         duration,
         error: backupResult.error,
-        metadata: backupResult.metadata,
+        metadata: backupResult.metadata as object,
       },
     })
     

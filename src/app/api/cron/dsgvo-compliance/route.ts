@@ -110,7 +110,7 @@ async function checkPaths(baseUrl: string, paths: string[]): Promise<{ found: bo
 }
 
 // Prüft ob Cookie-Banner im HTML vorhanden ist
-function checkCookieBanner(html: string): { found: boolean; indicator?: string } {
+function checkCookieBanner(html: string): { found: boolean; indicator: string | undefined } {
   const lowerHtml = html.toLowerCase();
   
   for (const indicator of COOKIE_BANNER_INDICATORS) {
@@ -134,7 +134,7 @@ function checkCookieBanner(html: string): { found: boolean; indicator?: string }
     }
   }
   
-  return { found: false };
+  return { found: false, indicator: undefined };
 }
 
 // Compliance-Check für einen Tenant durchführen
@@ -144,7 +144,7 @@ async function checkTenantCompliance(tenantId: string, tenantName: string, url: 
   url: string;
   impressum: { found: boolean; path?: string };
   privacy: { found: boolean; path?: string };
-  cookieBanner: { found: boolean; indicator?: string };
+  cookieBanner: { found: boolean; indicator: string | undefined };
   issues: string[];
   compliant: boolean;
 }> {
@@ -189,9 +189,8 @@ async function checkTenantCompliance(tenantId: string, tenantName: string, url: 
 
 export async function GET(request: Request) {
   // Auth prüfen
-  const authResult = verifyCronAuth(request);
-  if (!authResult.authorized) {
-    return NextResponse.json({ error: authResult.error }, { status: 401 });
+  if (!verifyCronAuth(request as any)) {
+    return NextResponse.json({ error: "Unauthorized — CRON_SECRET erforderlich" }, { status: 401 });
   }
 
   const results: Array<{
@@ -203,7 +202,7 @@ export async function GET(request: Request) {
     details: {
       impressum: { found: boolean; path?: string };
       privacy: { found: boolean; path?: string };
-      cookieBanner: { found: boolean; indicator?: string };
+      cookieBanner: { found: boolean; indicator: string | undefined };
     };
   }> = [];
 
@@ -272,14 +271,14 @@ export async function GET(request: Request) {
         action: "DSGVO_COMPLIANCE_CHECK",
         entityType: "system",
         entityId: "lexos-agent",
-        description: `DSGVO-Compliance-Check: ${configs.length} Tenants geprüft, ${nonCompliantTenants.length} mit Problemen`,
-        metadata: {
+        entityName: `DSGVO-Check: ${configs.length} Tenants, ${nonCompliantTenants.length} Probleme`,
+        metadata: JSON.stringify({
           timestamp: new Date().toISOString(),
           tenantsChecked: configs.length,
           compliantCount: configs.length - nonCompliantTenants.length,
           nonCompliantCount: nonCompliantTenants.length,
           nonCompliantTenants,
-        },
+        }),
       },
     });
 

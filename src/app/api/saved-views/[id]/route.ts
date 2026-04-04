@@ -9,15 +9,16 @@ import { getSessionOrApiKey } from "@/lib/api-auth";
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await getSessionOrApiKey(req);
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     // @ts-ignore
     await (prisma as any).savedView.deleteMany({
-      where: { id: params.id, userId: user.id },
+      where: { id, userId: user.id },
     });
 
     return NextResponse.json({ ok: true });
@@ -29,9 +30,10 @@ export async function DELETE(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await getSessionOrApiKey(req);
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -40,7 +42,7 @@ export async function PATCH(
 
     // @ts-ignore
     const view = await (prisma as any).savedView.updateMany({
-      where: { id: params.id, userId: user.id },
+      where: { id, userId: user.id },
       data: {
         ...(name ? { name: name.trim() } : {}),
         ...(filterRaw ? { filterRaw: filterRaw.trim() } : {}),

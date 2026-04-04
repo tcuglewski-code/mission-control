@@ -10,57 +10,58 @@ import { ROLE_PERMISSIONS, type McRole } from "@/lib/permissions";
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const admin = await requireAdminFromDb();
-  if (!admin) {
-    return NextResponse.json({ error: "Nur Administratoren haben Zugriff" }, { status: 403 });
-  }
-
-  const body = await req.json();
-  const { mcRole, active, role, permissions, projectAccess } = body;
-
-  // Build update data
-  const updateData: Record<string, unknown> = {};
-
-  if (mcRole !== undefined) {
-    const validRoles: McRole[] = ["admin", "projektmanager", "entwickler", "beobachter"];
-    if (!validRoles.includes(mcRole)) {
-      return NextResponse.json({ error: "Ungültige Rolle" }, { status: 400 });
-    }
-    updateData.mcRole = mcRole;
-    // Sync system role if mcRole is admin
-    if (mcRole === "admin") {
-      updateData.role = "admin";
-    } else if ((await prisma.authUser.findUnique({ where: { id: params.id } }))?.role === "admin" && mcRole !== "admin") {
-      // Downgrade from admin to user if mcRole is not admin
-      updateData.role = "user";
-    }
-    // Auto-set permissions based on role (if not explicitly provided)
-    if (permissions === undefined) {
-      updateData.permissions = ROLE_PERMISSIONS[mcRole as McRole] ?? [];
-    }
-  }
-
-  if (active !== undefined) {
-    updateData.active = active;
-  }
-
-  if (role !== undefined) {
-    updateData.role = role;
-  }
-
-  if (permissions !== undefined) {
-    updateData.permissions = permissions;
-  }
-
-  if (projectAccess !== undefined) {
-    updateData.projectAccess = projectAccess;
-  }
-
   try {
+    const { id } = await params;
+    const admin = await requireAdminFromDb();
+    if (!admin) {
+      return NextResponse.json({ error: "Nur Administratoren haben Zugriff" }, { status: 403 });
+    }
+
+    const body = await req.json();
+    const { mcRole, active, role, permissions, projectAccess } = body;
+
+    // Build update data
+    const updateData: Record<string, unknown> = {};
+
+    if (mcRole !== undefined) {
+      const validRoles: McRole[] = ["admin", "projektmanager", "entwickler", "beobachter"];
+      if (!validRoles.includes(mcRole)) {
+        return NextResponse.json({ error: "Ungültige Rolle" }, { status: 400 });
+      }
+      updateData.mcRole = mcRole;
+      // Sync system role if mcRole is admin
+      if (mcRole === "admin") {
+        updateData.role = "admin";
+      } else if ((await prisma.authUser.findUnique({ where: { id } }))?.role === "admin" && mcRole !== "admin") {
+        // Downgrade from admin to user if mcRole is not admin
+        updateData.role = "user";
+      }
+      // Auto-set permissions based on role (if not explicitly provided)
+      if (permissions === undefined) {
+        updateData.permissions = ROLE_PERMISSIONS[mcRole as McRole] ?? [];
+      }
+    }
+
+    if (active !== undefined) {
+      updateData.active = active;
+    }
+
+    if (role !== undefined) {
+      updateData.role = role;
+    }
+
+    if (permissions !== undefined) {
+      updateData.permissions = permissions;
+    }
+
+    if (projectAccess !== undefined) {
+      updateData.projectAccess = projectAccess;
+    }
+
     const updated = await prisma.authUser.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       select: {
         id: true,
