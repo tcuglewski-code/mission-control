@@ -30,8 +30,12 @@ export default function Error({
           Beim Laden dieser Seite ist ein Fehler aufgetreten.
         </p>
 
+        {/* Debug: immer Fehlermeldung anzeigen */}
+        <p className="text-xs text-red-400 mb-4 font-mono bg-[#0f0f0f] px-3 py-1.5 rounded text-left break-all">
+          {error.message || error.toString() || 'Unbekannter Fehler'}
+        </p>
         {error.digest && (
-          <p className="text-xs text-zinc-600 mb-4 font-mono bg-[#0f0f0f] px-3 py-1.5 rounded">
+          <p className="text-xs text-zinc-600 mb-2 font-mono bg-[#0f0f0f] px-3 py-1.5 rounded">
             {error.digest}
           </p>
         )}
