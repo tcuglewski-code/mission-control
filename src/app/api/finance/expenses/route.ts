@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { getSessionOrApiKey, requireAdmin } from "@/lib/api-auth"
+import { getSessionOrApiKey, requireAdminFromDb } from "@/lib/api-auth"
 import { logActivity } from "@/lib/audit"
 
 const EXPENSE_CATEGORIES = [
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   // Only admins can create expenses
-  const admin = await requireAdmin(request)
+  const admin = await requireAdminFromDb()
   if (!admin) {
     return NextResponse.json({ error: "Admin required" }, { status: 403 })
   }

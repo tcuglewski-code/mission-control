@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { getSessionOrApiKey, requireAdmin } from "@/lib/api-auth"
+import { getSessionOrApiKey, requireAdminFromDb } from "@/lib/api-auth"
 import { logActivity } from "@/lib/audit"
 
 const EXPENSE_CATEGORIES = [
@@ -46,7 +46,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   const user = await getSessionOrApiKey(request)
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const admin = await requireAdmin(request)
+  const admin = await requireAdminFromDb()
   if (!admin) {
     return NextResponse.json({ error: "Admin required" }, { status: 403 })
   }
@@ -116,7 +116,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   const user = await getSessionOrApiKey(request)
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const admin = await requireAdmin(request)
+  const admin = await requireAdminFromDb()
   if (!admin) {
     return NextResponse.json({ error: "Admin required" }, { status: 403 })
   }
