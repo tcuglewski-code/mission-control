@@ -123,6 +123,13 @@ export const AVAILABLE_WIDGETS: WidgetDefinition[] = [
     defaultOrder: 13,
     description: "Token-Verbrauch und Kosten der KI-Features (API + Max/Amadeus)",
   },
+  {
+    id: "neon-monitor",
+    title: "Neon DB Monitor",
+    defaultVisible: true,
+    defaultOrder: 14,
+    description: "Neon-Datenbank Status, Latenz und Region (60s Auto-Update)",
+  },
 ];
 
 export const WIDGET_CONFIG_KEY = "mc_dashboard_widget_config";

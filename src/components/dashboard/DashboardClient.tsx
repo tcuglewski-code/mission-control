@@ -23,6 +23,7 @@ import { LiveFeedWidget } from "./widgets/LiveFeedWidget";
 import { ProjektBudgetsWidget } from "./widgets/ProjektBudgetsWidget";
 import { AngeboteWidget } from "./widgets/AngeboteWidget";
 import { AiCostWidget } from "./widgets/AiCostWidget";
+import { NeonMonitorWidget } from "./widgets/NeonMonitorWidget";
 
 // --- Shared types (serialized from server) ---
 
@@ -164,6 +165,8 @@ export function DashboardClient({
         return <AngeboteWidget />;
       case "ai-cost":
         return <AiCostWidget />;
+      case "neon-monitor":
+        return <NeonMonitorWidget />;
       default:
         return null;
     }
