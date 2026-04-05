@@ -1,0 +1,35 @@
+# =============================================================================
+# Railway.toml — mission-control Notfall-Deployment
+# =============================================================================
+# Zweck: Bei Vercel-Ausfall 1-Klick-Deploy auf Railway als Fallback
+# Anleitung: siehe docs/setup/railway-failover-setup.md
+# =============================================================================
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "npm install && npx prisma generate && npm run build"
+
+[deploy]
+startCommand = "npm start"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+[service]
+name = "mission-control-failover"
+internalPort = 3000
+
+# =============================================================================
+# WICHTIG: Diese Env-Vars müssen im Railway-Projekt gesetzt werden!
+# =============================================================================
+# Siehe: docs/setup/railway-failover-setup.md für vollständige Liste
+#
+# Minimal für Notfall-Start:
+#   DATABASE_URL          - Neon PostgreSQL Connection String (Pooler)
+#   DIRECT_URL            - Neon Direct Connection String (für Migrationen)
+#   NEXTAUTH_SECRET       - Auth Secret (32+ Zeichen)
+#   NEXTAUTH_URL          - Railway-Domain (z.B. https://mission-control-failover.up.railway.app)
+#   MC_API_KEY            - Mission Control API Key
+#   CRON_SECRET           - Für Cron-Jobs (neu generieren!)
+# =============================================================================
