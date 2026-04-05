@@ -1022,3 +1022,61 @@ model KeyResult {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
+
+model AiBudgetConfig {
+  id                 String   @id @default(cuid())
+  tenantId           String   @unique
+  tier               String   // "free" | "starter" | "pro" | "enterprise"
+  monthlyLimit       Int
+  currentUsage       Int      @default(0)
+  billingPeriodStart DateTime
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model AgentTaskRoi {
+  id             String   @id @default(cuid())
+  taskId         String
+  agentName      String
+  estimatedHours Float
+  actualHours    Float?
+  savedHours     Float?
+  roiScore       Float?
+  createdAt      DateTime @default(now())
+}
+
+model Expense {
+  id        String   @id @default(cuid())
+  title     String
+  amount    Float
+  currency  String   @default("EUR")
+  category  String
+  date      DateTime
+  projectId String?
+  userId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OnboardingCheckConfig {
+  id         String   @id @default(cuid())
+  tenantId   String
+  checkKey   String
+  label      String
+  isRequired Boolean  @default(true)
+  order      Int
+  createdAt  DateTime @default(now())
+
+  @@unique([tenantId, checkKey])
+}
+
+model CustomerOnboarding {
+  id          String    @id @default(cuid())
+  customerId  String
+  checkKey    String
+  completedAt DateTime?
+  completedBy String?
+  createdAt   DateTime  @default(now())
+
+  @@unique([customerId, checkKey])
+}
