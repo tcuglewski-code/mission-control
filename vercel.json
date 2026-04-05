@@ -2,6 +2,10 @@
   "regions": ["fra1"],
   "crons": [
     {
+      "path": "/api/reports/weekly",
+      "schedule": "0 7 * * 1"
+    },
+    {
       "path": "/api/cron/onboarding-check",
       "schedule": "0 8 * * *"
     },
