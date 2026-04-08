@@ -80,7 +80,7 @@ export function AiCostWidget() {
   const trend = previousCost > 0 ? ((recentCost - previousCost) / previousCost) * 100 : 0;
 
   return (
-    <WidgetShell title="🤖 KI-Kosten" icon={Brain}>
+    <WidgetShell title="🤖 KI-Kosten" icon={<Brain className="w-4 h-4 text-purple-400" />}>
       {loading ? (
         <div className="flex items-center justify-center h-32">
           <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
