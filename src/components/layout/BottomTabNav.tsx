@@ -6,11 +6,11 @@ import { LayoutDashboard, CheckSquare, FolderKanban, Bell, Inbox } from "lucide-
 import { cn } from "@/lib/utils";
 
 const tabs = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/tasks", icon: CheckSquare, label: "Aufgaben" },
-  { href: "/task-inbox", icon: Inbox, label: "Inbox" },
-  { href: "/projects", icon: FolderKanban, label: "Projekte" },
-  { href: "/inbox", icon: Bell, label: "Nachrichten" },
+  { href: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" />, label: "Dashboard" },
+  { href: "/tasks", icon: <CheckSquare className="w-5 h-5" />, label: "Aufgaben" },
+  { href: "/task-inbox", icon: <Inbox className="w-5 h-5" />, label: "Inbox" },
+  { href: "/projects", icon: <FolderKanban className="w-5 h-5" />, label: "Projekte" },
+  { href: "/inbox", icon: <Bell className="w-5 h-5" />, label: "Nachrichten" },
 ];
 
 export function BottomTabNav() {
@@ -33,7 +33,7 @@ export function BottomTabNav() {
                   : "text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-white"
               )}
             >
-              <tab.icon className="w-5 h-5" />
+              {tab.icon}
               <span>{tab.label}</span>
             </Link>
           );

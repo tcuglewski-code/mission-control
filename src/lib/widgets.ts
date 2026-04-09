@@ -96,6 +96,8 @@ export const AVAILABLE_WIDGETS: WidgetDefinition[] = [
     defaultVisible: true,
     defaultOrder: 13,
     description: "Top 3 Kunden nach Umsatz + Neukunden diesen Monat",
+  },
+  {
     id: "live-feed",
     title: "Live Feed",
     defaultVisible: true,

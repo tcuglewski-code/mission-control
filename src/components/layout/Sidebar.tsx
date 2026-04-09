@@ -59,49 +59,49 @@ import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/useAppStore";
 import { useThemeStore } from "@/store/useThemeStore";
 
-const navItems = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/live", icon: Radio, label: "Live Dashboard" },
-  { href: "/search", icon: Search, label: "Erweiterte Suche" },
-  { href: "/my-day", icon: Sun, label: "Mein Tag" },
-  { href: "/my-week", icon: CalendarDays, label: "Meine Woche" },
-  { href: "/announcements", icon: Megaphone, label: "Ankündigungen" },
-  { href: "/tasks", icon: CheckSquare, label: "Aufgaben" },
-  { href: "/notifications", icon: Bell, label: "Benachrichtigungen" },
-  { href: "/inbox", icon: Mail, label: "Posteingang" },
-  { href: "/sprints", icon: Flag, label: "Sprints" },
-  { href: "/timeline", icon: GanttChartSquare, label: "Timeline" },
-  { href: "/digest", icon: Newspaper, label: "KI-Digest" },
-  { href: "/calendar", icon: CalendarDays, label: "Kalender" },
-  { href: "/time", icon: Clock, label: "Zeiterfassung" },
-  { href: "/pomodoro", icon: Timer, label: "Pomodoro" },
-  { href: "/cronjobs", icon: Timer, label: "Cron Jobs" },
-  { href: "/loop", icon: RefreshCw, label: "🔄 Auto-Loop" },
-  { href: "/projects", icon: FolderKanban, label: "Projekte" },
-  { href: "/clients", icon: Building2, label: "Kunden" },
-  { href: "/sales", icon: Target, label: "Sales Pipeline" },
-  { href: "/okr", icon: Target, label: "OKR Dashboard" },
-  { href: "/finance", icon: Banknote, label: "Finanzen" },
-  { href: "/quotes", icon: FileText, label: "Angebote" },
-  { href: "/invoice-templates", icon: FileText, label: "Rechnungsvorlagen" },
-  { href: "/activity", icon: ActivitySquare, label: "Aktivitäten" },
-  { href: "/analytics", icon: BarChart2, label: "Analytics" },
-  { href: "/reports/weekly", icon: ClipboardList, label: "Team-Report" },
-  { href: "/exports", icon: Download, label: "Export-Center" },
-  { href: "/memory", icon: Brain, label: "Memory" },
-  { href: "/docs", icon: FileText, label: "Dokumente" },
-  { href: "/documents", icon: FolderArchive, label: "Dateiverwaltung" },
-  { href: "/team", icon: Users, label: "Team" },
-  { href: "/team/activity", icon: ActivitySquare, label: "Team-Aktivität" },
-  { href: "/tools", icon: Wrench, label: "Tools" },
-  { href: "/estimator", icon: Zap, label: "📊 SP-Schätzer" },
-  { href: "/ai-usage", icon: Brain, label: "💰 KI-Kosten" },
-  { href: "/databases", icon: Database, label: "Datenbanken" },
-  { href: "/tickets", icon: Ticket, label: "Tickets" },
-  { href: "/webhooks", icon: Webhook, label: "Webhooks" },
-  { href: "/agents", icon: BotIcon, label: "Agenten" },
-  { href: "/diagram", icon: GitGraph, label: "Diagramm" },
-  { href: "/templates", icon: LayoutTemplate, label: "Vorlagen" },
+const navItems: { href: string; icon: React.ReactNode; label: string }[] = [
+  { href: "/dashboard", icon: <LayoutDashboard className="w-4 h-4 shrink-0" />, label: "Dashboard" },
+  { href: "/live", icon: <Radio className="w-4 h-4 shrink-0" />, label: "Live Dashboard" },
+  { href: "/search", icon: <Search className="w-4 h-4 shrink-0" />, label: "Erweiterte Suche" },
+  { href: "/my-day", icon: <Sun className="w-4 h-4 shrink-0" />, label: "Mein Tag" },
+  { href: "/my-week", icon: <CalendarDays className="w-4 h-4 shrink-0" />, label: "Meine Woche" },
+  { href: "/announcements", icon: <Megaphone className="w-4 h-4 shrink-0" />, label: "Ankündigungen" },
+  { href: "/tasks", icon: <CheckSquare className="w-4 h-4 shrink-0" />, label: "Aufgaben" },
+  { href: "/notifications", icon: <Bell className="w-4 h-4 shrink-0" />, label: "Benachrichtigungen" },
+  { href: "/inbox", icon: <Mail className="w-4 h-4 shrink-0" />, label: "Posteingang" },
+  { href: "/sprints", icon: <Flag className="w-4 h-4 shrink-0" />, label: "Sprints" },
+  { href: "/timeline", icon: <GanttChartSquare className="w-4 h-4 shrink-0" />, label: "Timeline" },
+  { href: "/digest", icon: <Newspaper className="w-4 h-4 shrink-0" />, label: "KI-Digest" },
+  { href: "/calendar", icon: <CalendarDays className="w-4 h-4 shrink-0" />, label: "Kalender" },
+  { href: "/time", icon: <Clock className="w-4 h-4 shrink-0" />, label: "Zeiterfassung" },
+  { href: "/pomodoro", icon: <Timer className="w-4 h-4 shrink-0" />, label: "Pomodoro" },
+  { href: "/cronjobs", icon: <Timer className="w-4 h-4 shrink-0" />, label: "Cron Jobs" },
+  { href: "/loop", icon: <RefreshCw className="w-4 h-4 shrink-0" />, label: "🔄 Auto-Loop" },
+  { href: "/projects", icon: <FolderKanban className="w-4 h-4 shrink-0" />, label: "Projekte" },
+  { href: "/clients", icon: <Building2 className="w-4 h-4 shrink-0" />, label: "Kunden" },
+  { href: "/sales", icon: <Target className="w-4 h-4 shrink-0" />, label: "Sales Pipeline" },
+  { href: "/okr", icon: <Target className="w-4 h-4 shrink-0" />, label: "OKR Dashboard" },
+  { href: "/finance", icon: <Banknote className="w-4 h-4 shrink-0" />, label: "Finanzen" },
+  { href: "/quotes", icon: <FileText className="w-4 h-4 shrink-0" />, label: "Angebote" },
+  { href: "/invoice-templates", icon: <FileText className="w-4 h-4 shrink-0" />, label: "Rechnungsvorlagen" },
+  { href: "/activity", icon: <ActivitySquare className="w-4 h-4 shrink-0" />, label: "Aktivitäten" },
+  { href: "/analytics", icon: <BarChart2 className="w-4 h-4 shrink-0" />, label: "Analytics" },
+  { href: "/reports/weekly", icon: <ClipboardList className="w-4 h-4 shrink-0" />, label: "Team-Report" },
+  { href: "/exports", icon: <Download className="w-4 h-4 shrink-0" />, label: "Export-Center" },
+  { href: "/memory", icon: <Brain className="w-4 h-4 shrink-0" />, label: "Memory" },
+  { href: "/docs", icon: <FileText className="w-4 h-4 shrink-0" />, label: "Dokumente" },
+  { href: "/documents", icon: <FolderArchive className="w-4 h-4 shrink-0" />, label: "Dateiverwaltung" },
+  { href: "/team", icon: <Users className="w-4 h-4 shrink-0" />, label: "Team" },
+  { href: "/team/activity", icon: <ActivitySquare className="w-4 h-4 shrink-0" />, label: "Team-Aktivität" },
+  { href: "/tools", icon: <Wrench className="w-4 h-4 shrink-0" />, label: "Tools" },
+  { href: "/estimator", icon: <Zap className="w-4 h-4 shrink-0" />, label: "📊 SP-Schätzer" },
+  { href: "/ai-usage", icon: <Brain className="w-4 h-4 shrink-0" />, label: "💰 KI-Kosten" },
+  { href: "/databases", icon: <Database className="w-4 h-4 shrink-0" />, label: "Datenbanken" },
+  { href: "/tickets", icon: <Ticket className="w-4 h-4 shrink-0" />, label: "Tickets" },
+  { href: "/webhooks", icon: <Webhook className="w-4 h-4 shrink-0" />, label: "Webhooks" },
+  { href: "/agents", icon: <BotIcon className="w-4 h-4 shrink-0" />, label: "Agenten" },
+  { href: "/diagram", icon: <GitGraph className="w-4 h-4 shrink-0" />, label: "Diagramm" },
+  { href: "/templates", icon: <LayoutTemplate className="w-4 h-4 shrink-0" />, label: "Vorlagen" },
 ];
 
 function ThemeToggleButton() {
@@ -126,13 +126,13 @@ interface TeamActivity {
 
 function TeamNavItemWithTooltip({
   href,
-  icon: Icon,
+  icon,
   label,
   isActive,
   onClose,
 }: {
   href: string;
-  icon: React.ElementType;
+  icon: React.ReactNode;
   label: string;
   isActive: boolean;
   onClose: () => void;
@@ -196,7 +196,7 @@ function TeamNavItemWithTooltip({
         {isActive && (
           <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-emerald-500 rounded-r-full" />
         )}
-        <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-emerald-400" : "")} />
+        <span className={cn(isActive ? "text-emerald-400" : "")}>{icon}</span>
         <span>{label}</span>
       </Link>
 
@@ -331,7 +331,7 @@ export function Sidebar() {
                 {isActive && (
                   <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-emerald-500 rounded-r-full" />
                 )}
-                <item.icon className={cn("w-4 h-4 shrink-0", isActive ? "text-emerald-400" : "")} />
+                <span className={cn(isActive ? "text-emerald-400" : "")}>{item.icon}</span>
                 <span>{item.label}</span>
               </Link>
             );
