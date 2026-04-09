@@ -132,6 +132,13 @@ export const AVAILABLE_WIDGETS: WidgetDefinition[] = [
     defaultOrder: 14,
     description: "Neon-Datenbank Status, Latenz und Region (60s Auto-Update)",
   },
+  {
+    id: "zipayo",
+    title: "Zipayo",
+    defaultVisible: true,
+    defaultOrder: 15,
+    description: "Zipayo Payment Platform — Launch Status, Merchants und MRR",
+  },
 ];
 
 export const WIDGET_CONFIG_KEY = "mc_dashboard_widget_config";

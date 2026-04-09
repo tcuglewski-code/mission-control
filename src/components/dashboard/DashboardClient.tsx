@@ -24,6 +24,7 @@ import { ProjektBudgetsWidget } from "./widgets/ProjektBudgetsWidget";
 import { AngeboteWidget } from "./widgets/AngeboteWidget";
 import { AiCostWidget } from "./widgets/AiCostWidget";
 import { NeonMonitorWidget } from "./widgets/NeonMonitorWidget";
+import { ZipayoWidget } from "./widgets/ZipayoWidget";
 
 // --- Shared types (serialized from server) ---
 
@@ -167,6 +168,8 @@ export function DashboardClient({
         return <AiCostWidget />;
       case "neon-monitor":
         return <NeonMonitorWidget />;
+      case "zipayo":
+        return <ZipayoWidget />;
       default:
         return null;
     }
