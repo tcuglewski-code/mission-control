@@ -51,6 +51,7 @@ import {
   Target,
   TrendingUp,
   NotebookPen,
+  Building2,
 } from "lucide-react";
 import { useKeyboardShortcutsModal } from "@/hooks/useKeyboardShortcutsModal";
 import { useQuickAdd } from "@/hooks/useQuickAdd";
@@ -515,6 +516,22 @@ export function Sidebar() {
                 )}
                 <Mail className={cn("w-4 h-4 shrink-0", pathname === "/admin/invites" ? "text-amber-400" : "")} />
                 <span>Einladungen</span>
+              </Link>
+              <Link
+                href="/tenants"
+                onClick={() => setSidebarOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
+                  pathname === "/tenants"
+                    ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
+                    : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+                )}
+              >
+                {pathname === "/tenants" && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-amber-500 rounded-r-full" />
+                )}
+                <Building2 className={cn("w-4 h-4 shrink-0", pathname === "/tenants" ? "text-amber-400" : "")} />
+                <span>Tenants</span>
               </Link>
               <Link
                 href="/admin/audit"

@@ -1248,3 +1248,59 @@ model PdAccessLog {
   @@index([createdAt])
   @@index([ip])
 }
+
+// ============================================================
+// TENANT MANAGEMENT (Multi-Tenant Feldhub Platform)
+// ============================================================
+
+model Tenant {
+  id           String    @id @default(cuid())
+  name         String
+  slug         String    @unique
+  industry     String?
+  status       String    @default("active")
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  systems      TenantSystem[]
+  contracts    TenantContract[]
+}
+
+model TenantSystem {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  type      String
+  url       String?
+  status    String   @default("live")
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model TenantContract {
+  id           String    @id @default(cuid())
+  tenantId     String
+  type         String    @default("saas")
+  status       String    @default("active")
+  startDate    DateTime
+  endDate      DateTime?
+  monthlyRate  Float     @default(0)
+  setupFee     Float     @default(0)
+  billingCycle String    @default("monthly")
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
