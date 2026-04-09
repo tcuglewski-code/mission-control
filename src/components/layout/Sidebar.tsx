@@ -52,6 +52,7 @@ import {
   RefreshCw,
   Target,
   Download,
+  CreditCard,
 } from "lucide-react";
 import { useKeyboardShortcutsModal } from "@/hooks/useKeyboardShortcutsModal";
 import { useQuickAdd } from "@/hooks/useQuickAdd";
@@ -80,6 +81,7 @@ const navItems: { href: string; icon: React.ReactNode; label: string }[] = [
   { href: "/projects", icon: <FolderKanban className="w-4 h-4 shrink-0" />, label: "Projekte" },
   { href: "/clients", icon: <Building2 className="w-4 h-4 shrink-0" />, label: "Kunden" },
   { href: "/sales", icon: <Target className="w-4 h-4 shrink-0" />, label: "Sales Pipeline" },
+  { href: "/zipayo", icon: <CreditCard className="w-4 h-4 shrink-0" />, label: "Zipayo" },
   { href: "/okr", icon: <Target className="w-4 h-4 shrink-0" />, label: "OKR Dashboard" },
   { href: "/finance", icon: <Banknote className="w-4 h-4 shrink-0" />, label: "Finanzen" },
   { href: "/quotes", icon: <FileText className="w-4 h-4 shrink-0" />, label: "Angebote" },
