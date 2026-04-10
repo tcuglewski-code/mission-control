@@ -23,7 +23,6 @@ const securityHeaders = [
 const nextConfig = {
   serverExternalPackages: ["@prisma/client"],
   typescript: { ignoreBuildErrors: true },
-  productionBrowserSourceMaps: true,
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
