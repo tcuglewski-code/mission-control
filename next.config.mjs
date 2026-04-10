@@ -24,6 +24,12 @@ const securityHeaders = [
 const nextConfig = {
   serverExternalPackages: ["@prisma/client"],
   typescript: { ignoreBuildErrors: true },
+  // Disable Turbopack persistent cache to prevent stale chunk issues
+  experimental: {
+    turbo: {
+      rules: {},
+    },
+  },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
