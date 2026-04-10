@@ -59,53 +59,55 @@ import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/useAppStore";
 import { useThemeStore } from "@/store/useThemeStore";
 
-const navItems = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/live", icon: Radio, label: "Live Dashboard" },
-  { href: "/search", icon: Search, label: "Erweiterte Suche" },
-  { href: "/my-day", icon: Sun, label: "Mein Tag" },
-  { href: "/my-week", icon: CalendarDays, label: "Meine Woche" },
-  { href: "/announcements", icon: Megaphone, label: "Ankündigungen" },
-  { href: "/tasks", icon: CheckSquare, label: "Aufgaben" },
-  { href: "/ice-ranking", icon: Target, label: "🎯 ICE Priorisierung" },
-  { href: "/notifications", icon: Bell, label: "Benachrichtigungen" },
-  { href: "/inbox", icon: Mail, label: "Posteingang" },
-  { href: "/sprints", icon: Flag, label: "Sprints" },
-  { href: "/timeline", icon: GanttChartSquare, label: "Timeline" },
-  { href: "/digest", icon: Newspaper, label: "KI-Digest" },
-  { href: "/calendar", icon: CalendarDays, label: "Kalender" },
-  { href: "/time", icon: Clock, label: "Zeiterfassung" },
-  { href: "/cronjobs", icon: Timer, label: "Cron Jobs" },
-  { href: "/loop", icon: RefreshCw, label: "🔄 Auto-Loop" },
-  { href: "/projects", icon: FolderKanban, label: "Projekte" },
-  { href: "/sales", icon: Target, label: "Sales Pipeline" },
-  { href: "/okr", icon: Target, label: "OKR Dashboard" },
-  { href: "/meetings", icon: NotebookPen, label: "Meeting Notes" },
-  { href: "/risks", icon: ShieldCheck, label: "⚠️ Risk Register" },
-  { href: "/decisions", icon: FileText, label: "📋 Decisions Log" },
-  { href: "/finance", icon: Banknote, label: "Finanzen" },
-  { href: "/finance/cashflow", icon: TrendingUp, label: "💰 Cash Flow" },
-  { href: "/quotes", icon: FileText, label: "Angebote" },
-  { href: "/invoice-templates", icon: FileText, label: "Rechnungsvorlagen" },
-  { href: "/activity", icon: ActivitySquare, label: "Aktivitäten" },
-  { href: "/analytics", icon: BarChart2, label: "Analytics" },
-  { href: "/reports/weekly", icon: ClipboardList, label: "Team-Report" },
-  { href: "/reports/export", icon: FileText, label: "CSV Export" },
-  { href: "/memory", icon: Brain, label: "Memory" },
-  { href: "/docs", icon: FileText, label: "Dokumente" },
-  { href: "/documents", icon: FolderArchive, label: "Dateiverwaltung" },
-  { href: "/team", icon: Users, label: "Team" },
-  { href: "/team/activity", icon: ActivitySquare, label: "Team-Aktivität" },
-  { href: "/tools", icon: Wrench, label: "Tools" },
-  { href: "/estimator", icon: Zap, label: "📊 SP-Schätzer" },
-  { href: "/ai-usage", icon: Brain, label: "💰 KI-Kosten" },
-  { href: "/roi", icon: TrendingUp, label: "📈 ROI Dashboard" },
-  { href: "/databases", icon: Database, label: "Datenbanken" },
-  { href: "/tickets", icon: Ticket, label: "Tickets" },
-  { href: "/webhooks", icon: Webhook, label: "Webhooks" },
-  { href: "/agents", icon: BotIcon, label: "Agenten" },
-  { href: "/diagram", icon: GitGraph, label: "Diagramm" },
-  { href: "/templates", icon: LayoutTemplate, label: "Vorlagen" },
+const IC = "w-4 h-4 shrink-0";
+
+const navItems: { href: string; icon: React.ReactNode; label: string }[] = [
+  { href: "/dashboard", icon: <LayoutDashboard className={IC} />, label: "Dashboard" },
+  { href: "/live", icon: <Radio className={IC} />, label: "Live Dashboard" },
+  { href: "/search", icon: <Search className={IC} />, label: "Erweiterte Suche" },
+  { href: "/my-day", icon: <Sun className={IC} />, label: "Mein Tag" },
+  { href: "/my-week", icon: <CalendarDays className={IC} />, label: "Meine Woche" },
+  { href: "/announcements", icon: <Megaphone className={IC} />, label: "Ankündigungen" },
+  { href: "/tasks", icon: <CheckSquare className={IC} />, label: "Aufgaben" },
+  { href: "/ice-ranking", icon: <Target className={IC} />, label: "ICE Priorisierung" },
+  { href: "/notifications", icon: <Bell className={IC} />, label: "Benachrichtigungen" },
+  { href: "/inbox", icon: <Mail className={IC} />, label: "Posteingang" },
+  { href: "/sprints", icon: <Flag className={IC} />, label: "Sprints" },
+  { href: "/timeline", icon: <GanttChartSquare className={IC} />, label: "Timeline" },
+  { href: "/digest", icon: <Newspaper className={IC} />, label: "KI-Digest" },
+  { href: "/calendar", icon: <CalendarDays className={IC} />, label: "Kalender" },
+  { href: "/time", icon: <Clock className={IC} />, label: "Zeiterfassung" },
+  { href: "/cronjobs", icon: <Timer className={IC} />, label: "Cron Jobs" },
+  { href: "/loop", icon: <RefreshCw className={IC} />, label: "Auto-Loop" },
+  { href: "/projects", icon: <FolderKanban className={IC} />, label: "Projekte" },
+  { href: "/sales", icon: <Target className={IC} />, label: "Sales Pipeline" },
+  { href: "/okr", icon: <Target className={IC} />, label: "OKR Dashboard" },
+  { href: "/meetings", icon: <NotebookPen className={IC} />, label: "Meeting Notes" },
+  { href: "/risks", icon: <ShieldCheck className={IC} />, label: "Risk Register" },
+  { href: "/decisions", icon: <FileText className={IC} />, label: "Decisions Log" },
+  { href: "/finance", icon: <Banknote className={IC} />, label: "Finanzen" },
+  { href: "/finance/cashflow", icon: <TrendingUp className={IC} />, label: "Cash Flow" },
+  { href: "/quotes", icon: <FileText className={IC} />, label: "Angebote" },
+  { href: "/invoice-templates", icon: <FileText className={IC} />, label: "Rechnungsvorlagen" },
+  { href: "/activity", icon: <ActivitySquare className={IC} />, label: "Aktivitäten" },
+  { href: "/analytics", icon: <BarChart2 className={IC} />, label: "Analytics" },
+  { href: "/reports/weekly", icon: <ClipboardList className={IC} />, label: "Team-Report" },
+  { href: "/reports/export", icon: <FileText className={IC} />, label: "CSV Export" },
+  { href: "/memory", icon: <Brain className={IC} />, label: "Memory" },
+  { href: "/docs", icon: <FileText className={IC} />, label: "Dokumente" },
+  { href: "/documents", icon: <FolderArchive className={IC} />, label: "Dateiverwaltung" },
+  { href: "/team", icon: <Users className={IC} />, label: "Team" },
+  { href: "/team/activity", icon: <ActivitySquare className={IC} />, label: "Team-Aktivität" },
+  { href: "/tools", icon: <Wrench className={IC} />, label: "Tools" },
+  { href: "/estimator", icon: <Zap className={IC} />, label: "SP-Schätzer" },
+  { href: "/ai-usage", icon: <Brain className={IC} />, label: "KI-Kosten" },
+  { href: "/roi", icon: <TrendingUp className={IC} />, label: "ROI Dashboard" },
+  { href: "/databases", icon: <Database className={IC} />, label: "Datenbanken" },
+  { href: "/tickets", icon: <Ticket className={IC} />, label: "Tickets" },
+  { href: "/webhooks", icon: <Webhook className={IC} />, label: "Webhooks" },
+  { href: "/agents", icon: <BotIcon className={IC} />, label: "Agenten" },
+  { href: "/diagram", icon: <GitGraph className={IC} />, label: "Diagramm" },
+  { href: "/templates", icon: <LayoutTemplate className={IC} />, label: "Vorlagen" },
 ];
 
 function ThemeToggleButton() {
@@ -130,13 +132,13 @@ interface TeamActivity {
 
 function TeamNavItemWithTooltip({
   href,
-  icon: Icon,
+  icon,
   label,
   isActive,
   onClose,
 }: {
   href: string;
-  icon: React.ElementType;
+  icon: React.ReactNode;
   label: string;
   isActive: boolean;
   onClose: () => void;
@@ -200,7 +202,7 @@ function TeamNavItemWithTooltip({
         {isActive && (
           <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-emerald-500 rounded-r-full" />
         )}
-        <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-emerald-400" : "")} />
+        <span className={cn(isActive ? "text-emerald-400" : "")}>{icon}</span>
         <span>{label}</span>
       </Link>
 
@@ -335,7 +337,7 @@ export function Sidebar() {
                 {isActive && (
                   <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-emerald-500 rounded-r-full" />
                 )}
-                <item.icon className={cn("w-4 h-4 shrink-0", isActive ? "text-emerald-400" : "")} />
+                <span className={cn(isActive ? "text-emerald-400" : "")}>{item.icon}</span>
                 <span>{item.label}</span>
               </Link>
             );
