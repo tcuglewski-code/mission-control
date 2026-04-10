@@ -1,5 +1,5 @@
 {
-  "buildCommand": "rm -rf .next/cache && next build",
+  "buildCommand": "rm -rf .next node_modules/.cache && next build",
   "crons": [
     {
       "path": "/api/digest/cron",
