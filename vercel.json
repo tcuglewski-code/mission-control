@@ -1,5 +1,6 @@
 {
   "regions": ["fra1"],
+  "buildCommand": "rm -rf .next && next build",
   "crons": [
     {
       "path": "/api/reports/weekly",
