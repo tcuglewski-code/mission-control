@@ -16,9 +16,11 @@ const { auth } = NextAuth(authConfig);
 async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  // ── EARLY BYPASS for login-flow API endpoints ─────────────────────────────
+  // ── TOTAL BYPASS TEST ─────────────────────────────────────────────────────
   if (pathname.startsWith("/api/login/")) {
-    return NextResponse.next()
+    const res = NextResponse.next()
+    res.headers.set('X-Amadeus-Bypass', 'active')
+    return res
   }
 
   // ── IP-Adresse ermitteln ─────────────────────────────────────────────────
