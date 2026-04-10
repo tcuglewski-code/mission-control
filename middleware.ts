@@ -63,6 +63,11 @@ async function middleware(req: NextRequest) {
     }
   }
 
+  // Explicit bypass for login-flow endpoints (before auth check)
+  if (pathname.startsWith("/api/login/")) {
+    return NextResponse.next()
+  }
+
   // ── 2. Auth-Check via NextAuth ────────────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (auth as any)(req)
