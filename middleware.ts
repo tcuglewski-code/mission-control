@@ -16,6 +16,11 @@ const { auth } = NextAuth(authConfig);
 async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
+  // ── EARLY BYPASS for login-flow API endpoints ─────────────────────────────
+  if (pathname.startsWith("/api/login/")) {
+    return NextResponse.next()
+  }
+
   // ── IP-Adresse ermitteln ─────────────────────────────────────────────────
   const ip = (req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? "unknown")
     .split(",")[0]
