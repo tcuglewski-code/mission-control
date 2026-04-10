@@ -49,8 +49,14 @@ export async function POST(req: NextRequest) {
       requiresTwoFactor: user.twoFactorEnabled
     })
 
-  } catch (error) {
+  } catch (error: any) {
+    // DEBUG: Return actual error for diagnosis
     console.error('2FA Check Error:', error)
-    return NextResponse.json({ error: 'Interner Serverfehler' }, { status: 500 })
+    return NextResponse.json({ 
+      error: 'Interner Serverfehler',
+      debug: process.env.NODE_ENV !== 'production' ? error?.message : undefined,
+      code: error?.code,
+      meta: error?.meta
+    }, { status: 500 })
   }
 }
