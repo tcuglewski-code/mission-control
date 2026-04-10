@@ -37,3 +37,7 @@ export async function POST(req: NextRequest) {
     }, { status: 500 })
   }
 }
+
+export async function GET() {
+  return NextResponse.json({ version: "debug-v3-11b9376", ts: Date.now() })
+}
