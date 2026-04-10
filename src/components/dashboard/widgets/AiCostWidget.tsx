@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { WidgetShell } from "./WidgetShell";
-import { Brain, TrendingUp } from "lucide-react";
+import { Brain, TrendingUp, Zap } from "lucide-react";
 
 interface AiUsageSummary {
   totalCost: number;
@@ -10,6 +10,9 @@ interface AiUsageSummary {
   callCount: number;
   thisMonth: number;
 }
+
+// v2: force chunk cache invalidation — icon must be JSX element, not component ref
+const AI_COST_ICON = <Brain className="w-4 h-4 text-violet-400" />;
 
 export function AiCostWidget() {
   const [data, setData] = useState<AiUsageSummary | null>(null);
@@ -24,11 +27,13 @@ export function AiCostWidget() {
   }, []);
 
   return (
-    <WidgetShell title="KI-Kosten" icon={<Brain className="w-4 h-4" />}>
+    <WidgetShell title="KI-Kosten" icon={AI_COST_ICON}>
       {loading ? (
-        <div className="text-sm text-muted-foreground">Lade...</div>
+        <div className="flex items-center justify-center h-20">
+          <div className="w-4 h-4 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+        </div>
       ) : data ? (
-        <div className="space-y-2">
+        <div className="space-y-2 p-1">
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">Diesen Monat</span>
             <span className="font-semibold text-sm">
@@ -46,12 +51,12 @@ export function AiCostWidget() {
             <span className="font-semibold text-sm">{data.callCount ?? 0}</span>
           </div>
           <div className="flex items-center gap-1 text-xs text-muted-foreground pt-1">
-            <TrendingUp className="w-3 h-3" />
-            <span>{(data.totalTokens ?? 0).toLocaleString()} Tokens gesamt</span>
+            <Zap className="w-3 h-3 text-violet-400" />
+            <span>{(data.totalTokens ?? 0).toLocaleString()} Tokens</span>
           </div>
         </div>
       ) : (
-        <div className="text-sm text-muted-foreground">Keine Daten verfügbar</div>
+        <div className="text-sm text-muted-foreground p-2">Keine Daten verfügbar</div>
       )}
     </WidgetShell>
   );
