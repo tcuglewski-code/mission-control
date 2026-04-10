@@ -10,6 +10,8 @@ export const authConfig: NextAuthConfig = {
       const { nextUrl } = request;
       const isPublicPath =
         nextUrl.pathname.startsWith("/login") ||
+        nextUrl.pathname.startsWith("/forgot-password") ||
+        nextUrl.pathname.startsWith("/reset-password") ||
         nextUrl.pathname.startsWith("/invite/") ||
         nextUrl.pathname.startsWith("/share/") ||
         nextUrl.pathname.startsWith("/api/auth/") ||
