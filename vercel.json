@@ -1,4 +1,5 @@
 {
+  "buildCommand": "rm -rf .next/cache && next build",
   "crons": [
     {
       "path": "/api/digest/cron",
