@@ -23,6 +23,8 @@ const securityHeaders = [
 const nextConfig = {
   serverExternalPackages: ["@prisma/client"],
   typescript: { ignoreBuildErrors: true },
+  // Generate unique build ID to bypass stale chunk cache
+  generateBuildId: () => `build-${Date.now()}`,
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
