@@ -49,5 +49,8 @@
       "path": "/api/cron/lead-generation",
       "schedule": "0 8 * * 3"
     }
+  ],
+  "alias": [
+    "mission-control-tawny-omega.vercel.app"
   ]
 }
