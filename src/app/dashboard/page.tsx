@@ -41,6 +41,7 @@ export default async function DashboardPage() {
     milestones,
     timeEntriesToday,
     teamMembers,
+    workerResults,
   ] = await Promise.all([
     // Total open tasks count (nur aus aktiven/planning Projekten)
     prisma.task.count({
@@ -164,6 +165,12 @@ export default async function DashboardPage() {
       },
       take: 10,
     }).catch(() => []),
+
+    // Worker results (System Health)
+    prisma.workerResult.findMany({
+      orderBy: { runTs: "desc" },
+      take: 5,
+    }).catch(() => []),
   ]);
 
   const totalMinutesToday = timeEntriesToday.reduce(
@@ -197,6 +204,7 @@ export default async function DashboardPage() {
         totalMinutesToday={totalMinutesToday}
         teamMembers={teamMembersWithCount}
         budgetProjects={budgetProjects as any}
+        workerResults={workerResults as any}
       />
     </AppShell>
   );

@@ -1025,11 +1025,11 @@ model KeyResult {
 
 model AiBudgetConfig {
   id                 String   @id @default(cuid())
-  tenantId           String   @unique
-  tier               String   // "free" | "starter" | "pro" | "enterprise"
-  monthlyLimit       Int
+  tenantId           String   @unique @default("")
+  tier               String   @default("starter") // "free" | "starter" | "pro" | "enterprise"
+  monthlyLimit       Int      @default(100000)
   currentUsage       Int      @default(0)
-  billingPeriodStart DateTime
+  billingPeriodStart DateTime @default(now())
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }
@@ -1079,4 +1079,20 @@ model CustomerOnboarding {
   createdAt   DateTime  @default(now())
 
   @@unique([customerId, checkKey])
+}
+
+// ─── Worker Results (System Health) ──────────────────────────────────────────
+model WorkerResult {
+  id        String   @id @default(cuid())
+  taskName  String
+  runTs     DateTime @default(now())
+  status    String   @default("ok") // "ok" | "warning" | "error"
+  summary   String?
+  domain    String?  // "operations" | "security" | "compliance" etc.
+  severity  String   @default("info") // "info" | "warning" | "error" | "critical"
+  findings  Json?    // Array of finding objects
+  metrics   Json?    // Key-value metrics
+  createdAt DateTime @default(now())
+
+  @@index([taskName, runTs])
 }

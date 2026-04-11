@@ -139,6 +139,13 @@ export const AVAILABLE_WIDGETS: WidgetDefinition[] = [
     defaultOrder: 15,
     description: "Zipayo Payment Platform — Launch Status, Merchants und MRR",
   },
+  {
+    id: "system-health",
+    title: "System Health",
+    defaultVisible: true,
+    defaultOrder: 16,
+    description: "Letzte Worker-Ergebnisse — Monitoring, Security, Compliance",
+  },
 ];
 
 export const WIDGET_CONFIG_KEY = "mc_dashboard_widget_config";

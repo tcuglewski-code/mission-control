@@ -25,6 +25,7 @@ import { AngeboteWidget } from "./widgets/AngeboteWidget";
 import { AiCostWidget } from "./widgets/AiCostWidget";
 import { NeonMonitorWidget } from "./widgets/NeonMonitorWidget";
 import { ZipayoWidget } from "./widgets/ZipayoWidget";
+import { SystemHealthWidget } from "./widgets/SystemHealthWidget";
 
 // --- Shared types (serialized from server) ---
 
@@ -84,6 +85,16 @@ interface TeamMember {
   openTaskCount: number;
 }
 
+interface WorkerResultItem {
+  id: string;
+  taskName: string;
+  runTs: Date | string;
+  status: string;
+  summary?: string | null;
+  domain?: string | null;
+  severity: string;
+}
+
 export interface DashboardClientProps {
   // Stats
   activeProjectsCount: number;
@@ -101,6 +112,7 @@ export interface DashboardClientProps {
   totalMinutesToday: number;
   teamMembers: TeamMember[];
   budgetProjects: Project[];
+  workerResults?: WorkerResultItem[];
 }
 
 export function DashboardClient({
@@ -117,6 +129,7 @@ export function DashboardClient({
   totalMinutesToday,
   teamMembers,
   budgetProjects,
+  workerResults,
 }: DashboardClientProps) {
   const { config, visibleWidgets, toggleWidget, reorderWidgets, resetConfig } =
     useWidgetConfig();
@@ -170,6 +183,8 @@ export function DashboardClient({
         return <NeonMonitorWidget />;
       case "zipayo":
         return <ZipayoWidget />;
+      case "system-health":
+        return <SystemHealthWidget results={workerResults || []} />;
       default:
         return null;
     }
