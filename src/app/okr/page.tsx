@@ -28,10 +28,10 @@ interface Objective {
 }
 
 const statusConfig = {
-  "on-track": { label: "Auf Kurs", color: "bg-green-500", textColor: "text-green-700", bgLight: "bg-green-50", icon: TrendingUp },
-  "at-risk": { label: "Gefährdet", color: "bg-amber-500", textColor: "text-amber-700", bgLight: "bg-amber-50", icon: AlertTriangle },
-  "off-track": { label: "Kritisch", color: "bg-red-500", textColor: "text-red-700", bgLight: "bg-red-50", icon: AlertTriangle },
-  "completed": { label: "Abgeschlossen", color: "bg-blue-500", textColor: "text-blue-700", bgLight: "bg-blue-50", icon: CheckCircle2 }
+  "on-track": { label: "Auf Kurs", color: "bg-green-500", textColor: "text-green-700 dark:text-green-400", bgLight: "bg-green-50 dark:bg-green-500/10", icon: TrendingUp },
+  "at-risk": { label: "Gefährdet", color: "bg-amber-500", textColor: "text-amber-700 dark:text-amber-400", bgLight: "bg-amber-50 dark:bg-amber-500/10", icon: AlertTriangle },
+  "off-track": { label: "Kritisch", color: "bg-red-500", textColor: "text-red-700 dark:text-red-400", bgLight: "bg-red-50 dark:bg-red-500/10", icon: AlertTriangle },
+  "completed": { label: "Abgeschlossen", color: "bg-blue-500", textColor: "text-blue-700 dark:text-blue-400", bgLight: "bg-blue-50 dark:bg-blue-500/10", icon: CheckCircle2 }
 }
 
 export default function OKRPage() {
@@ -186,7 +186,7 @@ export default function OKRPage() {
   if (loading) {
     return (
       <div className="p-6 flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin h-8 w-8 border-2 border-[#2C3A1C] border-t-transparent rounded-full"></div>
+        <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full"></div>
       </div>
     )
   }
@@ -196,10 +196,10 @@ export default function OKRPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Target className="w-8 h-8 text-[#2C3A1C]" />
+          <Target className="w-8 h-8 text-foreground" />
           <div>
-            <h1 className="text-2xl font-bold text-[#2C3A1C]">OKR Dashboard</h1>
-            <p className="text-sm text-gray-500">Objectives & Key Results</p>
+            <h1 className="text-2xl font-bold text-foreground">OKR Dashboard</h1>
+            <p className="text-sm text-muted-foreground">Objectives & Key Results</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -215,7 +215,7 @@ export default function OKRPage() {
           </select>
           <button
             onClick={() => setShowNewForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#2C3A1C] text-white rounded-lg hover:bg-[#3d4f2a] transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/80 transition-colors"
           >
             <Plus className="w-4 h-4" />
             Neues Objective
@@ -225,33 +225,33 @@ export default function OKRPage() {
 
       {/* Summary Stats */}
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-white border rounded-lg p-4">
-          <div className="text-2xl font-bold text-[#2C3A1C]">{objectives.length}</div>
-          <div className="text-sm text-gray-500">Objectives</div>
+        <div className="bg-card border rounded-lg p-4">
+          <div className="text-2xl font-bold text-foreground">{objectives.length}</div>
+          <div className="text-sm text-muted-foreground">Objectives</div>
         </div>
-        <div className="bg-white border rounded-lg p-4">
+        <div className="bg-card border rounded-lg p-4">
           <div className="text-2xl font-bold text-green-600">
             {objectives.filter(o => o.status === "on-track").length}
           </div>
-          <div className="text-sm text-gray-500">Auf Kurs</div>
+          <div className="text-sm text-muted-foreground">Auf Kurs</div>
         </div>
-        <div className="bg-white border rounded-lg p-4">
+        <div className="bg-card border rounded-lg p-4">
           <div className="text-2xl font-bold text-amber-600">
             {objectives.filter(o => o.status === "at-risk").length}
           </div>
-          <div className="text-sm text-gray-500">Gefährdet</div>
+          <div className="text-sm text-muted-foreground">Gefährdet</div>
         </div>
-        <div className="bg-white border rounded-lg p-4">
+        <div className="bg-card border rounded-lg p-4">
           <div className="text-2xl font-bold text-blue-600">
             {objectives.filter(o => o.status === "completed").length}
           </div>
-          <div className="text-sm text-gray-500">Abgeschlossen</div>
+          <div className="text-sm text-muted-foreground">Abgeschlossen</div>
         </div>
       </div>
 
       {/* New Objective Form */}
       {showNewForm && (
-        <div className="bg-white border rounded-lg p-4 mb-6 shadow-sm">
+        <div className="bg-card border rounded-lg p-4 mb-6 shadow-sm">
           <h3 className="font-semibold mb-3">Neues Objective erstellen</h3>
           <div className="grid grid-cols-2 gap-4">
             <input
@@ -287,13 +287,13 @@ export default function OKRPage() {
             <button
               onClick={createObjective}
               disabled={!newTitle.trim()}
-              className="px-4 py-2 bg-[#2C3A1C] text-white rounded-lg hover:bg-[#3d4f2a] disabled:opacity-50"
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/80 disabled:opacity-50"
             >
               Erstellen
             </button>
             <button
               onClick={() => setShowNewForm(false)}
-              className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+              className="px-4 py-2 border rounded-lg hover:bg-accent"
             >
               Abbrechen
             </button>
@@ -303,12 +303,12 @@ export default function OKRPage() {
 
       {/* Objectives List */}
       {objectives.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
+        <div className="text-center py-12 text-muted-foreground">
           <Target className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p>Noch keine Objectives angelegt</p>
           <button
             onClick={() => setShowNewForm(true)}
-            className="mt-3 text-[#2C3A1C] hover:underline"
+            className="mt-3 text-foreground hover:underline"
           >
             Erstes Objective erstellen
           </button>
@@ -321,56 +321,56 @@ export default function OKRPage() {
             const isExpanded = expandedIds.has(obj.id)
 
             return (
-              <div key={obj.id} className="bg-white border rounded-lg overflow-hidden">
+              <div key={obj.id} className="bg-card border rounded-lg overflow-hidden">
                 {/* Objective Header */}
                 <div
-                  className="p-4 cursor-pointer hover:bg-gray-50"
+                  className="p-4 cursor-pointer hover:bg-accent"
                   onClick={() => toggleExpand(obj.id)}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       {isExpanded ? (
-                        <ChevronDown className="w-5 h-5 text-gray-400" />
+                        <ChevronDown className="w-5 h-5 text-muted-foreground" />
                       ) : (
-                        <ChevronRight className="w-5 h-5 text-gray-400" />
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
                       )}
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-[#2C3A1C]">{obj.title}</h3>
+                          <h3 className="font-semibold text-foreground">{obj.title}</h3>
                           <span className={`text-xs px-2 py-0.5 rounded-full ${status.bgLight} ${status.textColor}`}>
                             <StatusIcon className="w-3 h-3 inline mr-1" />
                             {status.label}
                           </span>
-                          <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
+                          <span className="text-xs px-2 py-0.5 bg-muted text-muted-foreground rounded-full">
                             {obj.period}
                           </span>
                         </div>
                         {obj.description && (
-                          <p className="text-sm text-gray-500 mt-1">{obj.description}</p>
+                          <p className="text-sm text-muted-foreground mt-1">{obj.description}</p>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
                       {obj.ownerName && (
-                        <span className="text-sm text-gray-500">{obj.ownerName}</span>
+                        <span className="text-sm text-muted-foreground">{obj.ownerName}</span>
                       )}
                       <div className="text-right">
-                        <div className="text-2xl font-bold text-[#2C3A1C]">{obj.progress}%</div>
-                        <div className="text-xs text-gray-500">{obj.keyResults.length} Key Results</div>
+                        <div className="text-2xl font-bold text-foreground">{obj.progress}%</div>
+                        <div className="text-xs text-muted-foreground">{obj.keyResults.length} Key Results</div>
                       </div>
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
                           deleteObjective(obj.id)
                         }}
-                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"
+                        className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
                   {/* Progress Bar */}
-                  <div className="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="mt-3 h-2 bg-muted rounded-full overflow-hidden">
                     <div
                       className={`h-full transition-all ${status.color}`}
                       style={{ width: `${obj.progress}%` }}
@@ -380,22 +380,22 @@ export default function OKRPage() {
 
                 {/* Key Results */}
                 {isExpanded && (
-                  <div className="border-t bg-gray-50">
+                  <div className="border-t bg-accent">
                     <div className="p-4 space-y-3">
                       {obj.keyResults.map((kr) => (
-                        <div key={kr.id} className="bg-white p-3 rounded-lg border">
+                        <div key={kr.id} className="bg-card p-3 rounded-lg border">
                           <div className="flex items-center justify-between mb-2">
                             <span className="font-medium text-sm">{kr.title}</span>
                             <div className="flex items-center gap-2">
-                              <span className="text-sm text-gray-500">
+                              <span className="text-sm text-muted-foreground">
                                 {kr.current} / {kr.target} {kr.unit || ""}
                               </span>
-                              <span className="text-sm font-semibold text-[#2C3A1C]">
+                              <span className="text-sm font-semibold text-foreground">
                                 {kr.progress}%
                               </span>
                               <button
                                 onClick={() => deleteKeyResult(kr.id)}
-                                className="p-1 text-gray-400 hover:text-red-500"
+                                className="p-1 text-muted-foreground hover:text-red-500"
                               >
                                 <Trash2 className="w-3 h-3" />
                               </button>
@@ -403,9 +403,9 @@ export default function OKRPage() {
                           </div>
                           {/* Progress Slider */}
                           <div className="flex items-center gap-3">
-                            <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                               <div
-                                className="h-full bg-[#2C3A1C] transition-all"
+                                className="h-full bg-primary transition-all"
                                 style={{ width: `${kr.progress}%` }}
                               />
                             </div>
@@ -423,7 +423,7 @@ export default function OKRPage() {
 
                       {/* Add Key Result Form */}
                       {addingKRTo === obj.id ? (
-                        <div className="bg-white p-3 rounded-lg border border-dashed border-[#2C3A1C]">
+                        <div className="bg-card p-3 rounded-lg border border-dashed border-primary">
                           <div className="grid grid-cols-3 gap-2 mb-2">
                             <input
                               type="text"
@@ -450,13 +450,13 @@ export default function OKRPage() {
                               <button
                                 onClick={() => addKeyResult(obj.id)}
                                 disabled={!newKRTitle.trim()}
-                                className="flex-1 px-3 py-2 bg-[#2C3A1C] text-white rounded text-sm hover:bg-[#3d4f2a] disabled:opacity-50"
+                                className="flex-1 px-3 py-2 bg-primary text-white rounded text-sm hover:bg-primary/80 disabled:opacity-50"
                               >
                                 Hinzufügen
                               </button>
                               <button
                                 onClick={() => setAddingKRTo(null)}
-                                className="px-3 py-2 border rounded text-sm hover:bg-gray-50"
+                                className="px-3 py-2 border rounded text-sm hover:bg-accent"
                               >
                                 ✕
                               </button>
@@ -466,7 +466,7 @@ export default function OKRPage() {
                       ) : (
                         <button
                           onClick={() => setAddingKRTo(obj.id)}
-                          className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-[#2C3A1C] hover:text-[#2C3A1C] transition-colors flex items-center justify-center gap-2"
+                          className="w-full py-2 border-2 border-dashed border-border rounded-lg text-muted-foreground hover:border-primary hover:text-foreground transition-colors flex items-center justify-center gap-2"
                         >
                           <Plus className="w-4 h-4" />
                           Key Result hinzufügen
