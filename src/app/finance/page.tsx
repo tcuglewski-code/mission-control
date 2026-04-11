@@ -130,11 +130,11 @@ function formatEur(amount: number): string {
 }
 
 const STATUS_MAP: Record<string, string> = {
-  OPEN: "bg-blue-500/20 text-blue-300 border border-blue-500/30",
-  SENT: "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30",
-  PARTIAL: "bg-amber-500/20 text-amber-300 border border-amber-500/30",
-  PAID: "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30",
-  OVERDUE: "bg-red-500/20 text-red-300 border border-red-500/30",
+  OPEN: "bg-blue-500/20 text-blue-400 border border-blue-500/30",
+  SENT: "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30",
+  PARTIAL: "bg-amber-500/20 text-amber-400 border border-amber-500/30",
+  PAID: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
+  OVERDUE: "bg-red-500/20 text-red-400 border border-red-500/30",
   CANCELLED: "bg-zinc-500/20 text-zinc-400 border border-zinc-500/30",
   DRAFT: "bg-zinc-500/20 text-zinc-400 border border-zinc-500/30",
 };
@@ -165,7 +165,7 @@ function StatusBadge({ status }: { status: string }) {
 
 function DunningBadge({ level }: { level: number }) {
   if (!level) return null;
-  const color = level === 1 ? "bg-amber-500/20 text-amber-300" : level === 2 ? "bg-orange-500/20 text-orange-300" : "bg-red-500/20 text-red-300";
+  const color = level === 1 ? "bg-amber-500/20 text-amber-400" : level === 2 ? "bg-orange-500/20 text-orange-400" : "bg-red-500/20 text-red-400";
   return (
     <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${color}`}>
       {DUNNING_LABELS[level]}
@@ -710,7 +710,7 @@ export default function FinanceDashboardPage() {
           <div className="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
             <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-amber-300">Offene Mahnvorgänge</p>
+              <p className="text-sm font-medium text-amber-400">Offene Mahnvorgänge</p>
               <p className="text-xs text-zinc-400 mt-0.5">
                 {kpis.dunningLevel1 > 0 && `${kpis.dunningLevel1}× 1. Mahnung`}
                 {kpis.dunningLevel2 > 0 && ` · ${kpis.dunningLevel2}× 2. Mahnung`}
@@ -1052,7 +1052,7 @@ function KpiCard({
     <div className="bg-[#18181b] border border-zinc-800 rounded-xl p-4 flex flex-col gap-1">
       <span className="text-xs text-zinc-500">{label}</span>
       <span className={`text-base font-bold font-mono ${colorMap[color]}`}>{value}</span>
-      {sub && <span className="text-[10px] text-zinc-600">{sub}</span>}
+      {sub && <span className="text-[10px] text-zinc-500">{sub}</span>}
     </div>
   );
 }
