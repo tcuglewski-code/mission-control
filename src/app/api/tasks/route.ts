@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
       description,
       status,
       priority,
-      labels,
+      labels: rawLabels,
       dueDate,
       startDate,
       agentPrompt,
@@ -128,12 +128,15 @@ export async function POST(req: NextRequest) {
       iceConfidence,
       iceEase,
     } = body;
-    
+
     // ICE Score berechnen wenn alle Werte vorhanden
     let iceScore: number | null = null;
     if (iceImpact && iceConfidence && iceEase) {
       iceScore = (iceImpact * iceConfidence * iceEase) / 10;
     }
+
+    // labels: accept string or string[] — store as comma-separated string
+    const labels = Array.isArray(rawLabels) ? rawLabels.join(",") : rawLabels ?? null;
 
     if (!title) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
