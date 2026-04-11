@@ -67,32 +67,33 @@ export async function GET(
     }
 
     // Task-Statistiken gesamt
+    const projectTasks = project.tasks ?? [];
     const taskStats = {
-      total: project.tasks.length,
-      open: project.tasks.filter((t) => t.status === "todo" || t.status === "backlog").length,
-      inProgress: project.tasks.filter((t) => t.status === "in_progress").length,
-      inReview: project.tasks.filter((t) => t.status === "in_review").length,
-      done: project.tasks.filter((t) => t.status === "done").length,
-      blocked: project.tasks.filter((t) => t.status === "blocked").length,
+      total: projectTasks.length,
+      open: projectTasks.filter((t) => t.status === "todo" || t.status === "backlog").length,
+      inProgress: projectTasks.filter((t) => t.status === "in_progress").length,
+      inReview: projectTasks.filter((t) => t.status === "in_review").length,
+      done: projectTasks.filter((t) => t.status === "done").length,
+      blocked: projectTasks.filter((t) => t.status === "blocked").length,
     };
 
     // *** 7-Tage-Übersicht ***
     const weekInterval = { start: sevenDaysAgo, end: now };
 
     // Abgeschlossene Tasks in den letzten 7 Tagen
-    const completedThisWeek = project.tasks.filter(
+    const completedThisWeek = projectTasks.filter(
       (t) =>
         t.status === "done" &&
         isWithinInterval(new Date(t.updatedAt), weekInterval)
     );
 
     // Neue Tasks in den letzten 7 Tagen
-    const newTasksThisWeek = project.tasks.filter((t) =>
+    const newTasksThisWeek = projectTasks.filter((t) =>
       isWithinInterval(new Date(t.createdAt), weekInterval)
     );
 
     // Offene Blockaden: High/Critical Priority überfällig
-    const blockades = project.tasks.filter(
+    const blockades = projectTasks.filter(
       (t) =>
         t.dueDate &&
         new Date(t.dueDate) < now &&
@@ -102,7 +103,7 @@ export async function GET(
     );
 
     // Meilensteine der letzten 7 Tage
-    const milestonesReached = project.milestones.filter(
+    const milestonesReached = (project.milestones ?? []).filter(
       (m) =>
         m.status === "completed" &&
         m.updatedAt &&
@@ -154,7 +155,7 @@ export async function GET(
 
     // Burndown-Daten
     const burndownData = project.sprints.map((sprint) => {
-      const sprintTasks = project.tasks.filter((t) => t.sprintId === sprint.id);
+      const sprintTasks = projectTasks.filter((t) => t.sprintId === sprint.id);
       return {
         sprintName: sprint.name,
         total: sprintTasks.length,
@@ -177,13 +178,13 @@ export async function GET(
     // Aktuelle Sprint-Tasks
     const activeSprint = project.sprints.find((s) => s.status === "active");
     const sprintTasks = activeSprint
-      ? project.tasks.filter((t) => t.sprintId === activeSprint.id)
+      ? projectTasks.filter((t) => t.sprintId === activeSprint.id)
       : [];
 
     // Tasks fällig heute
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-    const dueTodayTasks = project.tasks.filter(
+    const dueTodayTasks = projectTasks.filter(
       (t) =>
         t.dueDate &&
         new Date(t.dueDate) >= todayStart &&
@@ -264,7 +265,7 @@ export async function GET(
         dueTodayTasks: dueTodayTasks.length,
         lastActivity: lastLog?.createdAt ?? null,
       },
-      tasks: project.tasks.map((t) => ({
+      tasks: projectTasks.map((t) => ({
         id: t.id,
         title: t.title,
         status: t.status,

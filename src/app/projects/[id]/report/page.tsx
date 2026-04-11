@@ -60,7 +60,8 @@ export default async function ProjectReportPage({ params }: PageProps) {
   if (!project) notFound();
 
   // Zeiterfassung pro Mitarbeiter laden
-  const taskIds = project.tasks.map((t) => t.id);
+  const projectTasks = project.tasks ?? [];
+  const taskIds = projectTasks.map((t) => t.id);
   const timeEntries = taskIds.length > 0
     ? await prisma.timeEntry.findMany({
         where: { taskId: { in: taskIds } },
@@ -69,17 +70,17 @@ export default async function ProjectReportPage({ params }: PageProps) {
     : [];
 
   // 7-Tage-Daten
-  const completedThisWeek = project.tasks.filter(
+  const completedThisWeek = projectTasks.filter(
     (t) =>
       t.status === "done" &&
       isWithinInterval(new Date(t.updatedAt), weekInterval)
   );
 
-  const newTasksThisWeek = project.tasks.filter((t) =>
+  const newTasksThisWeek = projectTasks.filter((t) =>
     isWithinInterval(new Date(t.createdAt), weekInterval)
   );
 
-  const blockades = project.tasks.filter(
+  const blockades = projectTasks.filter(
     (t) =>
       t.dueDate &&
       new Date(t.dueDate) < now &&
@@ -214,10 +215,10 @@ export default async function ProjectReportPage({ params }: PageProps) {
   const memberEmails = project.members.map((m) => m.user.email).filter(Boolean).join(", ");
 
   // Executive Summary auto-generieren
-  const totalTasks = project.tasks.length;
-  const doneTasks = project.tasks.filter((t) => t.status === "done").length;
-  const inProgressTasks = project.tasks.filter((t) => t.status === "in_progress").length;
-  const overdueCount = project.tasks.filter(
+  const totalTasks = projectTasks.length;
+  const doneTasks = projectTasks.filter((t) => t.status === "done").length;
+  const inProgressTasks = projectTasks.filter((t) => t.status === "in_progress").length;
+  const overdueCount = projectTasks.filter(
     (t) => t.dueDate && new Date(t.dueDate) < now && t.status !== "done" && t.status !== "cancelled"
   ).length;
   const completedMilestones = project.milestones.filter((m) => m.status === "completed").length;
