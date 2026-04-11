@@ -94,6 +94,28 @@ function getZoomRange(mode: ZoomMode, anchor: Date): { start: Date; end: Date } 
 function computeCriticalPath(tasks: GanttTask[]): Set<string> {
   const taskMap = new Map<string, GanttTask>(tasks.map((t) => [t.id, t]));
 
+  // Nur Tasks mit Dependencies bilden den kritischen Pfad.
+  // Ermittle alle Tasks die Teil einer Abhängigkeitskette sind.
+  const hasOutgoing = new Set<string>(); // hat dependsOnIds
+  const hasIncoming = new Set<string>(); // wird von anderem Task referenziert
+
+  for (const t of tasks) {
+    const deps = t.dependsOnIds ?? [];
+    if (deps.length > 0) {
+      hasOutgoing.add(t.id);
+      for (const depId of deps) hasIncoming.add(depId);
+    }
+  }
+
+  // Tasks die in keiner Kette sind → nicht relevant für kritischen Pfad
+  const inChain = new Set<string>();
+  for (const id of hasOutgoing) inChain.add(id);
+  for (const id of hasIncoming) inChain.add(id);
+
+  if (inChain.size === 0) return new Set(); // Keine Dependencies → kein kritischer Pfad
+
+  const chainTasks = tasks.filter((t) => inChain.has(t.id));
+
   // Dauer eines Tasks in Tagen
   function taskDuration(task: GanttTask): number {
     if (!task.startDate && !task.dueDate) return 1;
@@ -117,7 +139,7 @@ function computeCriticalPath(tasks: GanttTask[]): Set<string> {
     const task = taskMap.get(taskId);
     if (!task) return 0;
 
-    const preds = task.dependsOnIds ?? [];
+    const preds = (task.dependsOnIds ?? []).filter((id) => taskMap.has(id));
     const predMax = preds.length > 0
       ? Math.max(...preds.map((id) => earliestFinish(id, new Set(visited))))
       : 0;
@@ -127,8 +149,8 @@ function computeCriticalPath(tasks: GanttTask[]): Set<string> {
     return result;
   }
 
-  // Berechne für alle Tasks
-  for (const t of tasks) earliestFinish(t.id);
+  // Berechne nur für Tasks in Dependency-Ketten
+  for (const t of chainTasks) earliestFinish(t.id);
 
   if (memo.size === 0) return new Set();
 
@@ -145,7 +167,7 @@ function computeCriticalPath(tasks: GanttTask[]): Set<string> {
     if (!task) return;
     criticalSet.add(taskId);
 
-    const preds = task.dependsOnIds ?? [];
+    const preds = (task.dependsOnIds ?? []).filter((id) => taskMap.has(id));
     const dur = taskDuration(task);
 
     for (const predId of preds) {

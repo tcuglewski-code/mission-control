@@ -42,10 +42,11 @@ export default async function DashboardPage() {
     timeEntriesToday,
     teamMembers,
   ] = await Promise.all([
-    // Total open tasks count
+    // Total open tasks count (nur aus aktiven/planning Projekten)
     prisma.task.count({
       where: {
         status: { not: "done" },
+        project: { status: { in: ["active", "planning"] } },
         ...(allowedIds ? { projectId: { in: allowedIds } } : {}),
       },
     }).catch(() => 0),
