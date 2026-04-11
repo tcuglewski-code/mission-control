@@ -12,6 +12,11 @@ export default function TenantsPage() {
   return (
     <AppShell title="Tenants" subtitle="Mandantenverwaltung">
       <div className="space-y-6">
+        <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl text-sm text-blue-300">
+          Tenants sind deine Kunden. Jeder Tenant hat eigene Systeme, Verträge und MRR.
+          Über die Tenant-Verwaltung kannst du neue Mandanten anlegen und bestehende konfigurieren.
+        </div>
+
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-semibold text-white">Alle Tenants</h2>
           <Link
