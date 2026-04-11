@@ -58,7 +58,7 @@
     --foreground: 48 100% 92%;       /* Warmes Weiß/Creme */
     --card: 120 22% 18%;             /* Etwas heller als BG */
     --card-foreground: 48 100% 92%;
-    --popover: 120 22% 16%;
+    --popover: 120 15% 15%;
     --popover-foreground: 48 100% 92%;
     --primary: 43 100% 50%;          /* Gold #FFB300 */
     --primary-foreground: 120 26% 10%;
@@ -66,7 +66,7 @@
     --secondary-foreground: 48 90% 85%;
     --muted: 120 15% 24%;
     --muted-foreground: 120 10% 55%;
-    --accent: 120 18% 22%;
+    --accent: 120 12% 22%;
     --accent-foreground: 48 100% 92%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
