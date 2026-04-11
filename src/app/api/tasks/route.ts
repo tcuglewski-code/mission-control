@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
       description,
       status,
       priority,
-      labels,
+      labels: rawLabels,
       dueDate,
       startDate,
       agentPrompt,
@@ -123,7 +123,14 @@ export async function POST(req: NextRequest) {
       recurringEndDate,
       parentTaskId,
       startAfterTaskId,
+      iceImpact,
+      iceConfidence,
+      iceEase,
+      iceScore,
     } = body;
+
+    // labels: accept string or string[] — store as comma-separated string
+    const labels = Array.isArray(rawLabels) ? rawLabels.join(",") : rawLabels ?? null;
 
     if (!title) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
@@ -159,6 +166,10 @@ export async function POST(req: NextRequest) {
         recurringEndDate: recurringEndDate ? new Date(recurringEndDate) : null,
         parentTaskId: parentTaskId || null,
         startAfterTaskId: startAfterTaskId || null,
+        iceImpact: iceImpact ?? null,
+        iceConfidence: iceConfidence ?? null,
+        iceEase: iceEase ?? null,
+        iceScore: iceScore ?? null,
       },
       include: {
         project: { select: { id: true, name: true, color: true } },

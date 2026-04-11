@@ -105,6 +105,11 @@ model Task {
   recurringEndDate  DateTime? // Wann endet die Wiederholung
   parentTaskId      String? // ID der Ursprungs-Task (bei erzeugten Kopien)
   startAfterTaskId  String? // Startet erst nach: ID der Vorgänger-Task
+  // ─── ICE Scoring ──────────────────────────────────────────────────────────
+  iceImpact         Int?
+  iceConfidence     Int?
+  iceEase           Int?
+  iceScore          Float?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   projectId         String?
