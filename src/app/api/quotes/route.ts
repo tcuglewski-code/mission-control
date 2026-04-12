@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const body = await req.json();
-    const { number, projectId, clientName, clientEmail, title, items, validUntil, status, note } = body;
+    const { number, projectId, clientId, clientName, clientEmail, title, items, validUntil, status, note } = body;
 
     if (!number) return NextResponse.json({ error: "Angebotsnummer ist erforderlich" }, { status: 400 });
     if (!clientName) return NextResponse.json({ error: "Kundenname ist erforderlich" }, { status: 400 });
@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
       data: {
         number,
         projectId: projectId || null,
+        clientId: clientId || null,
         clientName,
         clientEmail: clientEmail || null,
         title,

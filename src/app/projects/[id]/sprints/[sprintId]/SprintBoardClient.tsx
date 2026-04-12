@@ -378,20 +378,20 @@ export function SprintBoardClient({ sprint: initialSprint, backlogTasks: initial
   };
 
   // ─── Stats ─────────────────────────────────────────────────────────────────
-
-  const totalTasks = sprint.tasks.length;
-  const doneTasks = sprint.tasks.filter((t) => t.status === "done").length;
+  const sprintTasks = sprint.tasks ?? [];
+  const totalTasks = sprintTasks.length;
+  const doneTasks = sprintTasks.filter((t) => t.status === "done").length;
   const progress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
-  const totalSP = sprint.tasks.reduce((s, t) => s + (t.storyPoints ?? 0), 0);
-  const doneSP = sprint.tasks.filter((t) => t.status === "done").reduce((s, t) => s + (t.storyPoints ?? 0), 0);
+  const totalSP = sprintTasks.reduce((s, t) => s + (t.storyPoints ?? 0), 0);
+  const doneSP = sprintTasks.filter((t) => t.status === "done").reduce((s, t) => s + (t.storyPoints ?? 0), 0);
   const daysRemaining = sprint.endDate ? differenceInDays(new Date(sprint.endDate), new Date()) : null;
 
-  const draggedTask = draggedTaskId ? sprint.tasks.find((t) => t.id === draggedTaskId) : null;
+  const draggedTask = draggedTaskId ? sprintTasks.find((t) => t.id === draggedTaskId) : null;
 
   // Column tasks
   const columnTasks = COLUMNS.map((col) => ({
     ...col,
-    tasks: sprint.tasks.filter((t) => col.statuses.includes(t.status)),
+    tasks: sprintTasks.filter((t) => col.statuses.includes(t.status)),
   }));
 
   return (
@@ -485,7 +485,7 @@ export function SprintBoardClient({ sprint: initialSprint, backlogTasks: initial
           </div>
           <div className="text-center">
             <div className="text-xl font-bold text-blue-400">
-              {sprint.tasks.filter((t) => t.status === "in_progress").length}
+              {sprintTasks.filter((t) => t.status === "in_progress").length}
             </div>
             <div className="text-[10px] text-zinc-500">In Bearbeitung</div>
           </div>

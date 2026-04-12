@@ -84,6 +84,20 @@ export const AVAILABLE_WIDGETS: WidgetDefinition[] = [
     description: "Die 5 zuletzt geöffneten Projekte und Tasks",
   },
   {
+    id: "fokus-zeit",
+    title: "Fokus-Zeit Heute",
+    defaultVisible: true,
+    defaultOrder: 10,
+    description: "Pomodoro-Statistiken für heute",
+  },
+  {
+    id: "kunden",
+    title: "Kunden",
+    defaultVisible: true,
+    defaultOrder: 13,
+    description: "Top 3 Kunden nach Umsatz + Neukunden diesen Monat",
+  },
+  {
     id: "live-feed",
     title: "Live Feed",
     defaultVisible: true,
@@ -110,6 +124,27 @@ export const AVAILABLE_WIDGETS: WidgetDefinition[] = [
     defaultVisible: true,
     defaultOrder: 13,
     description: "Token-Verbrauch und Kosten der KI-Features (API + Max/Amadeus)",
+  },
+  {
+    id: "neon-monitor",
+    title: "Neon DB Monitor",
+    defaultVisible: true,
+    defaultOrder: 14,
+    description: "Neon-Datenbank Status, Latenz und Region (60s Auto-Update)",
+  },
+  {
+    id: "zipayo",
+    title: "Zipayo",
+    defaultVisible: true,
+    defaultOrder: 15,
+    description: "Zipayo Payment Platform — Launch Status, Merchants und MRR",
+  },
+  {
+    id: "system-health",
+    title: "System Health",
+    defaultVisible: true,
+    defaultOrder: 16,
+    description: "Letzte Worker-Ergebnisse — Monitoring, Security, Compliance",
   },
 ];
 

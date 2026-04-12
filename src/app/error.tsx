@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
-import Link from 'next/link';
+import { useEffect } from "react";
+import { AlertTriangle, RefreshCw, Home } from "lucide-react";
+import Link from "next/link";
 
 export default function Error({
   error,
@@ -12,7 +12,7 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('[Page Error]', error);
+    console.error("[Page Error]", error);
   }, [error]);
 
   return (
@@ -21,22 +21,23 @@ export default function Error({
         <div className="w-14 h-14 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-5">
           <AlertTriangle className="w-7 h-7 text-amber-500" />
         </div>
-        
+
         <h2 className="text-lg font-semibold text-white mb-2">
           Seite konnte nicht geladen werden
         </h2>
-        
+
         <p className="text-zinc-400 text-sm mb-6">
           Beim Laden dieser Seite ist ein Fehler aufgetreten.
         </p>
 
-        {/* Debug: immer Fehlermeldung anzeigen */}
-        <p className="text-xs text-red-400 mb-4 font-mono bg-[#0f0f0f] px-3 py-1.5 rounded text-left break-all">
-          {error.message || error.toString() || 'Unbekannter Fehler'}
-        </p>
+        {error.message && (
+          <p className="text-xs text-red-400 mb-4 font-mono bg-[#0f0f0f] px-3 py-1.5 rounded text-left break-all">
+            {error.message}
+          </p>
+        )}
         {error.digest && (
           <p className="text-xs text-zinc-600 mb-2 font-mono bg-[#0f0f0f] px-3 py-1.5 rounded">
-            {error.digest}
+            Digest: {error.digest}
           </p>
         )}
 
@@ -48,7 +49,6 @@ export default function Error({
             <RefreshCw className="w-4 h-4" />
             Erneut laden
           </button>
-          
           <Link
             href="/dashboard"
             className="flex items-center gap-2 px-4 py-2 bg-[#2a2a2a] hover:bg-[#333] text-white rounded-lg text-sm font-medium transition-colors"

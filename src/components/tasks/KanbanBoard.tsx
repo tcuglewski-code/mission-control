@@ -411,7 +411,7 @@ export function KanbanBoard({ projects, users, filteredTasks, isAdmin }: KanbanB
     })
   );
 
-  const baseTasks = filteredTasks ?? tasks;
+  const baseTasks = Array.isArray(filteredTasks) ? filteredTasks : Array.isArray(tasks) ? tasks : [];
   const displayTasks = selectedSprintId
     ? baseTasks.filter((t) => t.sprintId === selectedSprintId)
     : baseTasks;

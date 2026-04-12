@@ -11,7 +11,10 @@ interface ProjectData {
   progress: number;
   priority: string;
   color: string;
+  clientId?: string | null;
 }
+
+interface ClientOption { id: string; name: string; }
 
 interface ProjectModalProps {
   project?: ProjectData | null;
@@ -33,8 +36,17 @@ export function ProjectModal({ project, onClose, onSave, onDelete }: ProjectModa
     progress: 0,
     priority: "medium",
     color: "#3b82f6",
+    clientId: "",
   });
   const [loading, setLoading] = useState(false);
+  const [clients, setClients] = useState<ClientOption[]>([]);
+
+  useEffect(() => {
+    fetch("/api/clients?sortBy=name&sortDir=asc")
+      .then((r) => r.ok ? r.json() : [])
+      .then(setClients)
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (project) {
@@ -45,6 +57,7 @@ export function ProjectModal({ project, onClose, onSave, onDelete }: ProjectModa
         progress: project.progress,
         priority: project.priority,
         color: project.color,
+        clientId: project.clientId ?? "",
       });
     }
   }, [project]);
@@ -113,6 +126,21 @@ export function ProjectModal({ project, onClose, onSave, onDelete }: ProjectModa
               rows={2}
               className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 resize-none"
             />
+          </div>
+
+          {/* Kunde */}
+          <div>
+            <label className="text-xs text-zinc-400 mb-1 block">Kunde</label>
+            <select
+              value={form.clientId}
+              onChange={(e) => setForm({ ...form, clientId: e.target.value })}
+              className="w-full bg-[#252525] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-base text-white focus:outline-none focus:border-emerald-500/50"
+            >
+              <option value="">— Kein Kunde —</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
           </div>
 
           {/* Status + Priority */}

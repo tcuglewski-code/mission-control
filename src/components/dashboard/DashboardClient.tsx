@@ -17,10 +17,15 @@ import { TeamAuslastungWidget } from "./widgets/TeamAuslastungWidget";
 import { BudgetUebersichtWidget } from "./widgets/BudgetUebersichtWidget";
 import { AktuellerSprintWidget } from "./widgets/AktuellerSprintWidget";
 import { ZuletztBesuchtWidget } from "./widgets/ZuletztBesuchtWidget";
+import { FokusZeitWidget } from "./widgets/FokusZeitWidget";
+import { KundenWidget } from "./widgets/KundenWidget";
 import { LiveFeedWidget } from "./widgets/LiveFeedWidget";
 import { ProjektBudgetsWidget } from "./widgets/ProjektBudgetsWidget";
 import { AngeboteWidget } from "./widgets/AngeboteWidget";
 import { AiCostWidget } from "./widgets/AiCostWidget";
+import { NeonMonitorWidget } from "./widgets/NeonMonitorWidget";
+import { ZipayoWidget } from "./widgets/ZipayoWidget";
+import { SystemHealthWidget } from "./widgets/SystemHealthWidget";
 
 // --- Shared types (serialized from server) ---
 
@@ -80,6 +85,16 @@ interface TeamMember {
   openTaskCount: number;
 }
 
+interface WorkerResultItem {
+  id: string;
+  taskName: string;
+  runTs: Date | string;
+  status: string;
+  summary?: string | null;
+  domain?: string | null;
+  severity: string;
+}
+
 export interface DashboardClientProps {
   // Stats
   activeProjectsCount: number;
@@ -97,6 +112,7 @@ export interface DashboardClientProps {
   totalMinutesToday: number;
   teamMembers: TeamMember[];
   budgetProjects: Project[];
+  workerResults?: WorkerResultItem[];
 }
 
 export function DashboardClient({
@@ -113,6 +129,7 @@ export function DashboardClient({
   totalMinutesToday,
   teamMembers,
   budgetProjects,
+  workerResults,
 }: DashboardClientProps) {
   const { config, visibleWidgets, toggleWidget, reorderWidgets, resetConfig } =
     useWidgetConfig();
@@ -150,6 +167,10 @@ export function DashboardClient({
         return <AktuellerSprintWidget />;
       case "zuletzt-besucht":
         return <ZuletztBesuchtWidget />;
+      case "fokus-zeit":
+        return <FokusZeitWidget />;
+      case "kunden":
+        return <KundenWidget />;
       case "live-feed":
         return <LiveFeedWidget />;
       case "projekt-budgets":
@@ -158,6 +179,12 @@ export function DashboardClient({
         return <AngeboteWidget />;
       case "ai-cost":
         return <AiCostWidget />;
+      case "neon-monitor":
+        return <NeonMonitorWidget />;
+      case "zipayo":
+        return <ZipayoWidget />;
+      case "system-health":
+        return <SystemHealthWidget results={workerResults || []} />;
       default:
         return null;
     }

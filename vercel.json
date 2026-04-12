@@ -1,6 +1,6 @@
 {
   "regions": ["fra1"],
-  "buildCommand": "rm -rf .next && prisma generate && next build",
+  "buildCommand": "rm -rf .next node_modules/.cache && prisma generate && next build",
   "crons": [
     {
       "path": "/api/reports/weekly",
@@ -77,6 +77,21 @@
     {
       "path": "/api/cron/cleanup-pd-access-log",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/research-news",
+      "schedule": "0 7 * * 1"
+    },
+    {
+      "path": "/api/cron/seo-audit",
+      "schedule": "0 10 1 * *"
+    },
+    {
+      "path": "/api/cron/lead-generation",
+      "schedule": "0 8 * * 3"
     }
+  ],
+  "alias": [
+    "mission-control-tawny-omega.vercel.app"
   ]
 }

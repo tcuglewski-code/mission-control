@@ -33,13 +33,14 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Meilenstein nicht gefunden" }, { status: 404 });
     }
 
-    const totalTasks = milestone.tasks.length;
+    const tasks = milestone.tasks ?? [];
+    const totalTasks = tasks.length;
     const tasksByStatus = {
-      backlog: milestone.tasks.filter((t) => t.status === "backlog").length,
-      todo: milestone.tasks.filter((t) => t.status === "todo").length,
-      in_progress: milestone.tasks.filter((t) => t.status === "in_progress").length,
-      in_review: milestone.tasks.filter((t) => t.status === "in_review").length,
-      done: milestone.tasks.filter((t) => t.status === "done").length,
+      backlog: tasks.filter((t) => t.status === "backlog").length,
+      todo: tasks.filter((t) => t.status === "todo").length,
+      in_progress: tasks.filter((t) => t.status === "in_progress").length,
+      in_review: tasks.filter((t) => t.status === "in_review").length,
+      done: tasks.filter((t) => t.status === "done").length,
     };
 
     const calculatedProgress = totalTasks > 0 

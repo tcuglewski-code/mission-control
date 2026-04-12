@@ -1,15 +1,34 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
-/**
- * GET /api/ai/usage/summary
- * Stub-Route für AI-Usage Summary
- */
 export async function GET() {
-  return NextResponse.json({
-    totalTokens: 0,
-    totalCostUsd: 0,
-    dailyAverage: 0,
-    topFeatures: [],
-    message: "API stub - use /api/ai/usage instead",
-  });
+  try {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [all, thisMonth] = await Promise.all([
+      prisma.aiUsage.aggregate({
+        _sum: { cost: true, totalTokens: true },
+        _count: { id: true },
+      }),
+      prisma.aiUsage.aggregate({
+        where: { createdAt: { gte: startOfMonth } },
+        _sum: { cost: true },
+      }),
+    ]);
+
+    return NextResponse.json({
+      totalCost: all._sum.cost ?? 0,
+      totalTokens: all._sum.totalTokens ?? 0,
+      callCount: all._count.id ?? 0,
+      thisMonth: thisMonth._sum.cost ?? 0,
+    });
+  } catch {
+    return NextResponse.json({
+      totalCost: 0,
+      totalTokens: 0,
+      callCount: 0,
+      thisMonth: 0,
+    });
+  }
 }

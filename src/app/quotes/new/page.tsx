@@ -52,8 +52,8 @@ function newItem(): QuoteItem {
   };
 }
 
-// ─── Inner Component (uses useSearchParams) ───────────────────────────────────
-function NewQuoteForm() {
+// ─── Hauptkomponente ──────────────────────────────────────────────────────────
+function NewQuotePageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -61,6 +61,7 @@ function NewQuoteForm() {
   const thirtyDays = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
   const [projects, setProjects] = useState<Project[]>([]);
+  const [clientOptions, setClientOptions] = useState<{ id: string; name: string; email: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +69,7 @@ function NewQuoteForm() {
   // Formular-State
   const [quoteNumber, setQuoteNumber] = useState("");
   const [projectId, setProjectId] = useState(searchParams.get("projectId") ?? "");
+  const [selectedClientId, setSelectedClientId] = useState(searchParams.get("clientId") ?? "");
   const [clientName, setClientName] = useState("");
   const [clientEmail, setClientEmail] = useState("");
   const [title, setTitle] = useState("");
@@ -79,15 +81,17 @@ function NewQuoteForm() {
   useEffect(() => {
     async function load() {
       try {
-        const [projRes, numRes] = await Promise.all([
+        const [projRes, numRes, clientRes] = await Promise.all([
           fetch("/api/projects"),
           fetch("/api/quotes/next-number"),
+          fetch("/api/clients?sortBy=name&sortDir=asc"),
         ]);
         if (projRes.ok) setProjects(await projRes.json());
         if (numRes.ok) {
           const { number } = await numRes.json();
           setQuoteNumber(number);
         }
+        if (clientRes.ok) setClientOptions(await clientRes.json());
       } finally {
         setLoading(false);
       }
@@ -120,6 +124,7 @@ function NewQuoteForm() {
         body: JSON.stringify({
           number: quoteNumber,
           projectId: projectId || null,
+          clientId: selectedClientId || null,
           clientName: clientName.trim(),
           clientEmail: clientEmail.trim() || null,
           title: title.trim(),
@@ -210,6 +215,31 @@ function NewQuoteForm() {
                     <option key={p.id} value={p.id}>
                       {p.name}
                     </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Kunde (optional) */}
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1.5">Kunde (optional)</label>
+                <select
+                  value={selectedClientId}
+                  onChange={(e) => {
+                    const cid = e.target.value;
+                    setSelectedClientId(cid);
+                    if (cid) {
+                      const c = clientOptions.find((x) => x.id === cid);
+                      if (c) {
+                        setClientName(c.name);
+                        setClientEmail(c.email ?? "");
+                      }
+                    }
+                  }}
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="">– Kein Kunde –</option>
+                  {clientOptions.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
               </div>
@@ -426,11 +456,12 @@ function NewQuoteForm() {
   );
 }
 
-// ─── Page Export mit Suspense ─────────────────────────────────────────────────
+// Force dynamic rendering (useSearchParams requires Suspense or dynamic)
+
 export default function NewQuotePage() {
   return (
-    <Suspense fallback={<AppShell title="Neues Angebot"><div className="flex items-center justify-center py-20 text-zinc-500">Lade…</div></AppShell>}>
-      <NewQuoteForm />
+    <Suspense fallback={<div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center"><div className="text-zinc-500 text-sm">Lädt...</div></div>}>
+      <NewQuotePageInner />
     </Suspense>
   );
 }

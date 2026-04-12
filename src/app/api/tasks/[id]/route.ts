@@ -409,8 +409,13 @@ export async function PUT(
 
     const { id } = await params;
     const body = await req.json();
+    const prevTask = await prisma.task.findUnique({ where: { id }, select: { status: true } });
     const task = await updateTask(id, body);
     triggerWebhooks("task.updated", { task }, task.projectId ?? undefined);
+    // Separates Event wenn Task als erledigt markiert wird
+    if (body.status === "done" && prevTask?.status !== "done") {
+      triggerWebhooks("task.completed", { task }, task.projectId ?? undefined);
+    }
     void fireTaskNotifications(task, body);
     return NextResponse.json(task);
   } catch (error) {
@@ -441,8 +446,13 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await req.json();
+    const prevTask2 = await prisma.task.findUnique({ where: { id }, select: { status: true } });
     const task = await updateTask(id, body);
     triggerWebhooks("task.updated", { task }, task.projectId ?? undefined);
+    // Separates Event wenn Task als erledigt markiert wird
+    if (body.status === "done" && prevTask2?.status !== "done") {
+      triggerWebhooks("task.completed", { task }, task.projectId ?? undefined);
+    }
     void fireTaskNotifications(task, body);
     return NextResponse.json(task);
   } catch (error) {

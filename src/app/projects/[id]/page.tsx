@@ -125,11 +125,12 @@ export default async function ProjectDetailPage({ params }: PageProps) {
 
   if (!project) notFound();
 
+  const projectTasks = project.tasks ?? [];
   const tasksByStatus = {
-    backlog: project.tasks.filter((t) => t.status === "backlog").length,
-    in_progress: project.tasks.filter((t) => t.status === "in_progress").length,
-    in_review: project.tasks.filter((t) => t.status === "in_review").length,
-    done: project.tasks.filter((t) => t.status === "done").length,
+    backlog: projectTasks.filter((t) => t.status === "backlog").length,
+    in_progress: projectTasks.filter((t) => t.status === "in_progress").length,
+    in_review: projectTasks.filter((t) => t.status === "in_review").length,
+    done: projectTasks.filter((t) => t.status === "done").length,
   };
 
   const today = new Date();
@@ -138,19 +139,19 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   const hasActiveSprint = false; // sprints not loaded here — add if needed
   const lastLog = project.logs[0];
   const healthScore = calculateHealthScore({
-    tasks: project.tasks,
+    tasks: projectTasks,
     hasActiveSprint,
     lastActivityAt: lastLog?.createdAt ?? null,
   });
 
   // Status Banner Daten
   const openTasksCount =
-    project.tasks.filter(
+    projectTasks.filter(
       (t) => t.status === "todo" || t.status === "backlog" || t.status === "in_progress" || t.status === "in_review"
     ).length;
   const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
-  const dueTodayCount = project.tasks.filter(
+  const dueTodayCount = projectTasks.filter(
     (t) =>
       t.dueDate &&
       new Date(t.dueDate) >= todayStart &&
@@ -161,9 +162,10 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     (m) => m.status !== "completed" && m.status !== "cancelled" && m.dueDate && new Date(m.dueDate) >= today
   );
 
-  const milestonesWithProgress = project.milestones.map((m) => {
-    const totalTasks = m.tasks.length;
-    const doneTasks = m.tasks.filter((t) => t.status === "done").length;
+  const milestonesWithProgress = (project.milestones ?? []).map((m) => {
+    const mTasks = m.tasks ?? [];
+    const totalTasks = mTasks.length;
+    const doneTasks = mTasks.filter((t) => t.status === "done").length;
     const calculatedProgress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
     return {
       ...m,
@@ -173,10 +175,10 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   });
 
   // Group tasks by sprint label
-  const sprintGroups: Record<string, typeof project.tasks> = {};
-  const noSprintTasks: typeof project.tasks = [];
+  const sprintGroups: Record<string, typeof projectTasks> = {};
+  const noSprintTasks: typeof projectTasks = [];
 
-  for (const task of project.tasks) {
+  for (const task of projectTasks) {
     const sprint = getSprintLabel(task);
     if (sprint) {
       if (!sprintGroups[sprint]) sprintGroups[sprint] = [];

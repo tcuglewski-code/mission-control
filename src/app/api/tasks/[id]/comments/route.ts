@@ -8,6 +8,7 @@ import {
   extractMentions,
   findUsersByMentionNames,
 } from "@/lib/notifications";
+import { triggerWebhooks } from "@/lib/webhooks";
 
 // GET /api/tasks/[id]/comments
 export async function GET(
@@ -119,6 +120,9 @@ export async function POST(
         }
       }
     })();
+
+    // Webhook auslösen (comment.added)
+    triggerWebhooks("comment.added", { task: { id: task.id, title: task.title, project: task.project }, comment }, task.projectId ?? undefined);
 
     return NextResponse.json(comment, { status: 201 });
   } catch (err) {

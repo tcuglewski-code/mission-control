@@ -18,6 +18,7 @@ export const authConfig: NextAuthConfig = {
         nextUrl.pathname.startsWith("/api/webhooks/") ||
         nextUrl.pathname.startsWith("/api/share/") ||
         nextUrl.pathname.startsWith("/api/cron/") ||
+        nextUrl.pathname.startsWith("/api/login/") ||
         nextUrl.pathname === "/api/agents/heartbeat";
 
       if (isPublicPath) return true;

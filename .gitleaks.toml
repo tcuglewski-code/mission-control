@@ -1,0 +1,52 @@
+# Gitleaks Configuration for Mission Control
+# https://github.com/gitleaks/gitleaks
+
+[extend]
+# Extend default rules
+useDefault = true
+
+[allowlist]
+description = "Allowlist for false positives"
+paths = [
+  '''node_modules''',
+  '''\.next''',
+  '''\.git''',
+  '''package-lock\.json''',
+  '''yarn\.lock''',
+  '''pnpm-lock\.yaml''',
+  '''\.env\.example''',
+]
+
+# Regexes for values that should be ignored
+regexes = [
+  '''REDACTED_.*''',
+  '''YOUR_.*_HERE''',
+  '''<.*>''',
+  '''placeholder''',
+  '''example\.com''',
+  '''localhost''',
+]
+
+[[rules]]
+id = "feldhub-api-key"
+description = "Feldhub/MC API Key"
+regex = '''mc_live_[a-f0-9]{64}'''
+tags = ["key", "feldhub"]
+
+[[rules]]
+id = "neon-db-password"
+description = "Neon Database Password"
+regex = '''npg_[a-zA-Z0-9]{11,}'''
+tags = ["database", "neon"]
+
+[[rules]]
+id = "vercel-token"
+description = "Vercel Token"
+regex = '''vc[pk]_[a-zA-Z0-9]{48,}'''
+tags = ["vercel", "token"]
+
+[[rules]]
+id = "amadeus-token"
+description = "Amadeus Token"
+regex = '''AmadeusLoop\d{4}![a-zA-Z0-9]+'''
+tags = ["amadeus", "token"]

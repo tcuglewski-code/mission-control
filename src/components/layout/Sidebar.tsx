@@ -11,6 +11,7 @@ import {
   Timer,
   Clock,
   FolderKanban,
+  Building2,
   Brain,
   FileText,
   FolderArchive,
@@ -39,6 +40,7 @@ import {
   Banknote,
   Mail,
   BarChart2,
+  Plug,
   ActivitySquare,
   Bell,
   Search,
@@ -49,9 +51,8 @@ import {
   BellRing,
   RefreshCw,
   Target,
-  TrendingUp,
-  NotebookPen,
-  Building2,
+  Download,
+  CreditCard,
 } from "lucide-react";
 import { useKeyboardShortcutsModal } from "@/hooks/useKeyboardShortcutsModal";
 import { useQuickAdd } from "@/hooks/useQuickAdd";
@@ -59,55 +60,50 @@ import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/useAppStore";
 import { useThemeStore } from "@/store/useThemeStore";
 
-const IC = "w-4 h-4 shrink-0";
-
 const navItems: { href: string; icon: React.ReactNode; label: string }[] = [
-  { href: "/dashboard", icon: <LayoutDashboard className={IC} />, label: "Dashboard" },
-  { href: "/live", icon: <Radio className={IC} />, label: "Live Dashboard" },
-  { href: "/search", icon: <Search className={IC} />, label: "Erweiterte Suche" },
-  { href: "/my-day", icon: <Sun className={IC} />, label: "Mein Tag" },
-  { href: "/my-week", icon: <CalendarDays className={IC} />, label: "Meine Woche" },
-  { href: "/announcements", icon: <Megaphone className={IC} />, label: "Ankündigungen" },
-  { href: "/tasks", icon: <CheckSquare className={IC} />, label: "Aufgaben" },
-  { href: "/ice-ranking", icon: <Target className={IC} />, label: "ICE Priorisierung" },
-  { href: "/notifications", icon: <Bell className={IC} />, label: "Benachrichtigungen" },
-  { href: "/inbox", icon: <Mail className={IC} />, label: "Posteingang" },
-  { href: "/sprints", icon: <Flag className={IC} />, label: "Sprints" },
-  { href: "/timeline", icon: <GanttChartSquare className={IC} />, label: "Timeline" },
-  { href: "/digest", icon: <Newspaper className={IC} />, label: "KI-Digest" },
-  { href: "/calendar", icon: <CalendarDays className={IC} />, label: "Kalender" },
-  { href: "/time", icon: <Clock className={IC} />, label: "Zeiterfassung" },
-  { href: "/cronjobs", icon: <Timer className={IC} />, label: "Cron Jobs" },
-  { href: "/loop", icon: <RefreshCw className={IC} />, label: "Auto-Loop" },
-  { href: "/projects", icon: <FolderKanban className={IC} />, label: "Projekte" },
-  { href: "/sales", icon: <Target className={IC} />, label: "Sales Pipeline" },
-  { href: "/okr", icon: <Target className={IC} />, label: "OKR Dashboard" },
-  { href: "/meetings", icon: <NotebookPen className={IC} />, label: "Meeting Notes" },
-  { href: "/risks", icon: <ShieldCheck className={IC} />, label: "Risk Register" },
-  { href: "/decisions", icon: <FileText className={IC} />, label: "Decisions Log" },
-  { href: "/finance", icon: <Banknote className={IC} />, label: "Finanzen" },
-  { href: "/finance/cashflow", icon: <TrendingUp className={IC} />, label: "Cash Flow" },
-  { href: "/quotes", icon: <FileText className={IC} />, label: "Angebote" },
-  { href: "/invoice-templates", icon: <FileText className={IC} />, label: "Rechnungsvorlagen" },
-  { href: "/activity", icon: <ActivitySquare className={IC} />, label: "Aktivitäten" },
-  { href: "/analytics", icon: <BarChart2 className={IC} />, label: "Analytics" },
-  { href: "/reports/weekly", icon: <ClipboardList className={IC} />, label: "Team-Report" },
-  { href: "/reports/export", icon: <FileText className={IC} />, label: "CSV Export" },
-  { href: "/memory", icon: <Brain className={IC} />, label: "Memory" },
-  { href: "/docs", icon: <FileText className={IC} />, label: "Dokumente" },
-  { href: "/documents", icon: <FolderArchive className={IC} />, label: "Dateiverwaltung" },
-  { href: "/team", icon: <Users className={IC} />, label: "Team" },
-  { href: "/team/activity", icon: <ActivitySquare className={IC} />, label: "Team-Aktivität" },
-  { href: "/tools", icon: <Wrench className={IC} />, label: "Tools" },
-  { href: "/estimator", icon: <Zap className={IC} />, label: "SP-Schätzer" },
-  { href: "/ai-usage", icon: <Brain className={IC} />, label: "KI-Kosten" },
-  { href: "/roi", icon: <TrendingUp className={IC} />, label: "ROI Dashboard" },
-  { href: "/databases", icon: <Database className={IC} />, label: "Datenbanken" },
-  { href: "/tickets", icon: <Ticket className={IC} />, label: "Tickets" },
-  { href: "/webhooks", icon: <Webhook className={IC} />, label: "Webhooks" },
-  { href: "/agents", icon: <BotIcon className={IC} />, label: "Agenten" },
-  { href: "/diagram", icon: <GitGraph className={IC} />, label: "Diagramm" },
-  { href: "/templates", icon: <LayoutTemplate className={IC} />, label: "Vorlagen" },
+  { href: "/dashboard", icon: <LayoutDashboard className="w-4 h-4 shrink-0" />, label: "Dashboard" },
+  { href: "/live", icon: <Radio className="w-4 h-4 shrink-0" />, label: "Live Dashboard" },
+  { href: "/search", icon: <Search className="w-4 h-4 shrink-0" />, label: "Erweiterte Suche" },
+  { href: "/my-day", icon: <Sun className="w-4 h-4 shrink-0" />, label: "Mein Tag" },
+  { href: "/my-week", icon: <CalendarDays className="w-4 h-4 shrink-0" />, label: "Meine Woche" },
+  { href: "/announcements", icon: <Megaphone className="w-4 h-4 shrink-0" />, label: "Ankündigungen" },
+  { href: "/tasks", icon: <CheckSquare className="w-4 h-4 shrink-0" />, label: "Aufgaben" },
+  { href: "/notifications", icon: <Bell className="w-4 h-4 shrink-0" />, label: "Benachrichtigungen" },
+  { href: "/inbox", icon: <Mail className="w-4 h-4 shrink-0" />, label: "Posteingang" },
+  { href: "/sprints", icon: <Flag className="w-4 h-4 shrink-0" />, label: "Sprints" },
+  { href: "/timeline", icon: <GanttChartSquare className="w-4 h-4 shrink-0" />, label: "Timeline" },
+  { href: "/digest", icon: <Newspaper className="w-4 h-4 shrink-0" />, label: "KI-Digest" },
+  { href: "/calendar", icon: <CalendarDays className="w-4 h-4 shrink-0" />, label: "Kalender" },
+  { href: "/time", icon: <Clock className="w-4 h-4 shrink-0" />, label: "Zeiterfassung" },
+  { href: "/pomodoro", icon: <Timer className="w-4 h-4 shrink-0" />, label: "Pomodoro" },
+  { href: "/cronjobs", icon: <Timer className="w-4 h-4 shrink-0" />, label: "Cron Jobs" },
+  { href: "/loop", icon: <RefreshCw className="w-4 h-4 shrink-0" />, label: "🔄 Auto-Loop" },
+  { href: "/projects", icon: <FolderKanban className="w-4 h-4 shrink-0" />, label: "Projekte" },
+  { href: "/clients", icon: <Building2 className="w-4 h-4 shrink-0" />, label: "Kunden" },
+  { href: "/sales", icon: <Target className="w-4 h-4 shrink-0" />, label: "Sales Pipeline" },
+  { href: "/zipayo", icon: <CreditCard className="w-4 h-4 shrink-0" />, label: "Zipayo" },
+  { href: "/okr", icon: <Target className="w-4 h-4 shrink-0" />, label: "OKR Dashboard" },
+  { href: "/finance", icon: <Banknote className="w-4 h-4 shrink-0" />, label: "Finanzen" },
+  { href: "/quotes", icon: <FileText className="w-4 h-4 shrink-0" />, label: "Angebote" },
+  { href: "/invoice-templates", icon: <FileText className="w-4 h-4 shrink-0" />, label: "Rechnungsvorlagen" },
+  { href: "/activity", icon: <ActivitySquare className="w-4 h-4 shrink-0" />, label: "Aktivitäten" },
+  { href: "/analytics", icon: <BarChart2 className="w-4 h-4 shrink-0" />, label: "Analytics" },
+  { href: "/reports/weekly", icon: <ClipboardList className="w-4 h-4 shrink-0" />, label: "Team-Report" },
+  { href: "/exports", icon: <Download className="w-4 h-4 shrink-0" />, label: "Export-Center" },
+  { href: "/memory", icon: <Brain className="w-4 h-4 shrink-0" />, label: "Memory" },
+  { href: "/docs", icon: <FileText className="w-4 h-4 shrink-0" />, label: "Dokumente" },
+  { href: "/documents", icon: <FolderArchive className="w-4 h-4 shrink-0" />, label: "Dateiverwaltung" },
+  { href: "/team", icon: <Users className="w-4 h-4 shrink-0" />, label: "Team" },
+  { href: "/team/activity", icon: <ActivitySquare className="w-4 h-4 shrink-0" />, label: "Team-Aktivität" },
+  { href: "/tools", icon: <Wrench className="w-4 h-4 shrink-0" />, label: "Tools" },
+  { href: "/estimator", icon: <Zap className="w-4 h-4 shrink-0" />, label: "📊 SP-Schätzer" },
+  { href: "/ai-usage", icon: <Brain className="w-4 h-4 shrink-0" />, label: "💰 KI-Kosten" },
+  { href: "/databases", icon: <Database className="w-4 h-4 shrink-0" />, label: "Datenbanken" },
+  { href: "/tickets", icon: <Ticket className="w-4 h-4 shrink-0" />, label: "Tickets" },
+  { href: "/webhooks", icon: <Webhook className="w-4 h-4 shrink-0" />, label: "Webhooks" },
+  { href: "/agents", icon: <BotIcon className="w-4 h-4 shrink-0" />, label: "Agenten" },
+  { href: "/diagram", icon: <GitGraph className="w-4 h-4 shrink-0" />, label: "Diagramm" },
+  { href: "/templates", icon: <LayoutTemplate className="w-4 h-4 shrink-0" />, label: "Vorlagen" },
 ];
 
 function ThemeToggleButton() {
@@ -306,7 +302,7 @@ export function Sidebar() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto">
+        <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto" data-version="2">
           {navItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             // Spezial-Rendering für Team-Link: Tooltip mit letzter Aktivität
@@ -445,6 +441,24 @@ export function Sidebar() {
                 <span>Benutzerverwaltung</span>
               </Link>
             )}
+            {role === "admin" && (
+              <Link
+                href="/settings/integrations"
+                onClick={() => setSidebarOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors relative group",
+                  pathname === "/settings/integrations"
+                    ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
+                    : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
+                )}
+              >
+                {pathname === "/settings/integrations" && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-blue-500 rounded-r-full" />
+                )}
+                <Plug className={cn("w-4 h-4 shrink-0", pathname === "/settings/integrations" ? "text-blue-400" : "")} />
+                <span>Integrationen</span>
+              </Link>
+            )}
 
             <Link
               href="/settings/notifications"
@@ -518,22 +532,6 @@ export function Sidebar() {
                 )}
                 <Mail className={cn("w-4 h-4 shrink-0", pathname === "/admin/invites" ? "text-amber-400" : "")} />
                 <span>Einladungen</span>
-              </Link>
-              <Link
-                href="/tenants"
-                onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
-                  pathname === "/tenants"
-                    ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
-                    : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
-                )}
-              >
-                {pathname === "/tenants" && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-amber-500 rounded-r-full" />
-                )}
-                <Building2 className={cn("w-4 h-4 shrink-0", pathname === "/tenants" ? "text-amber-400" : "")} />
-                <span>Tenants</span>
               </Link>
               <Link
                 href="/admin/audit"
@@ -614,38 +612,6 @@ export function Sidebar() {
                 )}
                 <Zap className={cn("w-4 h-4 shrink-0", pathname === "/admin/integrations" ? "text-amber-400" : "")} />
                 <span>Integrationen</span>
-              </Link>
-              <Link
-                href="/admin/upselling"
-                onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
-                  pathname === "/admin/upselling"
-                    ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
-                    : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
-                )}
-              >
-                {pathname === "/admin/upselling" && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-amber-500 rounded-r-full" />
-                )}
-                <TrendingUp className={cn("w-4 h-4 shrink-0", pathname === "/admin/upselling" ? "text-amber-400" : "")} />
-                <span>🎯 Upselling</span>
-              </Link>
-              <Link
-                href="/admin/onboarding"
-                onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors relative group",
-                  pathname === "/admin/onboarding"
-                    ? "bg-gray-100 dark:bg-[#252525] text-gray-900 dark:text-white"
-                    : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#1e1e1e]"
-                )}
-              >
-                {pathname === "/admin/onboarding" && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-amber-500 rounded-r-full" />
-                )}
-                <Users className={cn("w-4 h-4 shrink-0", pathname === "/admin/onboarding" ? "text-amber-400" : "")} />
-                <span>🤖 Onboarding</span>
               </Link>
             </div>
           )}

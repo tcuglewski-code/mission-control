@@ -1,7 +1,6 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { RefreshCw, AlertTriangle } from "lucide-react";
 
 export default function GlobalError({
   error,
@@ -10,48 +9,27 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    // Log error to console for debugging
-    console.error('[Global Error]', error);
-  }, [error]);
-
   return (
     <html lang="de">
-      <body className="bg-[#0f0f0f] min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-8 text-center">
-          <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <AlertTriangle className="w-8 h-8 text-red-500" />
-          </div>
-          
-          <h1 className="text-xl font-bold text-white mb-2">
-            Ein Fehler ist aufgetreten
-          </h1>
-          
-          <p className="text-zinc-400 text-sm mb-6">
-            Die Anwendung hat einen unerwarteten Fehler festgestellt.
-            Bitte versuche es erneut oder lade die Seite neu.
-          </p>
-
-          {error.digest && (
-            <p className="text-xs text-zinc-600 mb-4 font-mono">
-              Error ID: {error.digest}
+      <body className="antialiased bg-[#0f0f0f]">
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-[#161616] border border-[#2a2a2a] rounded-xl p-8 text-center space-y-4">
+            <div className="flex justify-center">
+              <AlertTriangle className="w-12 h-12 text-red-400" />
+            </div>
+            <h2 className="text-xl font-semibold text-white">Kritischer Fehler</h2>
+            <p className="text-sm text-zinc-400">
+              Mission Control hat einen unerwarteten Fehler erlebt.
             </p>
-          )}
-
-          <div className="flex gap-3 justify-center">
+            {error.digest && (
+              <p className="text-xs text-zinc-600 font-mono">Digest: {error.digest}</p>
+            )}
             <button
               onClick={reset}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
+              className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
-              Erneut versuchen
-            </button>
-            
-            <button
-              onClick={() => window.location.href = '/dashboard'}
-              className="px-4 py-2 bg-[#2a2a2a] hover:bg-[#333] text-white rounded-lg text-sm font-medium transition-colors"
-            >
-              Zum Dashboard
+              Neu laden
             </button>
           </div>
         </div>

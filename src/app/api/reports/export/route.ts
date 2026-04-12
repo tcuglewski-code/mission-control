@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
           milestone: t.milestone?.title ?? "",
           dueDate: fmtDate(t.dueDate),
           storyPoints: t.storyPoints?.toString() ?? "",
-          labels: t.taskLabels.map((tl) => tl.label.name).join(", "),
+          labels: (t.taskLabels ?? []).map((tl) => tl.label.name).join(", "),
           createdAt: fmtDate(t.createdAt),
           updatedAt: fmtDate(t.updatedAt),
         };

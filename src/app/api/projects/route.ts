@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, description, status, progress, priority, color } = body;
+    const { name, description, status, progress, priority, color, clientId } = body;
 
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -84,6 +84,7 @@ export async function POST(req: NextRequest) {
         progress: progress ?? 0,
         priority: priority ?? "medium",
         color: color ?? "#3b82f6",
+        clientId: clientId || null,
       },
       include: {
         _count: { select: { tasks: true, members: true } },

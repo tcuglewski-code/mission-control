@@ -25,7 +25,7 @@ export default function LoginPage() {
     try {
       if (!requiresTwoFactor) {
         // Schritt 1: Prüfe ob 2FA erforderlich ist
-        const checkRes = await fetch("/api/auth/2fa/check", {
+        const checkRes = await fetch("/api/login/2fa-check", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username, password })

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logActivity } from "@/lib/audit";
 import { prisma } from '@/lib/prisma';
 import { getSessionOrApiKey } from '@/lib/api-auth';
 
@@ -115,11 +116,12 @@ export async function POST(request: NextRequest) {
     // Activity Log
     await prisma.activityLog.create({
       data: {
-        type: 'ticket_created',
-        action: `Ticket erstellt: ${ticketNumber}`,
-        userId: auth.userId,
+        action: 'ticket_created',
+        entityType: 'ticket',
+        entityId: ticket.id,
+        entityName: ticketNumber,
+        userId: null,
         userEmail: auth.email,
-        meta: JSON.stringify({ ticketId: ticket.id, ticketNumber, category, priority }),
         projectId,
       },
     });

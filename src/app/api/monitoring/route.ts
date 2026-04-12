@@ -8,7 +8,7 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSessionOrApiKey } from "@/lib/session";
+import { getSessionOrApiKey } from "@/lib/api-auth";
 
 export async function GET(request: Request) {
   const session = await getSessionOrApiKey(request);

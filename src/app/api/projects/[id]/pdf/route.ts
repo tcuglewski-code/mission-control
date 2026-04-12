@@ -70,12 +70,13 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     }
 
     // Statistiken berechnen
+    const projektTasks = projekt.tasks ?? [];
     const taskStats = {
-      gesamt: projekt.tasks.length,
-      offen: projekt.tasks.filter((t) => t.status === "todo").length,
-      inArbeit: projekt.tasks.filter((t) => t.status === "in_progress").length,
-      fertig: projekt.tasks.filter((t) => t.status === "done").length,
-      blockiert: projekt.tasks.filter((t) => t.status === "blocked").length,
+      gesamt: projektTasks.length,
+      offen: projektTasks.filter((t) => t.status === "todo").length,
+      inArbeit: projektTasks.filter((t) => t.status === "in_progress").length,
+      fertig: projektTasks.filter((t) => t.status === "done").length,
+      blockiert: projektTasks.filter((t) => t.status === "blocked").length,
     };
 
     const fortschritt = taskStats.gesamt > 0
@@ -256,7 +257,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   <div class="section">
     <h2>📋 Tasks nach Status</h2>
     ${["done", "in_progress", "todo", "blocked", "review"].map((status) => {
-      const tasksInStatus = projekt.tasks.filter((t) => t.status === status);
+      const tasksInStatus = projektTasks.filter((t) => t.status === status);
       if (tasksInStatus.length === 0) return "";
       return `
         <h3 style="font-size:13px;font-weight:600;margin:16px 0 8px;color:#444">

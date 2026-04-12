@@ -1,5 +1,4 @@
 /** @type {import('next').NextConfig} */
-
 const securityHeaders = [
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -30,6 +29,8 @@ const nextConfig = {
       rules: {},
     },
   },
+  // Generate unique build ID to bypass stale chunk cache
+  generateBuildId: () => `build-${Date.now()}`,
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
