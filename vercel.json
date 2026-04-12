@@ -1,6 +1,6 @@
 {
   "regions": ["fra1"],
-  "buildCommand": "rm -rf .next && next build",
+  "buildCommand": "rm -rf .next && prisma generate && prisma db push --accept-data-loss && next build",
   "crons": [
     {
       "path": "/api/reports/weekly",
